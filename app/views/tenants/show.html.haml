@@ -1,0 +1,15 @@
+%p#notice= notice
+
+%p
+  %strong Name:
+  = @tenant.name
+%p
+  %strong Email:
+  = @tenant.email
+%p
+  %strong Phone Number:
+  = @tenant.phone_number
+
+= link_to 'Edit', edit_tenant_path(@tenant)
+\|
+= link_to 'Back', tenants_path

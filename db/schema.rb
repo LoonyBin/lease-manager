@@ -10,13 +10,21 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_01_26_101743) do
+ActiveRecord::Schema[8.0].define(version: 2026_01_26_102556) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
   create_table "properties", force: :cascade do |t|
     t.string "name"
     t.text "address"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "tenants", force: :cascade do |t|
+    t.string "name"
+    t.string "email"
+    t.string "phone_number"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end

@@ -1,0 +1,24 @@
+%h1 Tenants
+
+%table
+  %thead
+    %tr
+      %th Name
+      %th Email
+      %th Phone Number
+      %th Actions
+
+  %tbody
+    - @tenants.each do |tenant|
+      %tr
+        %td= tenant.name
+        %td= tenant.email
+        %td= tenant.phone_number
+        %td
+          = link_to 'Show', tenant
+          = link_to 'Edit', edit_tenant_path(tenant)
+          = link_to 'Destroy', tenant, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }
+
+%br
+
+= link_to 'New Tenant', new_tenant_path
