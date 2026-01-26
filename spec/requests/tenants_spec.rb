@@ -1,6 +1,8 @@
-require 'rails_helper'
+# frozen_string_literal: true
 
-RSpec.describe "Tenants", type: :request do
+require "rails_helper"
+
+RSpec.describe "Tenants" do
   describe "GET /tenants" do
     it "returns http success" do
       get tenants_path
@@ -38,9 +40,9 @@ RSpec.describe "Tenants", type: :request do
       let(:valid_attributes) { { name: "John Doe", email: "john@example.com", phone_number: "555-0123" } }
 
       it "creates a new Tenant" do
-        expect {
+        expect do
           post tenants_path, params: { tenant: valid_attributes }
-        }.to change(Tenant, :count).by(1)
+        end.to change(Tenant, :count).by(1)
       end
 
       it "redirects to the created tenant" do
@@ -51,14 +53,14 @@ RSpec.describe "Tenants", type: :request do
 
     context "with invalid parameters" do
       it "does not create a new Tenant" do
-        expect {
+        expect do
           post tenants_path, params: { tenant: { name: "" } }
-        }.to change(Tenant, :count).by(0)
+        end.not_to change(Tenant, :count)
       end
 
       it "renders the new template" do
         post tenants_path, params: { tenant: { name: "" } }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
     end
   end
@@ -83,7 +85,7 @@ RSpec.describe "Tenants", type: :request do
     context "with invalid parameters" do
       it "renders the edit template" do
         patch tenant_path(tenant), params: { tenant: { name: "" } }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
     end
   end
@@ -92,9 +94,9 @@ RSpec.describe "Tenants", type: :request do
     let!(:tenant) { create(:tenant) }
 
     it "destroys the requested tenant" do
-      expect {
+      expect do
         delete tenant_path(tenant)
-      }.to change(Tenant, :count).by(-1)
+      end.to change(Tenant, :count).by(-1)
     end
 
     it "redirects to the tenants list" do

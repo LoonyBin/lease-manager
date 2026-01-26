@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class PropertiesController < ApplicationController
   def index
     @properties = Property.all
@@ -21,7 +23,7 @@ class PropertiesController < ApplicationController
     if @property.save
       redirect_to @property, notice: "Property was successfully created."
     else
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     end
   end
 
@@ -30,7 +32,7 @@ class PropertiesController < ApplicationController
     if @property.update(property_params)
       redirect_to @property, notice: "Property was successfully updated."
     else
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
 
@@ -43,6 +45,6 @@ class PropertiesController < ApplicationController
   private
 
   def property_params
-    params.require(:property).permit(:name, :address)
+    params.expect(property: %i[name address])
   end
 end

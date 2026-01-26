@@ -1,7 +1,9 @@
-require 'rails_helper'
+# frozen_string_literal: true
 
-RSpec.describe "tenants/show", type: :view do
-  before(:each) do
+require "rails_helper"
+
+RSpec.describe "tenants/show" do
+  before do
     @tenant = assign(:tenant, create(:tenant, name: "Name", email: "Email", phone_number: "Phone"))
   end
 

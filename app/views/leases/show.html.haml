@@ -1,0 +1,35 @@
+%p#notice= notice
+
+%p
+  %strong Property:
+  = @lease.property.name
+%p
+  %strong Tenant:
+  = @lease.tenant.name
+%p
+  %strong Start Date:
+  = @lease.start_date
+%p
+  %strong End Date:
+  = @lease.end_date
+  - if @lease.terminated_on
+    (Terminated)
+%p
+  %strong Duration:
+  = "#{@lease.duration_months} months"
+%p
+  %strong Rent Amount:
+  = number_to_currency(@lease.rent_amount)
+%p
+  %strong Security Deposit (Months):
+  = @lease.security_deposit_in_months
+%p
+  %strong Security Deposit (Total):
+  = number_to_currency(@lease.security_deposit)
+%p
+  %strong Enhancement Period:
+  = "#{@lease.enhancement_period_months} months"
+
+= link_to 'Edit', edit_lease_path(@lease)
+\|
+= link_to 'Back', leases_path

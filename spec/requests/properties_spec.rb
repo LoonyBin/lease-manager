@@ -1,6 +1,8 @@
-require 'rails_helper'
+# frozen_string_literal: true
 
-RSpec.describe "Properties", type: :request do
+require "rails_helper"
+
+RSpec.describe "Properties" do
   describe "GET /properties" do
     it "returns http success" do
       get properties_path
@@ -13,9 +15,9 @@ RSpec.describe "Properties", type: :request do
       let(:valid_attributes) { { name: "Sunset Villa", address: "123 Sunset Blvd" } }
 
       it "creates a new Property" do
-        expect {
+        expect do
           post properties_path, params: { property: valid_attributes }
-        }.to change(Property, :count).by(1)
+        end.to change(Property, :count).by(1)
       end
 
       it "redirects to the created property" do
@@ -26,14 +28,14 @@ RSpec.describe "Properties", type: :request do
 
     context "with invalid parameters" do
       it "does not create a new Property" do
-        expect {
+        expect do
           post properties_path, params: { property: { name: "" } }
-        }.to change(Property, :count).by(0)
+        end.not_to change(Property, :count)
       end
 
       it "renders the new template" do
         post properties_path, params: { property: { name: "" } }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
     end
   end
@@ -76,7 +78,7 @@ RSpec.describe "Properties", type: :request do
     context "with invalid parameters" do
       it "renders the edit template" do
         patch property_path(property), params: { property: { name: "" } }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
     end
   end
@@ -85,9 +87,9 @@ RSpec.describe "Properties", type: :request do
     let!(:property) { create(:property) }
 
     it "destroys the requested property" do
-      expect {
+      expect do
         delete property_path(property)
-      }.to change(Property, :count).by(-1)
+      end.to change(Property, :count).by(-1)
     end
 
     it "redirects to the properties list" do

@@ -1,0 +1,30 @@
+%h1 Leases
+
+%table
+  %thead
+    %tr
+      %th Property
+      %th Tenant
+      %th Start Date
+      %th End Date
+      %th Duration
+      %th Rent
+      %th Actions
+
+  %tbody
+    - @leases.each do |lease|
+      %tr
+        %td= lease.property.name
+        %td= lease.tenant.name
+        %td= lease.start_date
+        %td= lease.end_date
+        %td= "#{lease.duration_months} months"
+        %td= number_to_currency(lease.rent_amount)
+        %td
+          = link_to 'Show', lease
+          = link_to 'Edit', edit_lease_path(lease)
+          = link_to 'Destroy', lease, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }
+
+%br
+
+= link_to 'New Lease', new_lease_path

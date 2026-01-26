@@ -1,7 +1,9 @@
-require 'rails_helper'
+# frozen_string_literal: true
 
-RSpec.describe "properties/new", type: :view do
-  before(:each) do
+require "rails_helper"
+
+RSpec.describe "properties/new" do
+  before do
     assign(:property, build(:property))
   end
 

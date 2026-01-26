@@ -1,20 +1,22 @@
-require 'rails_helper'
+# frozen_string_literal: true
 
-RSpec.describe "tenants/index", type: :view do
-  before(:each) do
+require "rails_helper"
+
+RSpec.describe "tenants/index" do
+  before do
     assign(:tenants, [
-      create(:tenant, name: "Name 1", email: "Email 1", phone_number: "Phone 1"),
-      create(:tenant, name: "Name 2", email: "Email 2", phone_number: "Phone 2")
-    ])
+             create(:tenant, name: "Name 1", email: "Email 1", phone_number: "Phone 1"),
+             create(:tenant, name: "Name 2", email: "Email 2", phone_number: "Phone 2")
+           ])
   end
 
   it "renders a list of tenants" do
     render
-    assert_select "tr>td", text: "Name 1".to_s, count: 1
-    assert_select "tr>td", text: "Email 1".to_s, count: 1
-    assert_select "tr>td", text: "Phone 1".to_s, count: 1
-    assert_select "tr>td", text: "Name 2".to_s, count: 1
-    assert_select "tr>td", text: "Email 2".to_s, count: 1
-    assert_select "tr>td", text: "Phone 2".to_s, count: 1
+    assert_select "tr>td", text: "Name 1", count: 1
+    assert_select "tr>td", text: "Email 1", count: 1
+    assert_select "tr>td", text: "Phone 1", count: 1
+    assert_select "tr>td", text: "Name 2", count: 1
+    assert_select "tr>td", text: "Email 2", count: 1
+    assert_select "tr>td", text: "Phone 2", count: 1
   end
 end

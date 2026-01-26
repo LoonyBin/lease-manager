@@ -1,0 +1,40 @@
+= form_with(model: lease) do |form|
+  - if lease.errors.any?
+    #error_explanation
+      %h2= "#{pluralize(lease.errors.count, "error")} prohibited this lease from being saved:"
+      %ul
+        - lease.errors.full_messages.each do |message|
+          %li= message
+
+  .field
+    = form.label :property_id
+    = form.collection_select :property_id, Property.all, :id, :name
+  .field
+    = form.label :tenant_id
+    = form.collection_select :tenant_id, Tenant.all, :id, :name
+  .field
+    = form.label :start_date
+    = form.date_field :start_date
+  .field
+    = form.label :duration_months
+    = form.number_field :duration_months
+  .field
+    = form.label :rent_amount
+    = form.number_field :rent_amount, step: 0.01
+  .field
+    = form.label :security_deposit_in_months
+    = form.number_field :security_deposit_in_months
+  .field
+    = form.label :terminated_on
+    = form.date_field :terminated_on
+  .field
+    = form.label :enhancement_period_months
+    = form.number_field :enhancement_period_months
+  .field
+    = form.label :enhancement_percentage
+    = form.number_field :enhancement_percentage, step: 0.01
+  .field
+    = form.label :enhancement_fixed_amount
+    = form.number_field :enhancement_fixed_amount, step: 0.01
+  .actions
+    = form.submit

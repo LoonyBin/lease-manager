@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class TenantsController < ApplicationController
   def index
     @tenants = Tenant.all
@@ -21,7 +23,7 @@ class TenantsController < ApplicationController
     if @tenant.save
       redirect_to @tenant, notice: "Tenant was successfully created."
     else
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     end
   end
 
@@ -30,7 +32,7 @@ class TenantsController < ApplicationController
     if @tenant.update(tenant_params)
       redirect_to @tenant, notice: "Tenant was successfully updated."
     else
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
 
@@ -43,6 +45,6 @@ class TenantsController < ApplicationController
   private
 
   def tenant_params
-    params.require(:tenant).permit(:name, :email, :phone_number)
+    params.expect(tenant: %i[name email phone_number])
   end
 end

@@ -1,7 +1,9 @@
-require 'rails_helper'
+# frozen_string_literal: true
 
-RSpec.describe "tenants/new", type: :view do
-  before(:each) do
+require "rails_helper"
+
+RSpec.describe "tenants/new" do
+  before do
     assign(:tenant, build(:tenant))
   end
 
