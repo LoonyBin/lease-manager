@@ -1,5 +1,15 @@
 # Current Goal
-- [x] Implement Lease Management (Refactor)
+- [x] Migrate to Tailwind CSS and Simple Form
+    - [x] Add gems (`tailwindcss-rails`, `simple_form`)
+    - [x] Install Tailwind and Simple Form
+    - [x] Configure Simple Form wrappers for Tailwind
+- [x] Migrate to Tailwind CSS and Simple Form
+    - [x] Add gems (`tailwindcss-rails`, `simple_form`)
+    - [x] Install Tailwind and Simple Form
+    - [x] Configure Simple Form wrappers for Tailwind
+    - [x] Refactor Layout (`application.html.erb` -> `haml` + Tailwind)
+    - [x] Refactor Views (Properties, Tenants, Leases)
+    - [x] Migrate to daisyUI (npm install, plugin config, view refactoring)
     - [/] Migration: Replace `end_date` with `duration_months`. Add `security_deposit_in_months` (int). Add `terminated_on` (date).
     - [ ] Model: Update associations and validations.
         - `end_date` becomes calculated: `start_date + duration_months` (unless `terminated_on` is set).

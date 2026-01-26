@@ -1,19 +1,12 @@
-= form_with(model: tenant) do |form|
-  - if tenant.errors.any?
-    #error_explanation
-      %h2= "#{pluralize(tenant.errors.count, "error")} prohibited this tenant from being saved:"
-      %ul
-        - tenant.errors.full_messages.each do |message|
-          %li= message
+= simple_form_for(tenant) do |f|
+  = f.error_notification
+  = f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present?
 
-  .field
-    = form.label :name
-    = form.text_field :name
-  .field
-    = form.label :email
-    = form.text_field :email
-  .field
-    = form.label :phone_number
-    = form.text_field :phone_number
-  .actions
-    = form.submit
+  .form-inputs
+    = f.input :name
+    = f.input :email
+    = f.input :phone_number
+
+  .form-actions.mt-5
+    = f.button :submit, class: "btn btn-primary"
+    = link_to "Back", tenants_path, class: "btn btn-ghost ml-4"

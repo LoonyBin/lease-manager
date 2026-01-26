@@ -1,35 +1,47 @@
-%p#notice= notice
+.card.w-full.bg-base-100.shadow-xl.mx-auto
+  .card-body
+    %h2.card-title.mb-4 Lease Details
 
-%p
-  %strong Property:
-  = @lease.property.name
-%p
-  %strong Tenant:
-  = @lease.tenant.name
-%p
-  %strong Start Date:
-  = @lease.start_date
-%p
-  %strong End Date:
-  = @lease.end_date
-  - if @lease.terminated_on
-    (Terminated)
-%p
-  %strong Duration:
-  = "#{@lease.duration_months} months"
-%p
-  %strong Rent Amount:
-  = number_to_currency(@lease.rent_amount)
-%p
-  %strong Security Deposit (Months):
-  = @lease.security_deposit_in_months
-%p
-  %strong Security Deposit (Total):
-  = number_to_currency(@lease.security_deposit)
-%p
-  %strong Enhancement Period:
-  = "#{@lease.enhancement_period_months} months"
+    .grid.grid-cols-1.md:grid-cols-2.gap-4
+      %div
+        %p.mb-2
+          %strong Property:
+          = @lease.property.name
+        %p.mb-2
+          %strong Tenant:
+          = @lease.tenant.name
+        %p.mb-2
+          %strong Start Date:
+          = @lease.start_date
+        %p.mb-2
+          %strong End Date:
+          = @lease.end_date
+          - if @lease.terminated_on
+            %span.text-error (Terminated)
+        %p.mb-2
+          %strong Duration:
+          = "#{@lease.duration_months} months"
 
-= link_to 'Edit', edit_lease_path(@lease)
-\|
-= link_to 'Back', leases_path
+      %div
+        %p.mb-2
+          %strong Rent Amount:
+          = number_to_currency(@lease.rent_amount)
+        %p.mb-2
+          %strong Security Deposit (Months):
+          = @lease.security_deposit_in_months
+        %p.mb-2
+          %strong Security Deposit (Total):
+          = number_to_currency(@lease.security_deposit)
+        %p.mb-2
+          %strong Enhancement Period:
+          = "#{@lease.enhancement_period_months} months"
+        %p.mb-2
+          %strong Enhancement %:
+          = "#{@lease.enhancement_percentage}%"
+        %p.mb-2
+          %strong Enhancement Fixed:
+          = number_to_currency(@lease.enhancement_fixed_amount)
+
+    .card-actions.justify-end.mt-6
+      = link_to 'Edit', edit_lease_path(@lease), class: "btn btn-primary"
+      = link_to 'Back', leases_path, class: "btn btn-ghost"

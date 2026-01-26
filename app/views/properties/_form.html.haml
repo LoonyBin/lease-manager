@@ -1,16 +1,11 @@
-= form_with(model: property) do |form|
-  - if property.errors.any?
-    #error_explanation
-      %h2= "#{pluralize(property.errors.count, "error")} prohibited this property from being saved:"
-      %ul
-        - property.errors.full_messages.each do |message|
-          %li= message
+= simple_form_for(property) do |f|
+  = f.error_notification
+  = f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present?
 
-  .field
-    = form.label :name
-    = form.text_field :name
-  .field
-    = form.label :address
-    = form.text_area :address
-  .actions
-    = form.submit
+  .form-inputs
+    = f.input :name
+    = f.input :address, as: :text, input_html: { rows: 3 }
+
+  .form-actions.mt-5
+    = f.button :submit, class: "btn btn-primary"
+    = link_to "Back", properties_path, class: "btn btn-ghost ml-4"

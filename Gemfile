@@ -71,3 +71,6 @@ group :test do
 end
 
 gem "haml-rails"
+
+gem "tailwindcss-rails", "~> 4.4"
+gem "simple_form", "~> 5.4"

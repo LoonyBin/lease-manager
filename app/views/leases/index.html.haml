@@ -1,30 +1,32 @@
-%h1 Leases
+.flex.justify-between.items-center.mb-6
+  %h1.text-2xl.font-bold Leases
+  = link_to 'New Lease', new_lease_path, class: "btn btn-primary"
 
-%table
-  %thead
-    %tr
-      %th Property
-      %th Tenant
-      %th Start Date
-      %th End Date
-      %th Duration
-      %th Rent
-      %th Actions
-
-  %tbody
-    - @leases.each do |lease|
+.overflow-x-auto
+  %table.table.w-full
+    %thead
       %tr
-        %td= lease.property.name
-        %td= lease.tenant.name
-        %td= lease.start_date
-        %td= lease.end_date
-        %td= "#{lease.duration_months} months"
-        %td= number_to_currency(lease.rent_amount)
-        %td
-          = link_to 'Show', lease
-          = link_to 'Edit', edit_lease_path(lease)
-          = link_to 'Destroy', lease, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }
-
-%br
-
-= link_to 'New Lease', new_lease_path
+        %th Property
+        %th Tenant
+        %th Start Date
+        %th End Date
+        %th Duration
+        %th.text-right Rent
+        %th.text-center Actions
+    %tbody
+      - @leases.each do |lease|
+        %tr.hover
+          %td= lease.property.name
+          %td= lease.tenant.name
+          %td= lease.start_date
+          %td
+            = lease.end_date
+            - if lease.terminated_on
+              %span.text-error (Terminated)
+          %td= "#{lease.duration_months} months"
+          %td.text-right= number_to_currency(lease.rent_amount)
+          %td.text-center
+            .join
+              = link_to 'Show', lease, class: "btn btn-sm btn-ghost join-item"
+              = link_to 'Edit', edit_lease_path(lease), class: "btn btn-sm btn-ghost join-item"
+              = link_to 'Destroy', lease, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-sm btn-ghost text-error join-item"

@@ -1,15 +1,17 @@
-%p#notice= notice
+.card.w-96.bg-base-100.shadow-xl.mx-auto
+  .card-body
+    %h2.card-title Tenant Details
 
-%p
-  %strong Name:
-  = @tenant.name
-%p
-  %strong Email:
-  = @tenant.email
-%p
-  %strong Phone Number:
-  = @tenant.phone_number
+    %p
+      %strong Name:
+      = @tenant.name
+    %p
+      %strong Email:
+      = @tenant.email
+    %p
+      %strong Phone:
+      = @tenant.phone_number
 
-= link_to 'Edit', edit_tenant_path(@tenant)
-\|
-= link_to 'Back', tenants_path
+    .card-actions.justify-end.mt-4
+      = link_to 'Edit', edit_tenant_path(@tenant), class: "btn btn-primary"
+      = link_to 'Back', tenants_path, class: "btn btn-ghost"

@@ -1,12 +1,14 @@
-%p#notice= notice
+.card.w-96.bg-base-100.shadow-xl.mx-auto
+  .card-body
+    %h2.card-title Property Details
 
-%p
-  %strong Name:
-  = @property.name
-%p
-  %strong Address:
-  = @property.address
+    %p
+      %strong Name:
+      = @property.name
+    %p
+      %strong Address:
+      = @property.address
 
-= link_to 'Edit', edit_property_path(@property)
-\|
-= link_to 'Back', properties_path
+    .card-actions.justify-end.mt-4
+      = link_to 'Edit', edit_property_path(@property), class: "btn btn-primary"
+      = link_to 'Back', properties_path, class: "btn btn-ghost"

@@ -1,0 +1,36 @@
+!!!
+%html
+  %head
+    %meta{:content => "text/html; charset=UTF-8", "http-equiv" => "Content-Type"}/
+    %title= content_for(:title) || "Lease Manager"
+    %meta{:content => "width=device-width,initial-scale=1", :name => "viewport"}/
+    %meta{:content => "yes", :name => "apple-mobile-web-app-capable"}/
+    %meta{:content => "yes", :name => "mobile-web-app-capable"}/
+    = csrf_meta_tags
+    = csp_meta_tag
+    = yield :head
+    %link{:href => "/icon.png", :rel => "icon", :type => "image/png"}/
+    %link{:href => "/icon.svg", :rel => "icon", :type => "image/svg+xml"}/
+    %link{:href => "/icon.png", :rel => "apple-touch-icon"}/
+    = stylesheet_link_tag :app, "data-turbo-track": "reload"
+    = stylesheet_link_tag "tailwind", "data-turbo-track": "reload"
+  %body.bg-base-200.font-sans.min-h-screen
+    .navbar.bg-base-100.shadow-lg.mb-8
+      .container.mx-auto
+        .flex-1
+          %a.btn.btn-ghost.normal-case.text-xl{href: root_path} Lease Manager
+        .flex-none
+          %ul.menu.menu-horizontal.px-1
+            %li= link_to 'Properties', properties_path
+            %li= link_to 'Tenants', tenants_path
+            %li= link_to 'Leases', leases_path
+
+    %main.container.mx-auto.px-4.pb-12
+      - if notice
+        .alert.alert-success.mb-4
+          %span= notice
+      - if alert
+        .alert.alert-error.mb-4
+          %span= alert
+
+      = yield
