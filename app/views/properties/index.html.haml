@@ -1,0 +1,22 @@
+%h1 Properties
+
+%table
+  %thead
+    %tr
+      %th Name
+      %th Address
+      %th Actions
+
+  %tbody
+    - @properties.each do |property|
+      %tr
+        %td= property.name
+        %td= property.address
+        %td
+          = link_to 'Show', property
+          = link_to 'Edit', edit_property_path(property)
+          = link_to 'Destroy', property, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }
+
+%br
+
+= link_to 'New Property', new_property_path

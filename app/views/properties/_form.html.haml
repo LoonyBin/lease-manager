@@ -1,0 +1,16 @@
+= form_with(model: property) do |form|
+  - if property.errors.any?
+    #error_explanation
+      %h2= "#{pluralize(property.errors.count, "error")} prohibited this property from being saved:"
+      %ul
+        - property.errors.full_messages.each do |message|
+          %li= message
+
+  .field
+    = form.label :name
+    = form.text_field :name
+  .field
+    = form.label :address
+    = form.text_area :address
+  .actions
+    = form.submit
