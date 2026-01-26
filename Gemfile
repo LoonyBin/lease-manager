@@ -74,3 +74,6 @@ gem "haml-rails"
 
 gem "tailwindcss-rails", "~> 4.4"
 gem "simple_form", "~> 5.4"
+
+gem "guard", "~> 2.20", groups: [:development, :test]
+gem "guard-rspec", "~> 4.7", groups: [:development, :test]

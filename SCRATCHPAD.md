@@ -10,6 +10,10 @@
     - [x] Refactor Layout (`application.html.erb` -> `haml` + Tailwind)
     - [x] Refactor Views (Properties, Tenants, Leases)
     - [x] Migrate to daisyUI (npm install, plugin config, view refactoring)
+- [x] Setup Developer Tools (Foreman & Guard)
+    - [x] Verify Foreman (`bin/dev`, `Procfile.dev`)
+    - [x] Add Guard gems (`guard`, `guard-rspec`)
+    - [x] Configure Guardfile
     - [/] Migration: Replace `end_date` with `duration_months`. Add `security_deposit_in_months` (int). Add `terminated_on` (date).
     - [ ] Model: Update associations and validations.
         - `end_date` becomes calculated: `start_date + duration_months` (unless `terminated_on` is set).
