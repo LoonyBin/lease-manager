@@ -9,6 +9,14 @@ class InvoicesController < ApplicationController
     @invoice = Invoice.find(params[:id])
   end
 
+  def generate
+    @lease = Lease.find(params[:lease_id])
+    date = Date.parse(params[:date])
+
+    ::InvoiceGenerator.new(@lease, date).call
+    redirect_to lease_path(@lease), notice: t(".success", month: date.strftime("%B %Y"))
+  end
+
   def finalize
     @invoice = Invoice.find(params[:id])
 

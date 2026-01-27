@@ -27,6 +27,8 @@ en:
     finalize:
       success: "Invoice finalized successfully."
       not_draft: "Invoice is not in draft status."
+    generate:
+      success: "Invoice for %{month} generated successfully."
   payments:
     create:
       success: "Payment recorded successfully."

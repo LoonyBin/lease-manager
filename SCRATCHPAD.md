@@ -15,9 +15,13 @@
     - [x] Add `tax_name` and `tax_rate` to Lease
     - [x] Update InvoiceGenerator to create tax LineItems
     - [x] Display taxes on Invoice views
+- [x] Invoice Workflow Improvements
+    - [x] Invoices table on Lease show page
+    - [x] Missing months identified
+    - [x] Generate button creates invoices
 
 # Next Goals
-- [ ] Invoice Workflow Improvements
+- [ ] Lease Lifecycle
 - [ ] Lease Taxes
 - [ ] Invoice Workflow Improvements
 - [ ] Lease Lifecycle

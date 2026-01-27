@@ -41,6 +41,37 @@
             = @lease.enhancement_amount
             = @lease.percentage? ? "%" : "₹"
 
+    .divider
+
+    %h3.text-lg.font-bold.mb-4 Invoices
+
+    .overflow-x-auto
+      %table.table.w-full
+        %thead
+          %tr
+            %th Month
+            %th Status
+            %th Amount
+            %th Actions
+        %tbody
+          - @lease.billable_months.reverse.each do |month|
+            - invoice = @lease.invoices.find { |i| i.date.beginning_of_month == month }
+            %tr
+              %td= month.strftime("%B %Y")
+              - if invoice
+                %td
+                  %span{class: "badge badge-#{invoice.paid? ? 'success' : invoice.draft? ? 'ghost' : 'info'}"}
+                    = invoice.status.humanize
+                %td= number_to_currency(invoice.total_amount)
+                %td
+                  = link_to "View", invoice_path(invoice), class: "btn btn-xs btn-ghost"
+              - else
+                %td
+                  %span.badge.badge-warning Missing
+                %td -
+                %td
+                  = button_to "Generate", generate_invoices_path(lease_id: @lease.id, date: month.to_s), method: :post, class: "btn btn-xs btn-primary"
+
     .card-actions.justify-end.mt-6
       = link_to 'Edit', edit_lease_path(@lease), class: "btn btn-primary"
       = link_to 'Back', leases_path, class: "btn btn-ghost"

@@ -7,6 +7,9 @@ Rails.application.routes.draw do
     member do
       patch :finalize
     end
+    collection do
+      post :generate
+    end
   end
 
   resources :payments, only: [:index, :new, :create]
