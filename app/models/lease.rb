@@ -29,27 +29,22 @@ class Lease < ApplicationRecord
   def current_rent_at(date)
     return rent_amount if date < start_date
 
-    # Calculate full months elapsed
     months_elapsed = ((date.year * 12) + date.month) - ((start_date.year * 12) + start_date.month)
-
     periods = months_elapsed / enhancement_period_months
 
-    current_rent = rent_amount
-
-    periods.times do
-      if enhancement_percentage.present? && enhancement_percentage.positive?
-        current_rent += current_rent * (enhancement_percentage / 100.0)
-      end
-
-      if enhancement_fixed_amount.present? && enhancement_fixed_amount.positive?
-        current_rent += enhancement_fixed_amount
-      end
-    end
-
-    current_rent
+    calculate_enhanced_rent(periods)
   end
 
   private
+
+  def calculate_enhanced_rent(periods)
+    periods.times.reduce(rent_amount) do |current_rent, _|
+      increase = 0
+      increase += current_rent * (enhancement_percentage / 100.0) if enhancement_percentage.to_f.positive?
+      increase += enhancement_fixed_amount if enhancement_fixed_amount.to_f.positive?
+      current_rent + increase
+    end
+  end
 
   def termination_date_after_start_date
     return if terminated_on.blank? || start_date.blank?

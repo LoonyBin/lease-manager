@@ -3,16 +3,14 @@
 require "rails_helper"
 
 RSpec.describe "properties/edit" do
+  subject { Capybara.string(rendered) }
+
   before do
     @property = assign(:property, create(:property))
-  end
-
-  it "renders the edit property form" do
     render
-
-    assert_select "form[action=?][method=?]", property_path(@property), "post" do
-      assert_select "input[name=?]", "property[name]"
-      assert_select "textarea[name=?]", "property[address]"
-    end
   end
+
+  it { is_expected.to have_selector("form[action='#{property_path(@property)}'][method='post']") }
+  it { is_expected.to have_selector("input[name='property[name]']") }
+  it { is_expected.to have_selector("textarea[name='property[address]']") }
 end

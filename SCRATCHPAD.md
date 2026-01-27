@@ -14,6 +14,14 @@
     - [x] Verify Foreman (`bin/dev`, `Procfile.dev`)
     - [x] Add Guard gems (`guard`, `guard-rspec`)
     - [x] Configure Guardfile
+- [/] Setup Guard for RuboCop
+    - [ ] Add `guard-rubocop` gem
+    - [ ] Initialize `Guardfile` for RuboCop
+    - [ ] Configure auto-correct ('--autocorrect')
+- [x] i18n & Locales
+    - [x] Change currency to Rupee (INR)
+    - [x] Fix RuboCop locale errors
+    - [x] Verify currency formatting in views
     - [/] Migration: Replace `end_date` with `duration_months`. Add `security_deposit_in_months` (int). Add `terminated_on` (date).
     - [ ] Model: Update associations and validations.
         - `end_date` becomes calculated: `start_date + duration_months` (unless `terminated_on` is set).

@@ -3,19 +3,17 @@
 require "rails_helper"
 
 RSpec.describe "leases/edit" do
+  subject { Capybara.string(rendered) }
+
   before do
     @lease = assign(:lease, create(:lease))
-  end
-
-  it "renders the edit lease form" do
     render
-
-    assert_select "form[action=?][method=?]", lease_path(@lease), "post" do
-      assert_select "select[name=?]", "lease[property_id]"
-      assert_select "select[name=?]", "lease[tenant_id]"
-      assert_select "input[name=?]", "lease[duration_months]"
-      assert_select "input[name=?]", "lease[rent_amount]"
-      assert_select "input[name=?]", "lease[security_deposit_in_months]"
-    end
   end
+
+  it { is_expected.to have_selector("form[action='#{lease_path(@lease)}'][method='post']") }
+  it { is_expected.to have_selector("select[name='lease[property_id]']") }
+  it { is_expected.to have_selector("select[name='lease[tenant_id]']") }
+  it { is_expected.to have_selector("input[name='lease[duration_months]']") }
+  it { is_expected.to have_selector("input[name='lease[rent_amount]']") }
+  it { is_expected.to have_selector("input[name='lease[security_deposit_in_months]']") }
 end

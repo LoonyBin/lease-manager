@@ -3,13 +3,13 @@
 require "rails_helper"
 
 RSpec.describe "properties/show" do
+  subject { rendered }
+
   before do
     @property = assign(:property, create(:property, name: "Name", address: "MyText"))
+    render
   end
 
-  it "renders attributes in <p>" do
-    render
-    expect(rendered).to match(/Name/)
-    expect(rendered).to match(/MyText/)
-  end
+  it { is_expected.to match(/Name/) }
+  it { is_expected.to match(/MyText/) }
 end

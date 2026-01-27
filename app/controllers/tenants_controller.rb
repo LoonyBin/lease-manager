@@ -21,7 +21,7 @@ class TenantsController < ApplicationController
     @tenant = Tenant.new(tenant_params)
 
     if @tenant.save
-      redirect_to @tenant, notice: "Tenant was successfully created."
+      redirect_to @tenant, notice: t(".success")
     else
       render :new, status: :unprocessable_content
     end
@@ -30,7 +30,7 @@ class TenantsController < ApplicationController
   def update
     @tenant = Tenant.find(params[:id])
     if @tenant.update(tenant_params)
-      redirect_to @tenant, notice: "Tenant was successfully updated."
+      redirect_to @tenant, notice: t(".success")
     else
       render :edit, status: :unprocessable_content
     end
@@ -39,7 +39,7 @@ class TenantsController < ApplicationController
   def destroy
     @tenant = Tenant.find(params[:id])
     @tenant.destroy
-    redirect_to tenants_url, notice: "Tenant was successfully destroyed."
+    redirect_to tenants_url, notice: t(".success")
   end
 
   private

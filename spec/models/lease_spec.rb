@@ -3,66 +3,66 @@
 require "rails_helper"
 
 RSpec.describe Lease do
+  subject(:lease) { build(:lease) }
+
+  describe "associations" do
+    it { is_expected.to belong_to(:property) }
+    it { is_expected.to belong_to(:tenant) }
+  end
+
   describe "validations" do
-    it "is valid with valid attributes" do
-      lease = build(:lease)
-      expect(lease).to be_valid
+    it { is_expected.to validate_presence_of(:start_date) }
+    it { is_expected.to validate_presence_of(:rent_amount) }
+    it { is_expected.to validate_numericality_of(:rent_amount).is_greater_than(0) }
+    it { is_expected.to validate_presence_of(:duration_months) }
+    it { is_expected.to validate_numericality_of(:duration_months).only_integer.is_greater_than(0) }
+    it { is_expected.to validate_presence_of(:security_deposit_in_months) }
+
+    it do
+      is_expected.to validate_numericality_of(:security_deposit_in_months)
+        .only_integer
+        .is_greater_than_or_equal_to(0)
     end
 
-    it "is invalid without a property" do
-      lease = build(:lease, property: nil)
-      expect(lease).not_to be_valid
-    end
+    it { is_expected.to validate_numericality_of(:enhancement_period_months).only_integer.is_greater_than(0) }
 
-    it "is invalid without a tenant" do
-      lease = build(:lease, tenant: nil)
-      expect(lease).not_to be_valid
-    end
+    context "with custom validations" do
+      before do
+        lease.start_date = "2025-01-01"
+        lease.terminated_on = "2024-01-01"
+        lease.valid?
+      end
 
-    it "is invalid without a start date" do
-      lease = build(:lease, start_date: nil)
-      expect(lease).not_to be_valid
-      expect(lease.errors[:start_date]).to include("can't be blank")
-    end
-
-    it "is invalid without duration_months" do
-      lease = build(:lease, duration_months: nil)
-      expect(lease).not_to be_valid
-      expect(lease.errors[:duration_months]).to include("can't be blank")
-    end
-
-    it "is invalid with negative rent" do
-      lease = build(:lease, rent_amount: -100)
-      expect(lease).not_to be_valid
-    end
-
-    it "is invalid if terminated_on is before start_date" do
-      lease = build(:lease, start_date: "2025-01-01", terminated_on: "2024-01-01")
-      expect(lease).not_to be_valid
-      expect(lease.errors[:terminated_on]).to include("must be after the start date")
+      it do
+        is_expected.to have_validation_error(:terminated_on)
+          .with_message("must be after the start date")
+      end
     end
   end
 
   describe "#end_date" do
-    it "calculates end date from start date and duration" do
-      lease = build(:lease, start_date: "2025-01-16", duration_months: 12)
-      expect(lease.end_date).to eq(Date.new(2025, 12, 31))
+    context "when terminated_on is set" do
+      subject { build(:lease, start_date: "2025-01-01", duration_months: 12, terminated_on: "2025-06-01") }
+
+      its(:end_date) { is_expected.to eq(Date.new(2025, 6, 1)) }
     end
 
-    it "returns termination date if set" do
-      lease = build(:lease, start_date: "2025-01-01", duration_months: 12, terminated_on: "2025-06-01")
-      expect(lease.end_date).to eq(Date.new(2025, 6, 1))
+    context "when terminated_on is nil" do
+      subject { build(:lease, start_date: "2025-01-16", duration_months: 12) }
+
+      its(:end_date) { is_expected.to eq(Date.new(2025, 12, 31)) }
     end
   end
 
   describe "#security_deposit" do
-    it "calculates security deposit based on rent and months" do
-      lease = build(:lease, rent_amount: 1000, security_deposit_in_months: 2)
-      expect(lease.security_deposit).to eq(2000.0)
-    end
+    subject { build(:lease, rent_amount: 1000, security_deposit_in_months: 2) }
+
+    its(:security_deposit) { is_expected.to eq(2000.0) }
   end
 
   describe "#current_rent_at" do
+    subject { lease }
+
     let(:lease) do
       create(:lease,
              start_date: Date.new(2023, 1, 16),

@@ -21,7 +21,7 @@ class LeasesController < ApplicationController
     @lease = Lease.new(lease_params)
 
     if @lease.save
-      redirect_to @lease, notice: "Lease was successfully created."
+      redirect_to @lease, notice: t(".success")
     else
       render :new, status: :unprocessable_content
     end
@@ -30,7 +30,7 @@ class LeasesController < ApplicationController
   def update
     @lease = Lease.find(params[:id])
     if @lease.update(lease_params)
-      redirect_to @lease, notice: "Lease was successfully updated."
+      redirect_to @lease, notice: t(".success")
     else
       render :edit, status: :unprocessable_content
     end
@@ -39,13 +39,14 @@ class LeasesController < ApplicationController
   def destroy
     @lease = Lease.find(params[:id])
     @lease.destroy
-    redirect_to leases_url, notice: "Lease was successfully destroyed."
+    redirect_to leases_url, notice: t(".success")
   end
 
   private
 
   def lease_params
     params.expect(lease: %i[property_id tenant_id start_date duration_months rent_amount
-                            security_deposit_in_months enhancement_period_months enhancement_percentage enhancement_fixed_amount terminated_on])
+                            security_deposit_in_months enhancement_period_months
+                            enhancement_percentage enhancement_fixed_amount terminated_on])
   end
 end

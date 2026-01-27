@@ -3,14 +3,14 @@
 require "rails_helper"
 
 RSpec.describe "tenants/show" do
+  subject { rendered }
+
   before do
     @tenant = assign(:tenant, create(:tenant, name: "Name", email: "Email", phone_number: "Phone"))
+    render
   end
 
-  it "renders attributes in <p>" do
-    render
-    expect(rendered).to match(/Name/)
-    expect(rendered).to match(/Email/)
-    expect(rendered).to match(/Phone/)
-  end
+  it { is_expected.to match(/Name/) }
+  it { is_expected.to match(/Email/) }
+  it { is_expected.to match(/Phone/) }
 end

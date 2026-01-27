@@ -67,13 +67,19 @@ group :development do
 end
 
 group :test do
+  gem "rspec-its"
+  gem "shoulda-matchers"
   gem "simplecov", require: false
 end
 
 gem "haml-rails"
 
-gem "tailwindcss-rails", "~> 4.4"
 gem "simple_form", "~> 5.4"
+gem "tailwindcss-rails", "~> 4.4"
 
-gem "guard", "~> 2.20", groups: [:development, :test]
-gem "guard-rspec", "~> 4.7", groups: [:development, :test]
+gem "guard", "~> 2.20", groups: %i[development test]
+gem "guard-rspec", "~> 4.7", groups: %i[development test]
+
+gem "guard-rubocop", "~> 1.5", groups: %i[development test]
+
+gem "capybara", "~> 3.40", group: :test

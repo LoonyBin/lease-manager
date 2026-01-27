@@ -3,17 +3,15 @@
 require "rails_helper"
 
 RSpec.describe "tenants/edit" do
+  subject { Capybara.string(rendered) }
+
   before do
     @tenant = assign(:tenant, create(:tenant))
-  end
-
-  it "renders the edit tenant form" do
     render
-
-    assert_select "form[action=?][method=?]", tenant_path(@tenant), "post" do
-      assert_select "input[name=?]", "tenant[name]"
-      assert_select "input[name=?]", "tenant[email]"
-      assert_select "input[name=?]", "tenant[phone_number]"
-    end
   end
+
+  it { is_expected.to have_selector("form[action='#{tenant_path(@tenant)}'][method='post']") }
+  it { is_expected.to have_selector("input[name='tenant[name]']") }
+  it { is_expected.to have_selector("input[name='tenant[email]']") }
+  it { is_expected.to have_selector("input[name='tenant[phone_number]']") }
 end

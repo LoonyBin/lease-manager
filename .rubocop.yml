@@ -21,5 +21,16 @@ Style/Documentation:
 Style/StringLiterals:
   EnforcedStyle: double_quotes
 
+Metrics/BlockLength:
+  Exclude:
+    - "Guardfile"
+
 Layout/LineLength:
   Max: 120
+
+RSpec/InstanceVariable:
+  Exclude:
+    - "spec/views/**/*"
+
+RSpec/ImplicitSubject:
+  EnforcedStyle: require_implicit

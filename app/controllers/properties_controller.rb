@@ -21,7 +21,7 @@ class PropertiesController < ApplicationController
     @property = Property.new(property_params)
 
     if @property.save
-      redirect_to @property, notice: "Property was successfully created."
+      redirect_to @property, notice: t(".success")
     else
       render :new, status: :unprocessable_content
     end
@@ -30,7 +30,7 @@ class PropertiesController < ApplicationController
   def update
     @property = Property.find(params[:id])
     if @property.update(property_params)
-      redirect_to @property, notice: "Property was successfully updated."
+      redirect_to @property, notice: t(".success")
     else
       render :edit, status: :unprocessable_content
     end
@@ -39,7 +39,7 @@ class PropertiesController < ApplicationController
   def destroy
     @property = Property.find(params[:id])
     @property.destroy
-    redirect_to properties_url, notice: "Property was successfully destroyed."
+    redirect_to properties_url, notice: t(".success")
   end
 
   private
