@@ -10,9 +10,20 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_01_27_034653) do
+ActiveRecord::Schema[8.0].define(version: 2026_01_27_062932) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "invoices", force: :cascade do |t|
+    t.bigint "lease_id", null: false
+    t.date "date"
+    t.integer "status", default: 0
+    t.string "number"
+    t.integer "sequence_number"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["lease_id"], name: "index_invoices_on_lease_id"
+  end
 
   create_table "leases", force: :cascade do |t|
     t.bigint "property_id", null: false
@@ -31,11 +42,22 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_27_034653) do
     t.index ["tenant_id"], name: "index_leases_on_tenant_id"
   end
 
+  create_table "line_items", force: :cascade do |t|
+    t.bigint "invoice_id", null: false
+    t.string "name"
+    t.decimal "amount", precision: 10, scale: 2
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["invoice_id"], name: "index_line_items_on_invoice_id"
+  end
+
   create_table "owners", force: :cascade do |t|
     t.string "name"
     t.text "address"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "invoice_sequence", default: 0
   end
 
   create_table "properties", force: :cascade do |t|
@@ -55,7 +77,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_27_034653) do
     t.datetime "updated_at", null: false
   end
 
+  add_foreign_key "invoices", "leases"
   add_foreign_key "leases", "properties"
   add_foreign_key "leases", "tenants"
+  add_foreign_key "line_items", "invoices"
   add_foreign_key "properties", "owners"
 end

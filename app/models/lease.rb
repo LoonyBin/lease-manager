@@ -3,6 +3,7 @@
 class Lease < ApplicationRecord
   belongs_to :property
   belongs_to :tenant
+  has_many :invoices, dependent: :destroy
 
   validates :start_date, presence: true
   validates :rent_amount, presence: true, numericality: { greater_than: 0 }

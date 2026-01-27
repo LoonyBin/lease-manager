@@ -1,0 +1,33 @@
+.card.w-full.bg-base-100.shadow-xl
+  .card-body
+    .flex.justify-between.items-center.mb-4
+      %h2.card-title Invoices
+
+    .overflow-x-auto
+      %table.table.table-zebra.w-full
+        %thead
+          %tr
+            %th Date
+            %th Number
+            %th Property
+            %th Tenant
+            %th Amount
+            %th Status
+            %th Actions
+        %tbody
+          - @invoices.each do |invoice|
+            %tr
+              %td= invoice.date.strftime("%b %Y")
+              %td
+                - if invoice.number.present?
+                  .badge.badge-outline= invoice.number
+                - else
+                  .badge.badge-ghost Draft
+              %td= invoice.lease.property.name
+              %td= invoice.lease.tenant.name
+              %td= number_to_currency(invoice.line_items.sum(:amount))
+              %td
+                %span{class: "badge badge-#{invoice.draft? ? 'ghost' : 'success'}"}
+                  = invoice.status.humanize
+              %td
+                = link_to "View", invoice_path(invoice), class: "btn btn-sm btn-ghost"

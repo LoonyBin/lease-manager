@@ -1,0 +1,56 @@
+.card.w-full.max-w-4xl.bg-base-100.shadow-xl.mx-auto
+  .card-body
+    .flex.justify-between.items-start.mb-6
+      %div
+        %h2.card-title.text-2xl.mb-2
+          Invoice
+          - if @invoice.number.present?
+            = "##{@invoice.number}"
+          - else
+            %span.badge.badge-ghost.text-lg.align-middle Draft
+        %p.text-sm.text-base-content
+          %span.font-bold Date:
+          = @invoice.date.strftime("%B %d, %Y")
+        %p.text-sm.text-base-content
+          %span.font-bold Status:
+          %span{class: "badge badge-#{@invoice.draft? ? 'ghost' : 'success'}"}
+            = @invoice.status.humanize
+
+      .text-right
+        %h3.font-bold.text-lg= @invoice.lease.property.owner.name
+        %p.text-sm= @invoice.lease.property.owner.address
+        %p.text-xs{class: "text-base-content/70"}= @invoice.lease.property.name
+
+    .divider
+
+    .grid.grid-cols-2.gap-4.mb-8
+      %div
+        %h4.font-bold.mb-2 Bill To:
+        %p= @invoice.lease.tenant.name
+        %p= @invoice.lease.tenant.email
+        %p= @invoice.lease.tenant.phone_number
+
+    .overflow-x-auto.mb-8
+      %table.table.w-full
+        %thead
+          %tr
+            %th.w-full Description
+            %th.text-right Amount
+        %tbody
+          - @invoice.line_items.each do |item|
+            %tr
+              %td
+                %div.font-bold= item.name
+                %div.text-xs.opacity-50= item.category.humanize
+              %td.text-right= number_to_currency(item.amount)
+        %tfoot
+          %tr
+            %th.text-right Total
+            %th.text-right.text-lg= number_to_currency(@invoice.line_items.sum(:amount))
+
+    .card-actions.justify-end
+      = link_to "Back", invoices_path, class: "btn btn-ghost"
+      - if @invoice.draft?
+        = button_to "Finalize Invoice", finalize_invoice_path(@invoice), method: :patch, class: "btn btn-primary", data: { turbo_confirm: "Are you sure? This will assign an invoice number and cannot be undone." }
+      - else
+        %button.btn.btn-secondary{disabled: true} Paid (Mock)

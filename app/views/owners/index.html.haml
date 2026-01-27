@@ -10,6 +10,7 @@
           %tr
             %th Name
             %th Address
+            %th Invoice Sequence
             %th Properties
             %th Actions
         %tbody
@@ -17,6 +18,7 @@
             %tr
               %td= link_to owner.name, owner_path(owner), class: "link link-hover font-bold"
               %td= owner.address
+              %td= owner.invoice_sequence
               %td= owner.properties.count
               %td
                 .join

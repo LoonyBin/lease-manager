@@ -23,6 +23,10 @@ en:
       success: "Owner was successfully updated."
     destroy:
       success: "Owner was successfully destroyed."
+  invoices:
+    finalize:
+      success: "Invoice finalized successfully."
+      not_draft: "Invoice is not in draft status."
   properties:
     create:
       success: "Property was successfully created."

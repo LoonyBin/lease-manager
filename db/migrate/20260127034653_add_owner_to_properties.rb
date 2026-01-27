@@ -1,4 +1,5 @@
 class AddOwnerToProperties < ActiveRecord::Migration[8.0]
+  class Owner < ActiveRecord::Base; end
   def change
     add_reference :properties, :owner, null: true, foreign_key: true
 
