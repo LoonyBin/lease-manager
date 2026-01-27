@@ -62,32 +62,6 @@ class Lease < ApplicationRecord
     billable_months - existing_dates
   end
 
-  def proration_discount_for(date)
-    days_in_month = date.end_of_month.day
-    daily_rate = current_rent_at(date) / days_in_month.to_f
-    unused_days = unused_days_for_month(date, days_in_month)
-
-    (unused_days * daily_rate).round(2)
-  end
-
-  private
-
-  def unused_days_for_month(date, days_in_month)
-    month_start = date.beginning_of_month
-    days = 0
-    days += start_date.day - 1 if first_month_partial?(month_start)
-    days += days_in_month - end_date.day if last_month_partial?(month_start, days_in_month)
-    days
-  end
-
-  def first_month_partial?(month_start)
-    month_start == start_date.beginning_of_month && start_date.day > 1
-  end
-
-  def last_month_partial?(month_start, days_in_month)
-    end_date && month_start == end_date.beginning_of_month && end_date.day < days_in_month
-  end
-
   def calculate_enhanced_rent(periods)
     periods.times.reduce(rent_amount) do |current_rent, _|
       current_rent + calculate_increase(current_rent)

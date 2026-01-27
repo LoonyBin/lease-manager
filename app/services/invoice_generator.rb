@@ -12,9 +12,9 @@ class InvoiceGenerator
 
     Invoice.transaction do
       invoice = create_invoice
-      rent_amount = create_rent_line_item(invoice)
-      discount_amount = create_discount_line_item(invoice)
-      create_tax_line_item(invoice, rent_amount - discount_amount) if @lease.tax_rate.to_f.positive?
+      create_rent_line_item!(invoice)
+      create_discount_line_item!(invoice)
+      create_tax_line_item(invoice, rent_amount - prorated_discount) if @lease.tax_rate.to_f.positive?
       invoice
     end
   end
@@ -29,50 +29,46 @@ class InvoiceGenerator
     )
   end
 
-  def create_rent_line_item(invoice)
-    amount = @lease.current_rent_at(@date)
+  def rent_amount
+    @rent_amount ||= @lease.current_rent_at(@date)
+  end
 
+  def create_rent_line_item!(invoice)
     LineItem.create!(
       invoice: invoice,
       name: "Rent for #{@date.strftime('%B %Y')}",
-      amount: amount,
+      amount: rent_amount,
       category: "rent"
     )
-
-    amount
   end
 
-  def create_discount_line_item(invoice)
-    discount = @lease.proration_discount_for(@date)
-    return 0 unless discount.positive?
-
-    unused_days = calculate_unused_days
+  def create_discount_line_item!(invoice)
+    return unless prorated_discount.positive?
 
     LineItem.create!(
       invoice: invoice,
       name: "Pro-rated discount (#{unused_days} days)",
-      amount: -discount,
+      amount: -prorated_discount,
       category: "discount"
     )
-
-    discount
   end
 
-  def calculate_unused_days
-    days_in_month = @date.end_of_month.day
-    month_start = @date.beginning_of_month
-    days = 0
-    days += @lease.start_date.day - 1 if first_month_partial?(month_start)
-    days += days_in_month - @lease.end_date.day if last_month_partial?(month_start, days_in_month)
-    days
+  def total_days
+    @total_days ||= @date.end_of_month.day
   end
 
-  def first_month_partial?(month_start)
-    month_start == @lease.start_date.beginning_of_month && @lease.start_date.day > 1
+  def unused_days
+    @unused_days ||= begin
+      start_date = [@date.beginning_of_month, @lease.start_date].max
+      end_date = [@date.end_of_month, @lease.end_date].min
+
+      applicable_days = (end_date - start_date).to_i + 1
+      total_days - applicable_days
+    end
   end
 
-  def last_month_partial?(month_start, days_in_month)
-    @lease.end_date && month_start == @lease.end_date.beginning_of_month && @lease.end_date.day < days_in_month
+  def prorated_discount
+    @prorated_discount ||= @lease.current_rent_at(@date) * (unused_days / total_days.to_f)
   end
 
   def create_tax_line_item(invoice, taxable_amount)
