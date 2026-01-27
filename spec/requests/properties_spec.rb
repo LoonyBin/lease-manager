@@ -12,7 +12,8 @@ RSpec.describe "Properties" do
 
   describe "POST /properties" do
     context "with valid parameters" do
-      let(:valid_attributes) { { name: "Sunset Villa", address: "123 Sunset Blvd" } }
+      let(:owner) { create(:owner) }
+      let(:valid_attributes) { { name: "Sunset Villa", address: "123 Sunset Blvd", owner_id: owner.id } }
 
       it "creates a new Property" do
         expect do

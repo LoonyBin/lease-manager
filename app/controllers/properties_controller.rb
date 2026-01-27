@@ -45,6 +45,6 @@ class PropertiesController < ApplicationController
   private
 
   def property_params
-    params.expect(property: %i[name address])
+    params.expect(property: %i[name address owner_id])
   end
 end

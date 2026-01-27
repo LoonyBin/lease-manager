@@ -1,0 +1,12 @@
+= simple_form_for @owner do |f|
+  = f.error_notification
+
+  .form-control.w-full.max-w-md.mb-4
+    = f.input :name, input_html: { class: "input input-bordered w-full" }, label_html: { class: "label" }
+
+  .form-control.w-full.max-w-md.mb-6
+    = f.input :address, as: :text, input_html: { class: "textarea textarea-bordered h-24 w-full" }, label_html: { class: "label" }
+
+  .card-actions.justify-end
+    = link_to "Cancel", owners_path, class: "btn btn-ghost"
+    = f.button :submit, class: "btn btn-primary"

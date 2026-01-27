@@ -2,11 +2,9 @@
 
 require "rails_helper"
 
-RSpec.describe Property do
-  subject { build(:property) }
-
+RSpec.describe Owner do
   describe "associations" do
-    it { is_expected.to belong_to(:owner) }
+    it { is_expected.to have_many(:properties) }
   end
 
   describe "validations" do

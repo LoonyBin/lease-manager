@@ -16,6 +16,13 @@ en:
     destroy:
       success: "Lease was successfully destroyed."
 
+  owners:
+    create:
+      success: "Owner was successfully created."
+    update:
+      success: "Owner was successfully updated."
+    destroy:
+      success: "Owner was successfully destroyed."
   properties:
     create:
       success: "Property was successfully created."

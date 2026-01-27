@@ -1,0 +1,30 @@
+.grid.grid-cols-1.md:grid-cols-2.gap-6
+  .card.bg-base-100.shadow-xl
+    .card-body
+      .flex.justify-between.items-start
+        %h2.card-title= @owner.name
+        = link_to "Edit", edit_owner_path(@owner), class: "btn btn-sm btn-ghost"
+
+      .divider
+
+      %div
+        %h3.font-bold.text-sm.opacity-70 Address
+        %p.whitespace_pre_wrap= @owner.address
+
+  .card.bg-base-100.shadow-xl
+    .card-body
+      %h2.card-title Properties
+      - if @properties.any?
+        .overflow-x-auto
+          %table.table
+            %thead
+              %tr
+                %th Name
+                %th Leases
+            %tbody
+              - @properties.each do |property|
+                %tr
+                  %td= link_to property.name, property_path(property), class: "link link-hover"
+                  %td= property.leases.count
+      - else
+        %p.text-base-content.opacity-60 No properties assigned.
