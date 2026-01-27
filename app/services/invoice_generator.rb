@@ -12,8 +12,9 @@ class InvoiceGenerator
 
     Invoice.transaction do
       invoice = create_invoice
-      create_rent_line_item(invoice)
-      create_tax_line_item(invoice) if @lease.tax_rate.to_f.positive?
+      rent_amount = create_rent_line_item(invoice)
+      discount_amount = create_discount_line_item(invoice)
+      create_tax_line_item(invoice, rent_amount - discount_amount) if @lease.tax_rate.to_f.positive?
       invoice
     end
   end
@@ -37,11 +38,45 @@ class InvoiceGenerator
       amount: amount,
       category: "rent"
     )
+
+    amount
   end
 
-  def create_tax_line_item(invoice)
-    rent_amount = @lease.current_rent_at(@date)
-    tax_amount = rent_amount * (@lease.tax_rate / 100.0)
+  def create_discount_line_item(invoice)
+    discount = @lease.proration_discount_for(@date)
+    return 0 unless discount.positive?
+
+    unused_days = calculate_unused_days
+
+    LineItem.create!(
+      invoice: invoice,
+      name: "Pro-rated discount (#{unused_days} days)",
+      amount: -discount,
+      category: "discount"
+    )
+
+    discount
+  end
+
+  def calculate_unused_days
+    month_start = @date.beginning_of_month
+    month_end = @date.end_of_month
+    days_in_month = month_end.day
+    days = 0
+
+    if month_start == @lease.start_date.beginning_of_month && @lease.start_date.day > 1
+      days += @lease.start_date.day - 1
+    end
+
+    if @lease.end_date && month_start == @lease.end_date.beginning_of_month && @lease.end_date.day < days_in_month
+      days += days_in_month - @lease.end_date.day
+    end
+
+    days
+  end
+
+  def create_tax_line_item(invoice, taxable_amount)
+    tax_amount = taxable_amount * (@lease.tax_rate / 100.0)
     tax_name = @lease.tax_name.presence || "Tax"
 
     LineItem.create!(

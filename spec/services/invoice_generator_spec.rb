@@ -56,6 +56,33 @@ RSpec.describe InvoiceGenerator do
       end
     end
 
+    context "with proration (first month mid-start)" do
+      let(:lease) { create(:lease, rent_amount: 3100, start_date: Date.new(2025, 1, 16)) }
+      let(:date) { Date.new(2025, 1, 1) }
+
+      it "creates a discount line item for unused days" do
+        invoice = service.call
+        discount_item = invoice.line_items.find_by(category: "discount")
+        # 15 unused days (Jan 1-15) at 3100/31 = 100/day = -1500
+        expect(discount_item).to have_attributes(present?: true, name: "Pro-rated discount (15 days)")
+        expect(discount_item.amount).to eq(-1500.0)
+      end
+    end
+
+    context "with proration and tax" do
+      let(:lease) do
+        create(:lease, rent_amount: 3100, start_date: Date.new(2025, 1, 16), tax_name: "GST", tax_rate: 10)
+      end
+      let(:date) { Date.new(2025, 1, 1) }
+
+      it "calculates tax on net rent (rent - discount)" do
+        invoice = service.call
+        tax_item = invoice.line_items.find_by(category: "tax")
+        # Net rent = 3100 - 1500 = 1600, tax = 1600 * 10% = 160
+        expect(tax_item.amount).to eq(160.0)
+      end
+    end
+
     context "when invoice already exists" do
       before { create(:invoice, lease: lease, date: date.beginning_of_month) }
 
