@@ -74,4 +74,22 @@
 
     .card-actions.justify-end.mt-6
       = link_to 'Edit', edit_lease_path(@lease), class: "btn btn-primary"
+      - unless @lease.terminated_on
+        %label.btn.btn-warning{for: "terminate-modal"} Terminate
+        = button_to "Renew", renew_lease_path(@lease), method: :post, class: "btn btn-success", data: { turbo_confirm: "This will terminate the current lease and create a renewed lease. Continue?" }
       = link_to 'Back', leases_path, class: "btn btn-ghost"
+
+-# Termination Modal
+%input#terminate-modal.modal-toggle{type: "checkbox"}
+.modal{role: "dialog"}
+  .modal-box
+    %h3.text-lg.font-bold Terminate Lease
+    %p.py-4 Set the termination date for this lease. This will end the lease early.
+    = form_with url: terminate_lease_path(@lease), method: :patch, class: "mt-4" do |f|
+      .form-control
+        %label.label
+          %span.label-text Termination Date
+        %input.input.input-bordered.w-full{type: "date", name: "terminated_on", required: true, min: @lease.start_date.to_s, max: @lease.end_date&.to_s}
+      .modal-action
+        %label.btn.btn-ghost{for: "terminate-modal"} Cancel
+        %button.btn.btn-warning{type: "submit"} Terminate

@@ -15,6 +15,10 @@ en:
       success: "Lease was successfully updated."
     destroy:
       success: "Lease was successfully destroyed."
+    terminate:
+      success: "Lease was successfully terminated."
+    renew:
+      success: "Lease was successfully renewed."
 
   owners:
     create:

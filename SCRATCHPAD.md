@@ -23,9 +23,12 @@
     - [x] Calculate unused days for first/last months
     - [x] Create discount line items
     - [x] Tax on net rent (rent - discount)
+- [x] Lease Lifecycle
+    - [x] Termination modal with date picker
+    - [x] Renewal with LeaseRenewalService
 
 # Next Goals
-- [ ] Lease Lifecycle
+- [ ] Lease Documents (ActiveStorage)
 - [ ] Lease Taxes
 - [ ] Invoice Workflow Improvements
 - [ ] Lease Lifecycle

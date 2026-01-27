@@ -42,6 +42,21 @@ class LeasesController < ApplicationController
     redirect_to leases_url, notice: t(".success")
   end
 
+  def terminate
+    @lease = Lease.find(params[:id])
+    if @lease.update(terminated_on: params[:terminated_on])
+      redirect_to @lease, notice: t(".success")
+    else
+      redirect_to @lease, alert: @lease.errors.full_messages.join(", ")
+    end
+  end
+
+  def renew
+    @lease = Lease.find(params[:id])
+    new_lease = ::LeaseRenewalService.new(@lease).call
+    redirect_to new_lease, notice: t(".success")
+  end
+
   private
 
   def lease_params

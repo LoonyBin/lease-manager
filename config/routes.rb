@@ -1,5 +1,10 @@
 Rails.application.routes.draw do
-  resources :leases
+  resources :leases do
+    member do
+      patch :terminate
+      post :renew
+    end
+  end
   resources :properties
   resources :tenants
   resources :owners
