@@ -10,6 +10,7 @@
           %tr
             %th Date
             %th Tenant
+            %th Details
             %th Amount
             %th Allocations
         %tbody
@@ -19,6 +20,10 @@
               %td
                 %p.font-bold= payment.lease.tenant.name
                 %p.text-xs.opacity-50= payment.lease.property.name
+              %td
+                %p.font-semibold= payment.mode.humanize.titleize
+                - if payment.reference_number.present?
+                  %p.text-xs.font-mono.opacity-70= payment.reference_number
               %td= number_to_currency(payment.amount)
               %td
                 - if payment.payment_allocations.any?

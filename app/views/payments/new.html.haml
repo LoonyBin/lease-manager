@@ -14,6 +14,12 @@
       .form-control.w-full.max-w-xs.mb-4
         = f.input :date, as: :date, html5: true, input_html: { class: "input input-bordered w-full" }, wrapper: false, label_html: { class: "label-text" }
 
+      .form-control.w-full.max-w-xs.mb-4
+        = f.input :mode, collection: Payment.modes.keys.map { |m| [m.humanize.titleize, m] }, include_blank: false, input_html: { class: "select select-bordered w-full" }, wrapper: false, label_html: { class: "label-text" }
+
+      .form-control.w-full.max-w-xs.mb-4
+        = f.input :reference_number, input_html: { class: "input input-bordered w-full" }, wrapper: false, label_html: { class: "label-text" }
+
       .form-control.w-full.max-w-xs.mb-6
         = f.input :amount, input_html: { class: "input input-bordered w-full", min: 0, step: 0.01 }, wrapper: false, label_html: { class: "label-text" }
 

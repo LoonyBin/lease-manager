@@ -26,6 +26,6 @@ class PaymentsController < ApplicationController
   private
 
   def payment_params
-    params.expect(payment: %i[lease_id date amount])
+    params.expect(payment: %i[lease_id date amount mode reference_number])
   end
 end

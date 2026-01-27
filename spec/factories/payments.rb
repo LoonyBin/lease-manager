@@ -5,5 +5,7 @@ FactoryBot.define do
     lease
     date { Time.zone.today }
     amount { "9.99" }
+    mode { "upi" }
+    reference_number { "UPI123456" }
   end
 end

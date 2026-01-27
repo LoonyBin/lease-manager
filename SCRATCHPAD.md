@@ -11,9 +11,9 @@
 - [x] Implement Payments Support
 
 # Current Goal
-- [ ] Payment Enhancements
-    - [ ] Add `mode` and `reference_number` to Payment
-    - [ ] Update Views
+- [x] Payment Enhancements
+    - [x] Add `mode` and `reference_number` to Payment
+    - [x] Update Views
 
 # Next Goals
 - [ ] Lease Data Refinements

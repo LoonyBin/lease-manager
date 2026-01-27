@@ -10,4 +10,13 @@ RSpec.describe Payment do
   it { is_expected.to validate_presence_of(:amount) }
   it { is_expected.to validate_numericality_of(:amount).is_greater_than(0) }
   it { is_expected.to validate_presence_of(:date) }
+  it { is_expected.to validate_presence_of(:mode) }
+
+  it do
+    expected_modes = {
+      rtgs: 0, neft: 1, imps: 2, upi: 3, cheque: 4,
+      cash: 5, demand_draft: 6, tax_deducted_at_source: 7
+    }
+    is_expected.to define_enum_for(:mode).with_values(expected_modes)
+  end
 end
