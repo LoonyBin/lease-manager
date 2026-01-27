@@ -28,7 +28,7 @@
     = f.input :tax_rate, placeholder: "e.g., 18"
 
     - if f.object.terminated_on.present?
-      = f.input :terminated_on, as: :date, html5: true, wrapper_class: "col-span-2 form-control", input_html: { class: "input input-bordered w-full", disabled: true }
+      = f.input :terminated_on, as: :date, html5: true, wrapper_class: "col-span-2 form-control", input_html: { class: "input input-bordered w-full" }
 
   .form-actions.mt-5.card-actions.justify-end
     = f.button :submit, class: "btn btn-primary"

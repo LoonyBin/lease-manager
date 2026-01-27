@@ -97,7 +97,7 @@ class LeasesController < ApplicationController
       tenant: @renewing_from.tenant,
       start_date: @renewing_from.end_date + 1.day,
       duration_months: @renewing_from.duration_months,
-      rent_amount: @renewing_from.current_rent_at(@renewing_from.end_date),
+      rent_amount: @renewing_from.current_rent_at(@renewing_from.end_date + 1.day),
       security_deposit_in_months: @renewing_from.security_deposit_in_months
     }
   end
