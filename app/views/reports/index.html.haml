@@ -1,0 +1,31 @@
+- content_for :title, "Financial Reports"
+
+.container.mx-auto.p-6
+  %h1.text-3xl.font-bold.mb-8 Financial Reports
+
+  .grid.grid-cols-1.md:grid-cols-2.lg:grid-cols-4.gap-6.mb-8
+    .card.bg-primary.text-primary-content.shadow-xl
+      .card-body
+        %h2.card-title Total Revenue
+        %p.text-4xl.font-bold= number_to_currency(@total_revenue, unit: "₹")
+        .card-actions.justify-end
+          = link_to "View Details", revenue_reports_path, class: "btn btn-sm btn-ghost"
+
+    .card.bg-warning.text-warning-content.shadow-xl
+      .card-body
+        %h2.card-title Outstanding
+        %p.text-4xl.font-bold= number_to_currency(@total_outstanding, unit: "₹")
+        .card-actions.justify-end
+          = link_to "View Details", outstanding_reports_path, class: "btn btn-sm btn-ghost"
+
+    .card.bg-secondary.text-secondary-content.shadow-xl
+      .card-body
+        %h2.card-title Total Taxes
+        %p.text-4xl.font-bold= number_to_currency(@total_taxes, unit: "₹")
+        .card-actions.justify-end
+          = link_to "View Details", taxes_reports_path, class: "btn btn-sm btn-ghost"
+
+    .card.bg-success.text-success-content.shadow-xl
+      .card-body
+        %h2.card-title Collected
+        %p.text-4xl.font-bold= number_to_currency(@total_collected, unit: "₹")

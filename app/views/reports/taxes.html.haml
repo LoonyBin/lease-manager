@@ -1,0 +1,28 @@
+- content_for :title, "Tax Report"
+
+.container.mx-auto.p-6
+  .flex.justify-between.items-center.mb-6
+    %h1.text-3xl.font-bold Tax Report
+    = link_to "← Back to Reports", reports_path, class: "btn btn-ghost"
+
+  .card.bg-base-100.shadow-xl
+    .card-body
+      .flex.justify-between.items-center.mb-4
+        %h2.card-title Taxes by Month
+        .badge.badge-secondary.badge-lg= number_to_currency(@total_taxes, unit: "₹")
+
+      .overflow-x-auto
+        %table.table.table-zebra
+          %thead
+            %tr
+              %th Month
+              %th.text-right Tax Amount
+          %tbody
+            - @taxes_by_month.each do |month, amount|
+              %tr
+                %td= month.strftime("%B %Y")
+                %td.text-right= number_to_currency(amount, unit: "₹")
+          %tfoot
+            %tr.font-bold
+              %td Total
+              %td.text-right= number_to_currency(@total_taxes, unit: "₹")
