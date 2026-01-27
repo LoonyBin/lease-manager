@@ -27,6 +27,9 @@ en:
     finalize:
       success: "Invoice finalized successfully."
       not_draft: "Invoice is not in draft status."
+  payments:
+    create:
+      success: "Payment recorded successfully."
   properties:
     create:
       success: "Property was successfully created."

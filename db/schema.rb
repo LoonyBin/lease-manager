@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_01_27_062932) do
+ActiveRecord::Schema[8.0].define(version: 2026_01_27_072109) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -60,6 +60,25 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_27_062932) do
     t.integer "invoice_sequence", default: 0
   end
 
+  create_table "payment_allocations", force: :cascade do |t|
+    t.bigint "payment_id", null: false
+    t.bigint "invoice_id", null: false
+    t.decimal "amount", precision: 10, scale: 2, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["invoice_id"], name: "index_payment_allocations_on_invoice_id"
+    t.index ["payment_id"], name: "index_payment_allocations_on_payment_id"
+  end
+
+  create_table "payments", force: :cascade do |t|
+    t.bigint "lease_id", null: false
+    t.date "date", null: false
+    t.decimal "amount", precision: 10, scale: 2, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["lease_id"], name: "index_payments_on_lease_id"
+  end
+
   create_table "properties", force: :cascade do |t|
     t.string "name"
     t.text "address"
@@ -81,5 +100,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_27_062932) do
   add_foreign_key "leases", "properties"
   add_foreign_key "leases", "tenants"
   add_foreign_key "line_items", "invoices"
+  add_foreign_key "payment_allocations", "invoices"
+  add_foreign_key "payment_allocations", "payments"
+  add_foreign_key "payments", "leases"
   add_foreign_key "properties", "owners"
 end

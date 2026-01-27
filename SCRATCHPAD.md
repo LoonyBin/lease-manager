@@ -1,3 +1,6 @@
+# Rules
+- **Explicit Permission Required**: You must ALWAYS seek explicit permission from the user before moving on to the next feature. Do not assume approval.
+
 # Current Goal
 - [x] Migrate to Tailwind CSS and Simple Form
     - [x] Add gems (`tailwindcss-rails`, `simple_form`)
@@ -41,10 +44,10 @@
     - [x] Implement Draft Generation Service
     - [x] Create Invoicing Views
 # Current Goal
-- [ ] Implement Payments Support
-    - [ ] Create `Payment` and `PaymentAllocation` models
-    - [ ] Implement Auto-Allocation Service (Oldest First)
-    - [ ] Handle Excess Payments logic
+- [x] Implement Payments Support
+    - [x] Create `Payment` and `PaymentAllocation` models
+    - [x] Implement Auto-Allocation Service (Oldest First)
+    - [x] Handle Excess Payments logic
 
 # Next Goals
 - [ ] Implement Reconciliation (Match Statement to Payment)

@@ -2,6 +2,9 @@
 
 You are an intelligent agent working on this project. Your first step is to identify `YOUR_ROLE` based on the user's request and your current state.
 
+> [!IMPORTANT]
+> **Explicit Permission Required**: You must ALWAYS seek explicit permission from the user before moving on to the next feature. Do not assume approval.
+
 ## Roles
 
 ### 1. PLANNER (`.agents/planner.md`)

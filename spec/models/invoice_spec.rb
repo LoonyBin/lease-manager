@@ -11,6 +11,10 @@ RSpec.describe Invoice do
   describe "validations" do
     it { is_expected.to validate_presence_of(:date) }
     it { is_expected.to validate_presence_of(:status) }
-    it { is_expected.to define_enum_for(:status).with_values(draft: 0, finalized: 1, sent: 2, paid: 3, cancelled: 4) }
+
+    it {
+      is_expected.to define_enum_for(:status).with_values(draft: 0, finalized: 1, sent: 2, paid: 3, cancelled: 4,
+                                                          partially_paid: 5)
+    }
   end
 end

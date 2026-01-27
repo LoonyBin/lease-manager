@@ -12,14 +12,19 @@ class InvoicesController < ApplicationController
   def finalize
     @invoice = Invoice.find(params[:id])
 
-    if @invoice.draft?
-      ActiveRecord::Base.transaction do
-        InvoiceNumberingService.new(@invoice).call
-        @invoice.finalized!
-      end
-      redirect_to @invoice, notice: t(".success")
-    else
-      redirect_to @invoice, alert: t(".not_draft")
+    return redirect_to @invoice, alert: t(".not_draft") unless @invoice.draft?
+
+    finalize_transaction
+    redirect_to @invoice, notice: t(".success")
+  end
+
+  private
+
+  def finalize_transaction
+    ActiveRecord::Base.transaction do
+      InvoiceNumberingService.new(@invoice).call
+      @invoice.finalized!
+      PaymentService.allocate_excess(@invoice)
     end
   end
 end
