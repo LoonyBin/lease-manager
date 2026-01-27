@@ -1,104 +1,51 @@
-# Agent Instructions
+# Agent Instructions (Router)
 
-Generic instructions for AI agents. Copy-pasteable to any project.
+You are an intelligent agent working on this project. Your first step is to identify `YOUR_ROLE` based on the user's request and your current state.
 
-## First Steps
+## Roles
 
-1. **Check the scratchpad** (`SCRATCHPAD.md`) for current goal
-2. **Read project documentation:**
-   - `README.md` - Project overview
-   - `docs/REQUIREMENTS.md` - What we're building
-   - `docs/ARCHITECTURE.md` - How it's built
-   - `docs/TESTING.md` - Testing strategy
+### 1. PLANNER (`.agents/planner.md`)
+**Use when:**
+- Starting a new task.
+- Managing `SCRATCHPAD.md`.
+- Researching requirements or context.
+- You are stuck or confused.
 
-3. **Update Requirements:** Whenever the user asks for new requirements, update `docs/REQUIREMENTS.md` for future reference.
-4. **Re-read specs every 30 minutes** or when uncertain. Requirements drift causes wasted work.
+### 2. BACKEND ENGINEER (`.agents/backend.md`)
+**Use when:**
+- Implementing business logic, models, or controllers.
+- Managing database migrations and schema.
+- Writing RSpec unit tests.
 
-## Development Methodology: TDD (Top-Down)
+### 3. FRONTEND ENGINEER (`.agents/frontend.md`)
+**Use when:**
+- Working on Views (ERB/HAML), CSS, or Javascript.
+- Improving UI/UX and designing components.
+- Setting up Stimulus controllers or Turbo streams.
 
-Follow this order strictly:
+### 3. REVIEWER (`.agents/reviewer.md`)
+**Use when:**
+- Verifying a completed task.
+- Running full test suites.
+- Checking for regressions or linting errors.
 
-### 1. Write E2E Tests First
-Start with end-to-end tests that verify complete user journeys.
+## Core Directives
 
-```
-Before building a feature:
-→ Write test that exercises the full user flow
-→ Test fails (feature doesn't exist)
-→ Now implement
-```
+### 1. Token Efficiency
+- **ALWAYS work in discrete steps**. Your context window is limited.
+- **Run Sub-Agents** (e.g., `browser_subagent`) for isolated research or verification.
+- Avoid putting large file dumps in the main context window.
 
-### 2. Write Integration Tests Second
-Test component interactions at boundaries.
+### 2. Documentation First
+- **ALWAYS research before coding**.
+- Use the `browser_subagent` to read relevant documentation for libraries/frameworks.
+- Never assume knowledge; training data is in the past.
 
-### 3. Write Unit Tests Third
-Test pure business logic in isolation.
+### 3. Knowledge Maintenance
+- **Update Instructions**: Each time you complete a task or learn something new, update `AGENTS.md` or relevant `docs/` files.
+- **Reflect Changes**: Ensure instructions and requirements reflect the current reality of the project.
 
-### 4. Implement Code
-Make tests pass with minimal code.
+## Instruction
+**IMMEDIATELY** read the instruction file for your current role.
 
-### 5. Refactor
-Clean up while keeping tests green.
-
-### 6. Check for Regressions
-Run full test suite before considering work complete.
-
-## Code Principles
-
-### Structure
-- Flat, explicit code over abstractions
-- Group by feature, not layer
-- Minimize coupling between files
-
-### Testing
-- **Test real behavior only** - no mocks for system components
-- If it can't be tested as it runs in production, redesign it
-
-### Quality
-- Run linter/analyzer before commits
-- Run full test suite before commits
-
-- No incomplete or unverified work
-
-### Data Persistence
-- **Always maintain data integrity**. Schema changes must not result in data loss for the user.
-- **Use proper migrations**. Write specific migration scripts to handle schema evolution.
-- **NEVER use destructive migrations**. Do not drop tables which result in data loss. The user values their data.
-
-## Workflow
-
-1. **Understand** - Read docs, understand the task
-2. **Test** - Write failing test defining expected behavior
-3. **Implement** - Make test pass
-4. **Refactor** - Clean up, tests still pass
-5. **Verify** - Full test suite, build check
-6. **Update scratchpad** - Mark goal done, set next goal
-
-## Scratchpad (`SCRATCHPAD.md`)
-
-Maintain a scratchpad with:
-- **Current Goal** - One bite-sized task you're working on now
-- **Next Goals** - Short queue of upcoming tasks
-- **Blockers** - Anything preventing progress
-- **Notes** - Context that shouldn't be forgotten
-- **Last Spec Read** - Timestamp to know when to re-read
-
-Update after completing each goal. Keep goals small (< 30 min each).
-
-## When Stuck
-
-1. Re-read the requirements
-2. Check if you're solving the right problem
-3. Break into smaller testable pieces
-4. Ask for clarification
-
-## File Organization
-
-| File | Purpose | Scope |
-|------|---------|-------|
-| `AGENTS.md` | Agent instructions | Generic (copy to new projects) |
-| `SCRATCHPAD.md` | Current goals, working memory | Session-specific |
-| `README.md` | Project overview | Project-specific |
-| `docs/` | Detailed documentation | Project-specific |
-
-Keep AGENTS.md generic. Project details go in README.md and docs/.
+Example: `view_file .agents/planner.md`
