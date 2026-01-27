@@ -11,13 +11,13 @@
 - [x] Implement Payments Support
 
 # Current Goal
-- [x] Lease Data Refinements
-    - [x] Lease Creation: Hide `terminated_on`
-    - [x] Schema Migration: Replace `enhancement_rate`/`flat`
-    - [x] Enhancement UI: Single input with type toggle
+- [x] Lease Taxes
+    - [x] Add `tax_name` and `tax_rate` to Lease
+    - [x] Update InvoiceGenerator to create tax LineItems
+    - [x] Display taxes on Invoice views
 
 # Next Goals
-- [ ] Lease Taxes
+- [ ] Invoice Workflow Improvements
 - [ ] Lease Taxes
 - [ ] Invoice Workflow Improvements
 - [ ] Lease Lifecycle

@@ -41,6 +41,21 @@ RSpec.describe InvoiceGenerator do
       end
     end
 
+    context "with tax configured" do
+      let(:lease) { create(:lease, rent_amount: 1000, tax_name: "GST", tax_rate: 18) }
+
+      it "creates a tax line item" do
+        invoice = service.call
+        tax_item = invoice.line_items.find_by(category: "tax")
+        expect(tax_item).to have_attributes(present?: true, amount: 180.0, name: "GST (18.0%)")
+      end
+
+      it "creates both rent and tax line items" do
+        invoice = service.call
+        expect(invoice.line_items.count).to eq(2)
+      end
+    end
+
     context "when invoice already exists" do
       before { create(:invoice, lease: lease, date: date.beginning_of_month) }
 

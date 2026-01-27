@@ -23,6 +23,10 @@
           %button.btn.join-item{type: "button", data: { action: "click->enhancement-toggle#toggle", enhancement_toggle_target: "buttonLabel" }}
             = f.object.percentage? ? "%" : "₹"
 
+
+    = f.input :tax_name, placeholder: "e.g., GST"
+    = f.input :tax_rate, placeholder: "e.g., 18"
+
     - unless f.object.new_record?
       = f.input :terminated_on, as: :date, html5: true, wrapper_class: "col-span-2 form-control", input_html: { class: "input input-bordered w-full" }
 
