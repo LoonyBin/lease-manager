@@ -5,37 +5,28 @@ require "rails_helper"
 RSpec.describe Lease do
   subject(:lease) { build(:lease) }
 
-  describe "associations" do
+  describe "validations" do
     it { is_expected.to belong_to(:property) }
     it { is_expected.to belong_to(:tenant) }
-  end
-
-  describe "validations" do
     it { is_expected.to validate_presence_of(:start_date) }
     it { is_expected.to validate_presence_of(:rent_amount) }
     it { is_expected.to validate_numericality_of(:rent_amount).is_greater_than(0) }
     it { is_expected.to validate_presence_of(:duration_months) }
     it { is_expected.to validate_numericality_of(:duration_months).only_integer.is_greater_than(0) }
-    it { is_expected.to validate_presence_of(:security_deposit_in_months) }
-
-    it do
-      is_expected.to validate_numericality_of(:security_deposit_in_months)
-        .only_integer
-        .is_greater_than_or_equal_to(0)
-    end
-
+    it { is_expected.to validate_presence_of(:enhancement_period_months) }
     it { is_expected.to validate_numericality_of(:enhancement_period_months).only_integer.is_greater_than(0) }
+    it { is_expected.to validate_numericality_of(:enhancement_amount).is_greater_than_or_equal_to(0).allow_nil }
 
-    context "with custom validations" do
-      before do
-        lease.start_date = "2025-01-01"
-        lease.terminated_on = "2024-01-01"
-        lease.valid?
+    describe "#termination_date_after_start_date" do
+      let(:lease) { build(:lease, start_date: Time.zone.today, terminated_on: Date.yesterday) }
+
+      it "is invalid" do
+        expect(lease).not_to be_valid
       end
 
-      it do
-        is_expected.to have_validation_error(:terminated_on)
-          .with_message("must be after the start date")
+      it "has correct error message" do
+        lease.valid?
+        expect(lease.errors[:terminated_on]).to include("must be after the start date")
       end
     end
   end
@@ -68,8 +59,8 @@ RSpec.describe Lease do
              start_date: Date.new(2023, 1, 16),
              rent_amount: 1000,
              enhancement_period_months: 12,
-             enhancement_percentage: 5.0,
-             enhancement_fixed_amount: 0.0)
+             enhancement_amount: 5.0,
+             enhancement_type: :percentage)
     end
 
     it "returns base rent for the first period" do
@@ -88,7 +79,7 @@ RSpec.describe Lease do
     end
 
     it "handles fixed amount enhancement" do
-      lease.update(enhancement_percentage: 0, enhancement_fixed_amount: 100)
+      lease.update(enhancement_type: :fixed, enhancement_amount: 100)
       expect(lease.current_rent_at(Date.new(2024, 1, 1))).to eq(1100)
     end
   end

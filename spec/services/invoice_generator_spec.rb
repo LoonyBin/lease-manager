@@ -29,7 +29,8 @@ RSpec.describe InvoiceGenerator do
                rent_amount: 1000,
                start_date: Date.new(2024, 1, 1),
                enhancement_period_months: 12,
-               enhancement_percentage: 10)
+               enhancement_amount: 10,
+               enhancement_type: :percentage)
       end
       let(:date) { Date.new(2025, 1, 1) } # 1 year later, 10% increase
 

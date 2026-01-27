@@ -11,12 +11,13 @@
 - [x] Implement Payments Support
 
 # Current Goal
-- [x] Payment Enhancements
-    - [x] Add `mode` and `reference_number` to Payment
-    - [x] Update Views
+- [x] Lease Data Refinements
+    - [x] Lease Creation: Hide `terminated_on`
+    - [x] Schema Migration: Replace `enhancement_rate`/`flat`
+    - [x] Enhancement UI: Single input with type toggle
 
 # Next Goals
-- [ ] Lease Data Refinements
+- [ ] Lease Taxes
 - [ ] Lease Taxes
 - [ ] Invoice Workflow Improvements
 - [ ] Lease Lifecycle

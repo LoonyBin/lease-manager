@@ -36,11 +36,10 @@
           %strong Enhancement Period:
           = "#{@lease.enhancement_period_months} months"
         %p.mb-2
-          %strong Enhancement %:
-          = "#{@lease.enhancement_percentage}%"
-        %p.mb-2
-          %strong Enhancement Fixed:
-          = number_to_currency(@lease.enhancement_fixed_amount)
+          %strong Enhancement:
+          - if @lease.enhancement_amount.present?
+            = @lease.enhancement_amount
+            = @lease.percentage? ? "%" : "₹"
 
     .card-actions.justify-end.mt-6
       = link_to 'Edit', edit_lease_path(@lease), class: "btn btn-primary"

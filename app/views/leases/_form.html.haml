@@ -13,10 +13,18 @@
     = f.input :security_deposit_in_months
 
     = f.input :enhancement_period_months
-    = f.input :enhancement_percentage
-    = f.input :enhancement_fixed_amount
+    = f.input :enhancement_amount, as: :string, wrapper: false, label_html: { class: "label" }, input_html: { class: "input input-bordered w-full join-item" } do
+      .form-control.w-full{data: {controller: "enhancement-toggle"}}
+        %label.label{for: "lease_enhancement_amount"}
+          %span.label-text Enhancement Amount
+        .join.w-full
+          = f.input_field :enhancement_amount, class: "input input-bordered join-item w-full"
+          = f.hidden_field :enhancement_type, value: f.object.enhancement_type || "percentage", data: { enhancement_toggle_target: "typeInput" }
+          %button.btn.join-item{type: "button", data: { action: "click->enhancement-toggle#toggle", enhancement_toggle_target: "buttonLabel" }}
+            = f.object.percentage? ? "%" : "₹"
 
-    = f.input :terminated_on, as: :date, html5: true, wrapper_class: "col-span-2 form-control", input_html: { class: "input input-bordered w-full" }
+    - unless f.object.new_record?
+      = f.input :terminated_on, as: :date, html5: true, wrapper_class: "col-span-2 form-control", input_html: { class: "input input-bordered w-full" }
 
   .form-actions.mt-5.card-actions.justify-end
     = f.button :submit, class: "btn btn-primary"

@@ -47,6 +47,6 @@ class LeasesController < ApplicationController
   def lease_params
     params.expect(lease: %i[property_id tenant_id start_date duration_months rent_amount
                             security_deposit_in_months enhancement_period_months
-                            enhancement_percentage enhancement_fixed_amount terminated_on])
+                            enhancement_amount enhancement_type])
   end
 end

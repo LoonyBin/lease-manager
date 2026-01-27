@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_01_27_085213) do
+ActiveRecord::Schema[8.0].define(version: 2026_01_27_091748) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -34,10 +34,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_01_27_085213) do
     t.decimal "rent_amount"
     t.integer "security_deposit_in_months"
     t.integer "enhancement_period_months"
-    t.decimal "enhancement_percentage"
-    t.decimal "enhancement_fixed_amount"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.decimal "enhancement_amount", precision: 10, scale: 2
+    t.integer "enhancement_type", default: 0
     t.index ["property_id"], name: "index_leases_on_property_id"
     t.index ["tenant_id"], name: "index_leases_on_tenant_id"
   end
