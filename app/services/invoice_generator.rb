@@ -59,20 +59,20 @@ class InvoiceGenerator
   end
 
   def calculate_unused_days
+    days_in_month = @date.end_of_month.day
     month_start = @date.beginning_of_month
-    month_end = @date.end_of_month
-    days_in_month = month_end.day
     days = 0
-
-    if month_start == @lease.start_date.beginning_of_month && @lease.start_date.day > 1
-      days += @lease.start_date.day - 1
-    end
-
-    if @lease.end_date && month_start == @lease.end_date.beginning_of_month && @lease.end_date.day < days_in_month
-      days += days_in_month - @lease.end_date.day
-    end
-
+    days += @lease.start_date.day - 1 if first_month_partial?(month_start)
+    days += days_in_month - @lease.end_date.day if last_month_partial?(month_start, days_in_month)
     days
+  end
+
+  def first_month_partial?(month_start)
+    month_start == @lease.start_date.beginning_of_month && @lease.start_date.day > 1
+  end
+
+  def last_month_partial?(month_start, days_in_month)
+    @lease.end_date && month_start == @lease.end_date.beginning_of_month && @lease.end_date.day < days_in_month
   end
 
   def create_tax_line_item(invoice, taxable_amount)

@@ -19,6 +19,10 @@
     - [x] Invoices table on Lease show page
     - [x] Missing months identified
     - [x] Generate button creates invoices
+- [x] Invoice Proration Discounts
+    - [x] Calculate unused days for first/last months
+    - [x] Create discount line items
+    - [x] Tax on net rent (rent - discount)
 
 # Next Goals
 - [ ] Lease Lifecycle

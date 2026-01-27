@@ -65,6 +65,11 @@ RSpec.describe InvoiceGenerator do
         discount_item = invoice.line_items.find_by(category: "discount")
         # 15 unused days (Jan 1-15) at 3100/31 = 100/day = -1500
         expect(discount_item).to have_attributes(present?: true, name: "Pro-rated discount (15 days)")
+      end
+
+      it "calculates correct discount amount" do
+        invoice = service.call
+        discount_item = invoice.line_items.find_by(category: "discount")
         expect(discount_item.amount).to eq(-1500.0)
       end
     end
