@@ -2,7 +2,7 @@ Rails.application.routes.draw do
   resources :leases do
     member do
       patch :terminate
-      post :renew
+      get :renew
     end
   end
   resources :properties
