@@ -1,61 +1,28 @@
 # Rules
 - **Explicit Permission Required**: You must ALWAYS seek explicit permission from the user before moving on to the next feature. Do not assume approval.
 
-# Current Goal
-- [x] Migrate to Tailwind CSS and Simple Form
-    - [x] Add gems (`tailwindcss-rails`, `simple_form`)
-    - [x] Install Tailwind and Simple Form
-    - [x] Configure Simple Form wrappers for Tailwind
-- [x] Migrate to Tailwind CSS and Simple Form
-    - [x] Add gems (`tailwindcss-rails`, `simple_form`)
-    - [x] Install Tailwind and Simple Form
-    - [x] Configure Simple Form wrappers for Tailwind
-    - [x] Refactor Layout (`application.html.erb` -> `haml` + Tailwind)
-    - [x] Refactor Views (Properties, Tenants, Leases)
-    - [x] Migrate to daisyUI (npm install, plugin config, view refactoring)
-- [x] Setup Developer Tools (Foreman & Guard)
-    - [x] Verify Foreman (`bin/dev`, `Procfile.dev`)
-    - [x] Add Guard gems (`guard`, `guard-rspec`)
-    - [x] Configure Guardfile
-- [/] Setup Guard for RuboCop
-    - [ ] Add `guard-rubocop` gem
-    - [ ] Initialize `Guardfile` for RuboCop
-    - [ ] Configure auto-correct ('--autocorrect')
-- [x] i18n & Locales
-    - [x] Change currency to Rupee (INR)
-    - [x] Fix RuboCop locale errors
-    - [x] Verify currency formatting in views
-    - [x] Migration: Replace `end_date` with `duration_months`. Add `security_deposit_in_months` (int). Add `terminated_on` (date).
-    - [x] Model: Update associations and validations.
-        - `end_date` becomes calculated: `start_date + duration_months` (unless `terminated_on` is set).
-        - `security_deposit` amount = `rent_amount * security_deposit_in_months`.
-        - **Lease Fields**: `start_date`, `end_date`, `rent_amount`, `security_deposit`, `enhancement_period_months`, `enhancement_rate` (%), `enhancement_flat` ($).
-        - **Logic**: End Date snaps to the last day of the month based on duration.
-    - [x] Views: Update Interface.
-    - [x] Specs: Update Request and Model specs.
+# History
+- [x] Migrate to Tailwind CSS & Simple Form
+- [x] Setup Developer Tools (Foreman, Guard)
+- [x] i18n & Locales (Rupee, Lease Model updates)
+- [x] Implement Owner Model
+- [x] Implement Invoicing Logic
+- [x] Implement Owners Interface
+- [x] Implement Payments Support
 
 # Current Goal
-- [x] Implement Owner Model
-    - [x] Create `Owner` model
-    - [x] Associate `Property` with `Owner`
-    - [x] Add `invoice_sequence` to `Owner`
-- [x] Implement Invoicing Logic
-    - [x] Create `Invoice` and `LineItem` models
-    - [x] Implement Draft Generation Service
-    - [x] Create Invoicing Views
-# Current Goal
-- [x] Implement Payments Support
-    - [x] Create `Payment` and `PaymentAllocation` models
-    - [x] Implement Auto-Allocation Service (Oldest First)
-    - [x] Handle Excess Payments logic
+- [ ] Payment Enhancements
+    - [ ] Add `mode` and `reference_number` to Payment
+    - [ ] Update Views
 
 # Next Goals
-- [ ] Implement Reconciliation (Match Statement to Payment)
-- [ ] Implement Reports
-
-# Maintenance
-- [x] Fix existing lint errors (RuboCop)
-- [x] Fix Migration Immutability (CreateOwners)
+- [ ] Lease Data Refinements
+- [ ] Lease Taxes
+- [ ] Invoice Workflow Improvements
+- [ ] Lease Lifecycle
+- [ ] Lease Documents
+- [ ] Reconciliation
+- [ ] Reports
 
 # Blockers
 - None
