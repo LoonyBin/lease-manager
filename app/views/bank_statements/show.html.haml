@@ -57,7 +57,7 @@
                 - else
                   %span.opacity-50 -
               %td
-                - unless txn.confirmed? || txn.rejected?
+                - if !txn.confirmed? && !txn.rejected?
                   - if txn.matched?
                     = button_to "Confirm", confirm_bank_transaction_path(txn), method: :patch, class: "btn btn-xs btn-success"
                     = button_to "Reject", reject_bank_transaction_path(txn), method: :patch, class: "btn btn-xs btn-error"

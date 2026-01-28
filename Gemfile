@@ -84,3 +84,5 @@ gem "guard-rspec", "~> 4.7", groups: %i[development test]
 gem "guard-rubocop", "~> 1.5", groups: %i[development test]
 
 gem "capybara", "~> 3.40", group: :test
+
+gem "csv", "~> 3.3"
