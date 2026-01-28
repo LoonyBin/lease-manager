@@ -8,7 +8,7 @@ Rails.application.routes.draw do
   resources :properties
   resources :tenants
   resources :owners
-  resources :invoices, only: %i[index show] do
+  resources :invoices, only: %i[index show edit update] do
     member do
       patch :finalize
     end

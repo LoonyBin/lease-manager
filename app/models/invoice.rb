@@ -3,6 +3,7 @@
 class Invoice < ApplicationRecord
   belongs_to :lease
   has_many :line_items, dependent: :destroy
+  accepts_nested_attributes_for :line_items, allow_destroy: true
   has_many :payment_allocations, dependent: :destroy
   has_many :payments, through: :payment_allocations
 

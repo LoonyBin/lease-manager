@@ -1,0 +1,41 @@
+- content_for :title, "Edit Invoice"
+
+.card.w-full.max-w-4xl.bg-base-100.shadow-xl.mx-auto
+  .card-body
+    %h2.card-title.text-2xl.mb-6 Edit Invoice
+
+    = simple_form_for @invoice do |f|
+      = f.error_notification
+      = f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present?
+
+      .grid.grid-cols-2.gap-4.mb-6
+        = f.input :date, as: :date, html5: true
+        = f.input :status, collection: Invoice.statuses.keys, include_blank: false
+
+      %h3.text-lg.font-bold.mb-4 Line Items
+
+      %table.table.w-full.mb-4
+        %thead
+          %tr
+            %th Description
+            %th Category
+            %th.text-right Amount
+            %th
+        %tbody
+          = f.simple_fields_for :line_items do |li|
+            %tr
+              %td
+                = li.hidden_field :id
+                = li.input_field :name, class: "input input-bordered input-sm w-full"
+              %td
+                = li.input_field :category, class: "input input-bordered input-sm w-full"
+              %td.text-right
+                = li.input_field :amount, class: "input input-bordered input-sm w-24 text-right"
+              %td
+                = li.label :_destroy, class: "cursor-pointer" do
+                  = li.check_box :_destroy, class: "checkbox checkbox-sm checkbox-error"
+                  %span.text-xs.text-error.ml-1 Delete
+
+      .card-actions.justify-end
+        = link_to "Cancel", @invoice, class: "btn btn-ghost"
+        = f.button :submit, "Save Changes", class: "btn btn-primary"
