@@ -10,8 +10,8 @@ RSpec.describe "tenants/edit" do
     render
   end
 
-  it { is_expected.to have_selector("form[action='#{tenant_path(@tenant)}'][method='post']") }
-  it { is_expected.to have_selector("input[name='tenant[name]']") }
-  it { is_expected.to have_selector("input[name='tenant[email]']") }
-  it { is_expected.to have_selector("input[name='tenant[phone_number]']") }
+  it { is_expected.to have_css("form[action='#{tenant_path(@tenant)}'][method='post']") }
+  it { is_expected.to have_field("tenant[name]") }
+  it { is_expected.to have_field("tenant[email]") }
+  it { is_expected.to have_field("tenant[phone_number]") }
 end

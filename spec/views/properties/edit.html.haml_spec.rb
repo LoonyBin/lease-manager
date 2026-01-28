@@ -10,7 +10,7 @@ RSpec.describe "properties/edit" do
     render
   end
 
-  it { is_expected.to have_selector("form[action='#{property_path(@property)}'][method='post']") }
-  it { is_expected.to have_selector("input[name='property[name]']") }
-  it { is_expected.to have_selector("textarea[name='property[address]']") }
+  it { is_expected.to have_css("form[action='#{property_path(@property)}'][method='post']") }
+  it { is_expected.to have_field("property[name]") }
+  it { is_expected.to have_css("textarea[name='property[address]']") }
 end
