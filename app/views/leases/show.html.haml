@@ -43,6 +43,25 @@
 
     .divider
 
+    %h3.text-lg.font-bold.mb-4 Documents
+    - if @lease.documents.attached?
+      .grid.grid-cols-1.md:grid-cols-2.lg:grid-cols-3.gap-4
+        - @lease.documents.each do |doc|
+          .card.bg-base-200.shadow-sm
+            .card-body.p-4
+              .flex.items-center.gap-3
+                %svg.w-8.h-8.text-primary{xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor"}
+                  %path{stroke_linecap: "round", stroke_linejoin: "round", stroke_width: "2", d: "M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"}
+                %div
+                  %p.font-medium.truncate= doc.filename.to_s
+                  %p.text-xs.text-base-content.opacity-60= number_to_human_size(doc.byte_size)
+              .card-actions.justify-end.mt-2
+                = link_to "Download", rails_blob_path(doc, disposition: "attachment"), class: "btn btn-xs btn-primary"
+    - else
+      %p.text-base-content.opacity-50 No documents uploaded yet.
+
+    .divider
+
     %h3.text-lg.font-bold.mb-4 Invoices
 
     .overflow-x-auto

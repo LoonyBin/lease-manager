@@ -7,6 +7,8 @@ class Lease < ApplicationRecord
   has_many :payments, dependent: :destroy
   has_many :payment_allocations, through: :payments
 
+  has_many_attached :documents
+
   enum :enhancement_type, { percentage: 0, fixed: 1 }
 
   validates :start_date, presence: true

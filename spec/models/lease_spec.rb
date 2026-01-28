@@ -16,6 +16,7 @@ RSpec.describe Lease do
     it { is_expected.to validate_presence_of(:enhancement_period_months) }
     it { is_expected.to validate_numericality_of(:enhancement_period_months).only_integer.is_greater_than(0) }
     it { is_expected.to validate_numericality_of(:enhancement_amount).is_greater_than_or_equal_to(0).allow_nil }
+    it { is_expected.to have_many_attached(:documents) }
 
     describe "#termination_date_after_start_date" do
       let(:lease) { build(:lease, start_date: Time.zone.today, terminated_on: Date.yesterday) }

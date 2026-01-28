@@ -30,6 +30,10 @@
     - if f.object.terminated_on.present?
       = f.input :terminated_on, as: :date, html5: true, wrapper_class: "col-span-2 form-control", input_html: { class: "input input-bordered w-full" }
 
+    .col-span-2
+      = f.input :documents, as: :file, input_html: { multiple: true, class: "file-input file-input-bordered w-full" },
+                label: "Upload Documents (PDF, images)", hint: "You can select multiple files"
+
   .form-actions.mt-5.card-actions.justify-end
     = f.button :submit, class: "btn btn-primary"
     = link_to "Back", leases_path, class: "btn btn-ghost ml-4"
