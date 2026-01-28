@@ -9,31 +9,38 @@ RSpec.describe "BankTransactions" do
   describe "PATCH /bank_transactions/:id/confirm" do
     it "confirms the transaction" do
       patch confirm_bank_transaction_path(transaction)
-      aggregate_failures do
-        expect(transaction.reload).to be_confirmed
-        expect(response).to redirect_to(bank_statement_path(bank_statement))
-      end
+      expect(transaction.reload).to be_confirmed
+    end
+
+    it "redirects to the bank statement" do
+      patch confirm_bank_transaction_path(transaction)
+      expect(response).to redirect_to(bank_statement_path(bank_statement))
     end
   end
 
   describe "PATCH /bank_transactions/:id/reject" do
     it "rejects the transaction" do
       patch reject_bank_transaction_path(transaction)
-      aggregate_failures do
-        expect(transaction.reload).to be_rejected
-        expect(response).to redirect_to(bank_statement_path(bank_statement))
-      end
+      expect(transaction.reload).to be_rejected
+    end
+
+    it "redirects to the bank statement" do
+      patch reject_bank_transaction_path(transaction)
+      expect(response).to redirect_to(bank_statement_path(bank_statement))
     end
   end
 
   describe "PATCH /bank_transactions/:id/rematch" do
-    it "resets the transaction to unmatched" do # rubocop:disable RSpec/ExampleLength
-      transaction.rejected!
+    before { transaction.rejected! }
+
+    it "resets the transaction to unmatched" do
       patch rematch_bank_transaction_path(transaction)
-      aggregate_failures do
-        expect(transaction.reload).to be_unmatched
-        expect(response).to redirect_to(bank_statement_path(bank_statement))
-      end
+      expect(transaction.reload).to be_unmatched
+    end
+
+    it "redirects to the bank statement" do
+      patch rematch_bank_transaction_path(transaction)
+      expect(response).to redirect_to(bank_statement_path(bank_statement))
     end
   end
 end

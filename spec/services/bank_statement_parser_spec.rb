@@ -23,14 +23,16 @@ RSpec.describe BankStatementParser do
       expect { parser.call }.to change(BankTransaction, :count).by(2)
     end
 
-    it "sets transaction attributes correctly" do # rubocop:disable RSpec/ExampleLength
-      parser.call
-      transaction = BankTransaction.first
-      aggregate_failures do
-        expect(transaction.date).to eq(Date.parse("2025-01-01"))
-        expect(transaction.amount).to eq(1000.00)
-        expect(transaction.description).to eq("Rent Payment")
-        expect(transaction.reference).to eq("REF001")
+    context "when parsing is successful" do
+      before { parser.call }
+
+      it "sets transaction attributes correctly" do
+        expect(BankTransaction.first).to have_attributes(
+          date: Date.parse("2025-01-01"),
+          amount: 1000.00,
+          description: "Rent Payment",
+          reference: "REF001"
+        )
       end
     end
 
