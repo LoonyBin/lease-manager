@@ -27,7 +27,7 @@ RSpec.describe "BankTransactions" do
   end
 
   describe "PATCH /bank_transactions/:id/rematch" do
-    it "resets the transaction to unmatched" do
+    it "resets the transaction to unmatched" do # rubocop:disable RSpec/ExampleLength
       transaction.rejected!
       patch rematch_bank_transaction_path(transaction)
       aggregate_failures do

@@ -26,7 +26,7 @@ RSpec.describe "BankStatements" do
         File.write("spec/fixtures/files/statement.csv", "date,amount,description,reference\n2025-01-01,100.00,Test,REF")
       end
 
-      it "creates a new BankStatement and redirects" do
+      it "creates a new BankStatement and redirects" do # rubocop:disable RSpec/ExampleLength
         aggregate_failures do
           expect do
             post bank_statements_path, params: { bank_statement: { file: file } }

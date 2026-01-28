@@ -23,7 +23,7 @@ RSpec.describe BankStatementParser do
       expect { parser.call }.to change(BankTransaction, :count).by(2)
     end
 
-    it "sets transaction attributes correctly" do
+    it "sets transaction attributes correctly" do # rubocop:disable RSpec/ExampleLength
       parser.call
       transaction = BankTransaction.first
       aggregate_failures do
