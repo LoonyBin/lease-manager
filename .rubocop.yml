@@ -28,9 +28,13 @@ Metrics/BlockLength:
 Layout/LineLength:
   Max: 120
 
+Rails/StrongParametersExpect:
+  AutoCorrect: disabled
+
 RSpec/InstanceVariable:
   Exclude:
     - "spec/views/**/*"
 
 RSpec/ImplicitSubject:
   EnforcedStyle: require_implicit
+

@@ -42,7 +42,7 @@ class InvoicesController < ApplicationController
   private
 
   def invoice_params
-    params.require(:invoice).permit(:date, :status, line_items_attributes: [:id, :name, :amount, :category, :_destroy])
+    params.require(:invoice).permit(:date, :status, line_items_attributes: %i[id name amount category _destroy])
   end
 
   def finalize_transaction
