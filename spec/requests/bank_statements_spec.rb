@@ -27,10 +27,12 @@ RSpec.describe "BankStatements" do
       end
 
       it "creates a new BankStatement and redirects" do
-        expect do
-          post bank_statements_path, params: { bank_statement: { file: file } }
-        end.to change(BankStatement, :count).by(1)
-        expect(response).to redirect_to(BankStatement.last)
+        aggregate_failures do
+          expect do
+            post bank_statements_path, params: { bank_statement: { file: file } }
+          end.to change(BankStatement, :count).by(1)
+          expect(response).to redirect_to(BankStatement.last)
+        end
       end
     end
   end

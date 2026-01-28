@@ -26,10 +26,12 @@ RSpec.describe BankStatementParser do
     it "sets transaction attributes correctly" do
       parser.call
       transaction = BankTransaction.first
-      expect(transaction.date).to eq(Date.parse("2025-01-01"))
-      expect(transaction.amount).to eq(1000.00)
-      expect(transaction.description).to eq("Rent Payment")
-      expect(transaction.reference).to eq("REF001")
+      aggregate_failures do
+        expect(transaction.date).to eq(Date.parse("2025-01-01"))
+        expect(transaction.amount).to eq(1000.00)
+        expect(transaction.description).to eq("Rent Payment")
+        expect(transaction.reference).to eq("REF001")
+      end
     end
 
     it "updates bank statement status to processed" do

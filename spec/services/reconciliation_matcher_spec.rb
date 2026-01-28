@@ -13,15 +13,18 @@ RSpec.describe ReconciliationMatcher do
   let!(:matching_payment) do
     create(:payment, date: Date.current, amount: 1000.0, reference_number: "REF123", mode: :rtgs)
   end
-  let!(:non_matching_payment) do
+
+  before do
     create(:payment, date: Date.current, amount: 500.0, reference_number: "OTHER", mode: :rtgs)
   end
 
   describe "#call" do
     it "matches transaction to payment based on date, amount, and reference" do
       matcher.call
-      expect(transaction.reload.matched_payment).to eq(matching_payment)
-      expect(transaction).to be_matched
+      aggregate_failures do
+        expect(transaction.reload.matched_payment).to eq(matching_payment)
+        expect(transaction).to be_matched
+      end
     end
 
     it "does not match if amount differs" do

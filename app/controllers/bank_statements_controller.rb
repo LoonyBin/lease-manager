@@ -20,8 +20,7 @@ class BankStatementsController < ApplicationController
     @bank_statement.filename = params[:bank_statement][:file]&.original_filename
 
     if @bank_statement.save
-      BankStatementParser.new(@bank_statement).call
-      ReconciliationMatcher.new(@bank_statement).call
+      process_statement
       redirect_to @bank_statement, notice: t(".success")
     else
       render :new, status: :unprocessable_content
@@ -30,7 +29,12 @@ class BankStatementsController < ApplicationController
 
   private
 
+  def process_statement
+    BankStatementParser.new(@bank_statement).call
+    ReconciliationMatcher.new(@bank_statement).call
+  end
+
   def bank_statement_params
-    params.require(:bank_statement).permit(:file)
+    params.expect(bank_statement: [:file])
   end
 end
