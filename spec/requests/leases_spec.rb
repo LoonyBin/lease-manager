@@ -42,6 +42,12 @@ RSpec.describe "Leases" do
         end.to change(Lease, :count).by(1)
       end
 
+      it "attaches documents" do
+        file = fixture_file_upload("spec/fixtures/files/document.pdf", "application/pdf")
+        post leases_path, params: { lease: valid_attributes.merge(documents: [file]) }
+        expect(Lease.last.documents).to be_attached
+      end
+
       it "redirects to the created lease" do
         post leases_path, params: { lease: valid_attributes }
         expect(response).to redirect_to(lease_path(Lease.last))
