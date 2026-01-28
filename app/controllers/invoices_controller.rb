@@ -26,7 +26,24 @@ class InvoicesController < ApplicationController
     redirect_to @invoice, notice: t(".success")
   end
 
+  def edit
+    @invoice = Invoice.find(params[:id])
+  end
+
+  def update
+    @invoice = Invoice.find(params[:id])
+    if @invoice.update(invoice_params)
+      redirect_to @invoice, notice: t(".success")
+    else
+      render :edit, status: :unprocessable_content
+    end
+  end
+
   private
+
+  def invoice_params
+    params.require(:invoice).permit(:date, :status, line_items_attributes: [:id, :name, :amount, :category, :_destroy])
+  end
 
   def finalize_transaction
     ActiveRecord::Base.transaction do
