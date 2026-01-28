@@ -14,7 +14,6 @@ class InvoiceGenerator
       invoice = create_invoice
       create_rent_line_item!(invoice)
       create_discount_line_item!(invoice)
-      create_tax_line_item(invoice, rent_amount - prorated_discount) if @lease.tax_rate.to_f.positive?
       invoice
     end
   end
@@ -38,6 +37,7 @@ class InvoiceGenerator
       invoice: invoice,
       name: "Rent for #{@date.strftime('%B %Y')}",
       amount: rent_amount,
+      tax_rate: @lease.tax_rate,
       category: "rent"
     )
   end
@@ -49,6 +49,7 @@ class InvoiceGenerator
       invoice: invoice,
       name: "Pro-rated discount (#{unused_days} days)",
       amount: -prorated_discount,
+      tax_rate: @lease.tax_rate,
       category: "discount"
     )
   end
@@ -69,17 +70,5 @@ class InvoiceGenerator
 
   def prorated_discount
     @prorated_discount ||= @lease.current_rent_at(@date) * (unused_days / total_days.to_f)
-  end
-
-  def create_tax_line_item(invoice, taxable_amount)
-    tax_amount = taxable_amount * (@lease.tax_rate / 100.0)
-    tax_name = @lease.tax_name.presence || "Tax"
-
-    LineItem.create!(
-      invoice: invoice,
-      name: "#{tax_name} (#{@lease.tax_rate}%)",
-      amount: tax_amount,
-      category: "tax"
-    )
   end
 end

@@ -17,6 +17,8 @@ RSpec.describe "invoices/edit" do
   it { is_expected.to have_field("invoice[date]") }
   it { is_expected.to have_select("invoice[status]") }
   it { is_expected.to have_css("input[value='Rent']") }
+  it { is_expected.to have_css("th", text: "Tax Rate (%)") }
+  it { is_expected.to have_field("invoice[line_items_attributes][0][tax_rate]") }
   it { is_expected.to have_button("Save Changes") }
   it { is_expected.to have_button("Add Line Item") }
 end

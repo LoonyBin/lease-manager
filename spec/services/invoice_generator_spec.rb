@@ -44,15 +44,28 @@ RSpec.describe InvoiceGenerator do
     context "with tax configured" do
       let(:lease) { create(:lease, rent_amount: 1000, tax_name: "GST", tax_rate: 18) }
 
-      it "creates a tax line item" do
+      it "sets tax_rate on the rent line item" do
         invoice = service.call
-        tax_item = invoice.line_items.find_by(category: "tax")
-        expect(tax_item).to have_attributes(present?: true, amount: 180.0, name: "GST (18.0%)")
+        rent_item = invoice.line_items.find_by(category: "rent")
+        expect(rent_item.tax_rate).to eq(18.0)
       end
 
-      it "creates both rent and tax line items" do
+      it "calculates tax_amount dynamically" do
         invoice = service.call
-        expect(invoice.line_items.count).to eq(2)
+        rent_item = invoice.line_items.find_by(category: "rent")
+        # 1000 * 18% = 180
+        expect(rent_item.tax_amount).to eq(180.0)
+      end
+
+      it "does not create a separate tax line item" do
+        invoice = service.call
+        expect(invoice.line_items.find_by(category: "tax")).to be_nil
+      end
+
+      it "calculates correct total for the line item" do
+        invoice = service.call
+        rent_item = invoice.line_items.find_by(category: "rent")
+        expect(rent_item.total).to eq(1180.0)
       end
     end
 
@@ -63,7 +76,6 @@ RSpec.describe InvoiceGenerator do
       it "creates a discount line item for unused days" do
         invoice = service.call
         discount_item = invoice.line_items.find_by(category: "discount")
-        # 15 unused days (Jan 1-15) at 3100/31 = 100/day = -1500
         expect(discount_item).to have_attributes(present?: true, name: "Pro-rated discount (15 days)")
       end
 
@@ -80,11 +92,28 @@ RSpec.describe InvoiceGenerator do
       end
       let(:date) { Date.new(2025, 1, 1) }
 
-      it "calculates tax on net rent (rent - discount)" do
+      it "sets tax_rate on the rent line item" do
         invoice = service.call
-        tax_item = invoice.line_items.find_by(category: "tax")
-        # Net rent = 3100 - 1500 = 1600, tax = 1600 * 10% = 160
-        expect(tax_item.amount).to eq(160.0)
+        rent_item = invoice.line_items.find_by(category: "rent")
+        expect(rent_item.tax_rate).to eq(10.0)
+      end
+
+      it "sets tax_rate on the discount line item" do
+        invoice = service.call
+        discount_item = invoice.line_items.find_by(category: "discount")
+        expect(discount_item.tax_rate).to eq(10.0)
+      end
+
+      it "calculates correct tax amount on the rent line item" do
+        invoice = service.call
+        rent_item = invoice.line_items.find_by(category: "rent")
+        expect(rent_item.tax_amount).to eq(310.0) # 3100 * 10%
+      end
+
+      it "calculates correct tax amount on the discount line item" do
+        invoice = service.call
+        discount_item = invoice.line_items.find_by(category: "discount")
+        expect(discount_item.tax_amount).to eq(-150.0) # -1500 * 10%
       end
     end
 

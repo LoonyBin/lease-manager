@@ -21,6 +21,7 @@
               %th Description
               %th Category
               %th.text-right Amount
+              %th.text-right Tax Rate (%)
               %th
           %tbody{ data: { nested_fields_target: "container" } }
             = f.simple_fields_for :line_items do |li|
@@ -32,6 +33,8 @@
                   = li.input_field :category, class: "input input-bordered input-sm w-full"
                 %td.text-right
                   = li.input_field :amount, class: "input input-bordered input-sm w-24 text-right"
+                %td.text-right
+                  = li.input_field :tax_rate, class: "input input-bordered input-sm w-24 text-right"
                 %td
                   = li.label :_destroy, class: "cursor-pointer" do
                     = li.check_box :_destroy, class: "checkbox checkbox-sm checkbox-error"
@@ -45,6 +48,8 @@
               %input.input.input-bordered.input-sm.w-full{ type: "text", name: "invoice[line_items_attributes][NEW_RECORD][category]" }
             %td.text-right
               %input.input.input-bordered.input-sm.w-24.text-right{ type: "number", step: "any", name: "invoice[line_items_attributes][NEW_RECORD][amount]" }
+            %td.text-right
+              %input.input.input-bordered.input-sm.w-24.text-right{ type: "number", step: "any", name: "invoice[line_items_attributes][NEW_RECORD][tax_rate]", value: "0" }
             %td
 
         .mt-2

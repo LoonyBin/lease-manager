@@ -36,6 +36,8 @@
           %tr
             %th.w-full Description
             %th.text-right Amount
+            %th.text-right Tax
+            %th.text-right Total
         %tbody
           - @invoice.line_items.each do |item|
             %tr
@@ -43,10 +45,15 @@
                 %div.font-bold= item.name
                 %div.text-xs.opacity-50= item.category.humanize
               %td.text-right= number_to_currency(item.amount)
+              %td.text-right
+                = number_to_currency(item.tax_amount)
+                - if item.tax_rate.to_f.positive?
+                  %span.text-xs.opacity-50 (#{item.tax_rate}%)
+              %td.text-right.font-semibold= number_to_currency(item.total)
         %tfoot
           %tr
-            %th.text-right Total
-            %th.text-right.text-lg= number_to_currency(@invoice.line_items.sum(:amount))
+            %th.text-right{colspan: 3} Total
+            %th.text-right.text-lg= number_to_currency(@invoice.line_items.sum(&:total))
 
     .card-actions.justify-end
       = link_to "Edit", edit_invoice_path(@invoice), class: "btn btn-secondary"

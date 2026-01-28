@@ -42,7 +42,7 @@ class InvoicesController < ApplicationController
   private
 
   def invoice_params
-    params.expect(invoice: [:date, :status, { line_items_attributes: [%i[id name amount category _destroy]] }])
+    params.expect(invoice: [:date, :status, { line_items_attributes: [%i[id name amount tax_rate category _destroy]] }])
   end
 
   def finalize_transaction

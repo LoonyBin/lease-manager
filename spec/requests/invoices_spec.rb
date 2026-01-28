@@ -71,7 +71,8 @@ RSpec.describe "Invoices" do
     context "when adding a new line item" do
       it "creates the line item" do
         invoice = create(:invoice)
-        params = { invoice: { line_items_attributes: { "0" => { name: "New Fee", amount: 250, category: "other" } } } }
+        params = { invoice: { line_items_attributes: { "0" => { name: "New Fee", amount: 250, tax_rate: 10,
+                                                                category: "other" } } } }
         expect { patch invoice_path(invoice), params: params }.to change(LineItem, :count).by(1)
       end
     end
