@@ -24,15 +24,19 @@ RSpec.describe BankStatementParser do
     end
 
     context "when parsing is successful" do
-      before { parser.call }
-
-      it "sets transaction attributes correctly" do
-        expect(BankTransaction.first).to have_attributes(
+      let(:expected_attributes) do
+        {
           date: Date.parse("2025-01-01"),
           amount: 1000.00,
           description: "Rent Payment",
           reference: "REF001"
-        )
+        }
+      end
+
+      before { parser.call }
+
+      it "sets transaction attributes correctly" do
+        expect(BankTransaction.first).to have_attributes(expected_attributes)
       end
     end
 
