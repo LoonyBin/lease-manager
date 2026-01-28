@@ -25,6 +25,15 @@ Rails.application.routes.draw do
       get :taxes
     end
   end
+
+  resources :bank_statements, only: %i[index new create show]
+  resources :bank_transactions, only: [] do
+    member do
+      patch :confirm
+      patch :reject
+      patch :rematch
+    end
+  end
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

@@ -53,3 +53,15 @@ en:
       success: "Tenant was successfully updated."
     destroy:
       success: "Tenant was successfully destroyed."
+
+  bank_statements:
+    create:
+      success: "Bank statement uploaded and processed."
+
+  bank_transactions:
+    confirm:
+      success: "Match confirmed."
+    reject:
+      success: "Match rejected."
+    rematch:
+      success: "Transaction reset for re-matching."

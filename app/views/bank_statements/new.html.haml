@@ -1,0 +1,19 @@
+- content_for :title, "Upload Bank Statement"
+
+.card.w-full.max-w-xl.bg-base-100.shadow-xl.mx-auto
+  .card-body
+    %h2.card-title.text-2xl.mb-6 Upload Bank Statement
+
+    = simple_form_for @bank_statement do |f|
+      = f.error_notification
+
+      .form-control.mb-6
+        %label.label
+          %span.label-text Select CSV File
+        = f.input :file, as: :file, label: false, input_html: { accept: ".csv", class: "file-input file-input-bordered w-full" }
+        %p.text-sm.text-base-content.opacity-60.mt-2
+          Expected columns: date, amount, description, reference (or narration, utr)
+
+      .form-actions.card-actions.justify-end
+        = link_to "Cancel", bank_statements_path, class: "btn btn-ghost"
+        = f.button :submit, "Upload & Process", class: "btn btn-primary"
