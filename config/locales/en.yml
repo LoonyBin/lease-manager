@@ -29,6 +29,11 @@ en:
       success: Property was successfully destroyed.
     update:
       success: Property was successfully updated.
+  sessions:
+    create:
+      success: Signed in successfully.
+    destroy:
+      success: Signed out successfully.
   tenants:
     create:
       success: Tenant was successfully created.
@@ -36,3 +41,10 @@ en:
       success: Tenant was successfully destroyed.
     update:
       success: Tenant was successfully updated.
+  users:
+    create:
+      success: User was successfully created.
+    destroy:
+      success: User was successfully destroyed.
+    update:
+      success: User was successfully updated.

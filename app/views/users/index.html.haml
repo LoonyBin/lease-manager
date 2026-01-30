@@ -1,0 +1,25 @@
+.flex.justify-between.items-center.mb-6
+  %h1.text-2xl.font-bold Users
+  = link_to 'New User', new_user_path, class: "btn btn-primary"
+
+.overflow-x-auto
+  %table.table.w-full
+    %thead
+      %tr
+        %th Name
+        %th Email
+        %th Provider
+        %th Role
+        %th.text-center Actions
+    %tbody
+      - @users.each do |user|
+        %tr.hover
+          %td.font-medium= user.name
+          %td= user.email
+          %td= user.provider
+          %td= user.role
+          %td.text-center
+            .join
+              = link_to 'Show', user, class: "btn btn-sm btn-ghost join-item"
+              = link_to 'Edit', edit_user_path(user), class: "btn btn-sm btn-ghost join-item"
+              = link_to 'Destroy', user, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-sm btn-ghost text-error join-item"

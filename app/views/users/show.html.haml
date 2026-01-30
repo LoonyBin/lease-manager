@@ -1,0 +1,23 @@
+.card.w-96.bg-base-100.shadow-xl.mx-auto
+  .card-body
+    %h2.card-title User Details
+
+    %p
+      %strong Name:
+      = @user.name
+    %p
+      %strong Email:
+      = @user.email
+    %p
+      %strong Provider:
+      = @user.provider
+    %p
+      %strong UID:
+      = @user.uid
+    %p
+      %strong Role:
+      = @user.role
+
+    .card-actions.justify-end.mt-4
+      = link_to 'Edit', edit_user_path(@user), class: "btn btn-primary"
+      = link_to 'Back', users_path, class: "btn btn-ghost"
