@@ -1,6 +1,10 @@
 # frozen_string_literal: true
 
 class User < ApplicationRecord
+  has_many :user_associations, dependent: :destroy
+  has_many :owners, through: :user_associations, source: :associable, source_type: "Owner"
+  has_many :tenants, through: :user_associations, source: :associable, source_type: "Tenant"
+
   validates :uid, presence: true
   validates :provider, presence: true
   validates :uid, uniqueness: { scope: :provider }

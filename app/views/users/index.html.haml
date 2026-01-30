@@ -1,6 +1,6 @@
 .flex.justify-between.items-center.mb-6
   %h1.text-2xl.font-bold Users
-  - if policy(User).new?
+  - if policy(@users.new).new?
     = link_to 'New User', new_user_path, class: "btn btn-primary"
 
 .overflow-x-auto

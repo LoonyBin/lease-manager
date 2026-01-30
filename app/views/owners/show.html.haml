@@ -33,3 +33,26 @@
                   %td= property.leases.count
       - else
         %p.text-base-content.opacity-60 No properties assigned.
+
+.card.bg-base-100.shadow-xl.mt-6
+  .card-body
+    %h2.card-title Associated Users
+
+    - if @owner.users.any?
+      .flex.flex-wrap.gap-2.mb-4
+        - @owner.user_associations.includes(:user).each do |assoc|
+          .badge.badge-outline.gap-2
+            = assoc.user.name
+            - if policy(assoc).destroy?
+              = button_to user_association_path(assoc), method: :delete, class: "btn btn-ghost btn-xs p-0", data: { turbo_confirm: "Remove this association?" } do
+                %svg.w-4.h-4{xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor"}
+                  %path{stroke_linecap: "round", stroke_linejoin: "round", stroke_width: "2", d: "M6 18L18 6M6 6l12 12"}
+    - else
+      %p.text-base-content.opacity-50.mb-4 No users associated.
+
+    - if policy(UserAssociation).create?
+      = form_with model: UserAssociation.new, class: "flex gap-2" do |f|
+        = f.hidden_field :associable_type, value: "Owner"
+        = f.hidden_field :associable_id, value: @owner.id
+        = f.collection_select :user_id, User.where.not(id: @owner.user_ids).order(:name), :id, :name, { prompt: "Select user to add..." }, class: "select select-bordered select-sm flex-1"
+        = f.submit "Add", class: "btn btn-sm btn-primary"

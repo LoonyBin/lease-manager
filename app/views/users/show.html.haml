@@ -1,22 +1,70 @@
-.card.w-96.bg-base-100.shadow-xl.mx-auto
+.card.w-full.max-w-2xl.bg-base-100.shadow-xl.mx-auto
   .card-body
     %h2.card-title User Details
 
-    %p
-      %strong Name:
-      = @user.name
-    %p
-      %strong Email:
-      = @user.email
-    %p
-      %strong Provider:
-      = @user.provider
-    %p
-      %strong UID:
-      = @user.uid
-    %p
-      %strong Role:
-      = @user.role
+    .grid.grid-cols-1.md:grid-cols-2.gap-4.mb-6
+      %div
+        %p.mb-2
+          %strong Name:
+          = @user.name
+        %p.mb-2
+          %strong Email:
+          = @user.email
+        %p.mb-2
+          %strong Role:
+          %span{class: "badge badge-#{@user.admin? ? 'primary' : 'ghost'}"}
+            = @user.role.humanize
+      %div
+        %p.mb-2
+          %strong Provider:
+          = @user.provider
+        %p.mb-2
+          %strong UID:
+          = @user.uid
+
+    .divider
+
+    %h3.text-lg.font-bold.mb-4 Associated Owners
+    - if @user.owners.any?
+      .flex.flex-wrap.gap-2.mb-4
+        - @user.user_associations.includes(:associable).where(associable_type: "Owner").each do |assoc|
+          .badge.badge-outline.gap-2
+            = assoc.associable.name
+            - if policy(assoc).destroy?
+              = button_to user_association_path(assoc), method: :delete, class: "btn btn-ghost btn-xs p-0", data: { turbo_confirm: "Remove this association?" } do
+                %svg.w-4.h-4{xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor"}
+                  %path{stroke_linecap: "round", stroke_linejoin: "round", stroke_width: "2", d: "M6 18L18 6M6 6l12 12"}
+    - else
+      %p.text-base-content.opacity-50.mb-4 No owners associated.
+
+    - if policy(UserAssociation).create?
+      = form_with model: UserAssociation.new, class: "flex gap-2 mb-6" do |f|
+        = f.hidden_field :user_id, value: @user.id
+        = f.hidden_field :associable_type, value: "Owner"
+        = f.collection_select :associable_id, Owner.where.not(id: @user.owner_ids).order(:name), :id, :name, { prompt: "Select owner to add..." }, class: "select select-bordered select-sm flex-1"
+        = f.submit "Add", class: "btn btn-sm btn-primary"
+
+    .divider
+
+    %h3.text-lg.font-bold.mb-4 Associated Tenants
+    - if @user.tenants.any?
+      .flex.flex-wrap.gap-2.mb-4
+        - @user.user_associations.includes(:associable).where(associable_type: "Tenant").each do |assoc|
+          .badge.badge-outline.gap-2
+            = assoc.associable.name
+            - if policy(assoc).destroy?
+              = button_to user_association_path(assoc), method: :delete, class: "btn btn-ghost btn-xs p-0", data: { turbo_confirm: "Remove this association?" } do
+                %svg.w-4.h-4{xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor"}
+                  %path{stroke_linecap: "round", stroke_linejoin: "round", stroke_width: "2", d: "M6 18L18 6M6 6l12 12"}
+    - else
+      %p.text-base-content.opacity-50.mb-4 No tenants associated.
+
+    - if policy(UserAssociation).create?
+      = form_with model: UserAssociation.new, class: "flex gap-2 mb-6" do |f|
+        = f.hidden_field :user_id, value: @user.id
+        = f.hidden_field :associable_type, value: "Tenant"
+        = f.collection_select :associable_id, Tenant.where.not(id: @user.tenant_ids).order(:name), :id, :name, { prompt: "Select tenant to add..." }, class: "select select-bordered select-sm flex-1"
+        = f.submit "Add", class: "btn btn-sm btn-primary"
 
     .card-actions.justify-end.mt-4
       - if policy(@user).edit?

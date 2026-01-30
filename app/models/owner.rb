@@ -2,6 +2,8 @@
 
 class Owner < ApplicationRecord
   has_many :properties, dependent: :nullify
+  has_many :user_associations, as: :associable, dependent: :destroy
+  has_many :users, through: :user_associations
 
   validates :name, presence: true
   validates :address, presence: true

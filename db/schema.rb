@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_30_090055) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_30_145810) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -131,6 +131,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_30_090055) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "user_associations", force: :cascade do |t|
+    t.bigint "associable_id", null: false
+    t.string "associable_type", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["associable_type", "associable_id"], name: "index_user_associations_on_associable"
+    t.index ["user_id", "associable_type", "associable_id"], name: "index_user_associations_uniqueness", unique: true
+    t.index ["user_id"], name: "index_user_associations_on_user_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "email"
@@ -154,4 +165,5 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_30_090055) do
   add_foreign_key "payment_allocations", "payments"
   add_foreign_key "payments", "leases"
   add_foreign_key "properties", "owners"
+  add_foreign_key "user_associations", "users"
 end

@@ -5,6 +5,12 @@ require "rails_helper"
 RSpec.describe User do
   subject { build(:user) }
 
+  describe "associations" do
+    it { is_expected.to have_many(:user_associations).dependent(:destroy) }
+    it { is_expected.to have_many(:owners).through(:user_associations) }
+    it { is_expected.to have_many(:tenants).through(:user_associations) }
+  end
+
   describe "validations" do
     it { is_expected.to validate_presence_of(:uid) }
     it { is_expected.to validate_presence_of(:provider) }

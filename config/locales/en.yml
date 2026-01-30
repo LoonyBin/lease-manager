@@ -43,6 +43,11 @@ en:
       success: Tenant was successfully destroyed.
     update:
       success: Tenant was successfully updated.
+  user_associations:
+    create:
+      success: Association was successfully added.
+    destroy:
+      success: Association was successfully removed.
   users:
     create:
       success: User was successfully created.

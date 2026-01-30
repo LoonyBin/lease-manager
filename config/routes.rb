@@ -5,6 +5,7 @@ Rails.application.routes.draw do
   resources :owners
   resources :invoices, except: %i[destroy]
   resources :users
+  resources :user_associations, only: %i[create destroy]
 
   get "/auth/:provider/callback", to: "sessions#create"
   delete "/logout", to: "sessions#destroy", as: :logout
