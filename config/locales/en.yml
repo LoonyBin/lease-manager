@@ -15,10 +15,6 @@ en:
       success: "Lease was successfully updated."
     destroy:
       success: "Lease was successfully destroyed."
-    terminate:
-      success: "Lease was successfully terminated."
-    renew:
-      success: "Lease was successfully renewed."
 
   owners:
     create:
@@ -28,11 +24,8 @@ en:
     destroy:
       success: "Owner was successfully destroyed."
   invoices:
-    finalize:
-      success: "Invoice finalized successfully."
-      not_draft: "Invoice is not in draft status."
-    generate:
-      success: "Invoice for %{month} generated successfully."
+    create:
+      success: "Invoice was successfully created."
     update:
       success: "Invoice was successfully updated."
   payments:

@@ -10,7 +10,12 @@ class LeasesController < ApplicationController
   end
 
   def new
-    @lease = Lease.new
+    if params[:renewed_from_id]
+      old_lease = Lease.find(params[:renewed_from_id])
+      @lease = Lease.build_renewal(old_lease)
+    else
+      @lease = Lease.new
+    end
   end
 
   def edit
@@ -20,9 +25,10 @@ class LeasesController < ApplicationController
   def create
     @lease = Lease.new(lease_params)
 
-    ActiveRecord::Base.transaction do
-      terminate_old_lease_for_renewal if renewing?
-      save_lease_or_render_form
+    if @lease.save
+      redirect_to @lease, notice: t(".success")
+    else
+      render :new, status: :unprocessable_content
     end
   end
 
@@ -41,77 +47,12 @@ class LeasesController < ApplicationController
     redirect_to leases_url, notice: t(".success")
   end
 
-  def terminate
-    @lease = Lease.find(params[:id])
-    if @lease.update(terminated_on: params[:terminated_on])
-      redirect_to @lease, notice: t(".success")
-    else
-      redirect_to @lease, alert: @lease.errors.full_messages.join(", ")
-    end
-  end
-
-  def renew
-    @renewing_from = Lease.find(params[:id])
-    @lease = Lease.new(renewal_attributes)
-    render :renew
-  end
-
   private
 
   def lease_params
     params.expect(lease: [:property_id, :tenant_id, :start_date, :duration_months, :rent_amount,
                           :security_deposit_in_months, :enhancement_period_months,
                           :enhancement_amount, :enhancement_type, :tax_name, :tax_rate, :terminated_on,
-                          { documents: [] }])
-  end
-
-  def renewing?
-    params[:renewing_from_id].present?
-  end
-
-  def terminate_old_lease_for_renewal
-    old_lease = Lease.find(params[:renewing_from_id])
-    old_lease.update!(terminated_on: @lease.start_date - 1.day)
-  end
-
-  def save_lease_or_render_form
-    if @lease.save
-      redirect_to @lease, notice: renewing? ? t("leases.renew.success") : t("leases.create.success")
-    else
-      handle_create_failure
-    end
-  end
-
-  def handle_create_failure
-    @renewing_from = Lease.find(params[:renewing_from_id]) if renewing?
-    render(renewing? ? :renew : :new, status: :unprocessable_content)
-    raise ActiveRecord::Rollback
-  end
-
-  def renewal_attributes
-    renewal_base_attributes.merge(renewal_enhancement_attributes).merge(renewal_tax_attributes)
-  end
-
-  def renewal_base_attributes
-    {
-      property: @renewing_from.property,
-      tenant: @renewing_from.tenant,
-      start_date: @renewing_from.end_date + 1.day,
-      duration_months: @renewing_from.duration_months,
-      rent_amount: @renewing_from.current_rent_at(@renewing_from.end_date + 1.day),
-      security_deposit_in_months: @renewing_from.security_deposit_in_months
-    }
-  end
-
-  def renewal_enhancement_attributes
-    {
-      enhancement_period_months: @renewing_from.enhancement_period_months,
-      enhancement_amount: @renewing_from.enhancement_amount,
-      enhancement_type: @renewing_from.enhancement_type
-    }
-  end
-
-  def renewal_tax_attributes
-    { tax_name: @renewing_from.tax_name, tax_rate: @renewing_from.tax_rate }
+                          :renewed_from_id, { documents: [] }])
   end
 end

@@ -9,17 +9,17 @@ RSpec.describe InvoiceGenerator do
   let(:date) { Date.new(2025, 2, 1) }
 
   describe "#call" do
-    it "creates an invoice" do
-      expect { service.call }.to change(Invoice, :count).by(1)
+    it "does not create an invoice" do
+      expect { service.call }.not_to change(Invoice, :count)
     end
 
-    it "creates a draft invoice for the correct month" do
-      expect(service.call).to have_attributes(persisted?: true, date: date.beginning_of_month,
+    it "builds a draft invoice for the correct month" do
+      expect(service.call).to have_attributes(persisted?: false, date: date.beginning_of_month,
                                               status: "draft", lease: lease)
     end
 
     it "creates a rent line item with correct amount" do
-      line_item = service.call.line_items.find_by(category: "rent")
+      line_item = service.call.line_items.find { |i| i.category == "rent" }
       expect(line_item).to have_attributes(present?: true, amount: 1000, name: "Rent for February 2025")
     end
 
@@ -36,7 +36,7 @@ RSpec.describe InvoiceGenerator do
 
       it "calculates correct enhanced rent" do
         invoice = service.call
-        line_item = invoice.line_items.find_by(category: "rent")
+        line_item = invoice.line_items.find { |i| i.category == "rent" }
         expect(line_item.amount).to eq(1100.0)
       end
     end
@@ -46,25 +46,25 @@ RSpec.describe InvoiceGenerator do
 
       it "sets tax_rate on the rent line item" do
         invoice = service.call
-        rent_item = invoice.line_items.find_by(category: "rent")
+        rent_item = invoice.line_items.find { |i| i.category == "rent" }
         expect(rent_item.tax_rate).to eq(18.0)
       end
 
       it "calculates tax_amount dynamically" do
         invoice = service.call
-        rent_item = invoice.line_items.find_by(category: "rent")
+        rent_item = invoice.line_items.find { |i| i.category == "rent" }
         # 1000 * 18% = 180
         expect(rent_item.tax_amount).to eq(180.0)
       end
 
       it "does not create a separate tax line item" do
         invoice = service.call
-        expect(invoice.line_items.find_by(category: "tax")).to be_nil
+        expect(invoice.line_items.find { |i| i.category == "tax" }).to be_nil
       end
 
       it "calculates correct total for the line item" do
         invoice = service.call
-        rent_item = invoice.line_items.find_by(category: "rent")
+        rent_item = invoice.line_items.find { |i| i.category == "rent" }
         expect(rent_item.total).to eq(1180.0)
       end
     end
@@ -75,13 +75,13 @@ RSpec.describe InvoiceGenerator do
 
       it "creates a discount line item for unused days" do
         invoice = service.call
-        discount_item = invoice.line_items.find_by(category: "discount")
+        discount_item = invoice.line_items.find { |i| i.category == "discount" }
         expect(discount_item).to have_attributes(present?: true, name: "Pro-rated discount (15 days)")
       end
 
       it "calculates correct discount amount" do
         invoice = service.call
-        discount_item = invoice.line_items.find_by(category: "discount")
+        discount_item = invoice.line_items.find { |i| i.category == "discount" }
         expect(discount_item.amount).to eq(-1500.0)
       end
     end
@@ -94,25 +94,25 @@ RSpec.describe InvoiceGenerator do
 
       it "sets tax_rate on the rent line item" do
         invoice = service.call
-        rent_item = invoice.line_items.find_by(category: "rent")
+        rent_item = invoice.line_items.find { |i| i.category == "rent" }
         expect(rent_item.tax_rate).to eq(10.0)
       end
 
       it "sets tax_rate on the discount line item" do
         invoice = service.call
-        discount_item = invoice.line_items.find_by(category: "discount")
+        discount_item = invoice.line_items.find { |i| i.category == "discount" }
         expect(discount_item.tax_rate).to eq(10.0)
       end
 
       it "calculates correct tax amount on the rent line item" do
         invoice = service.call
-        rent_item = invoice.line_items.find_by(category: "rent")
+        rent_item = invoice.line_items.find { |i| i.category == "rent" }
         expect(rent_item.tax_amount).to eq(310.0) # 3100 * 10%
       end
 
       it "calculates correct tax amount on the discount line item" do
         invoice = service.call
-        discount_item = invoice.line_items.find_by(category: "discount")
+        discount_item = invoice.line_items.find { |i| i.category == "discount" }
         expect(discount_item.tax_amount).to eq(-150.0) # -1500 * 10%
       end
     end

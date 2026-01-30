@@ -9,25 +9,28 @@ class InvoicesController < ApplicationController
     @invoice = Invoice.find(params[:id])
   end
 
-  def generate
-    @lease = Lease.find(params[:lease_id])
-    date = Date.parse(params[:date])
-
-    ::InvoiceGenerator.new(@lease, date).call
-    redirect_to lease_path(@lease), notice: t(".success", month: date.strftime("%B %Y"))
-  end
-
-  def finalize
-    @invoice = Invoice.find(params[:id])
-
-    return redirect_to @invoice, alert: t(".not_draft") unless @invoice.draft?
-
-    finalize_transaction
-    redirect_to @invoice, notice: t(".success")
+  def new
+    if params[:lease_id] && params[:date]
+      @lease = Lease.find(params[:lease_id])
+      date = Date.parse(params[:date])
+      @invoice = ::InvoiceGenerator.new(@lease, date).call
+    else
+      @invoice = Invoice.new
+    end
   end
 
   def edit
     @invoice = Invoice.find(params[:id])
+  end
+
+  def create
+    @invoice = Invoice.new(invoice_params)
+
+    if @invoice.save
+      redirect_to @invoice, notice: t(".success")
+    else
+      render :new, status: :unprocessable_content
+    end
   end
 
   def update
@@ -42,14 +45,7 @@ class InvoicesController < ApplicationController
   private
 
   def invoice_params
-    params.expect(invoice: [:date, :status, { line_items_attributes: [%i[id name amount tax_rate category _destroy]] }])
-  end
-
-  def finalize_transaction
-    ActiveRecord::Base.transaction do
-      InvoiceNumberingService.new(@invoice).call
-      @invoice.finalized!
-      PaymentService.allocate_excess(@invoice)
-    end
+    params.expect(invoice: [:lease_id, :date, :status,
+                            { line_items_attributes: [%i[id name amount tax_rate category _destroy]] }])
   end
 end

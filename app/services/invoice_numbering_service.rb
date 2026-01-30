@@ -25,7 +25,7 @@ class InvoiceNumberingService
 
   def assign_number(owner, sequence)
     number = format_number(owner, sequence)
-    @invoice.update!(number: number, sequence_number: sequence)
+    @invoice.assign_attributes(number: number, sequence_number: sequence)
   end
 
   def format_number(owner, sequence)

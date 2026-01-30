@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_28_054912) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_30_064830) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -60,6 +60,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_28_054912) do
     t.integer "enhancement_period_months"
     t.integer "enhancement_type", default: 0
     t.bigint "property_id", null: false
+    t.bigint "renewed_from_id"
     t.decimal "rent_amount"
     t.integer "security_deposit_in_months"
     t.date "start_date"
@@ -69,6 +70,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_28_054912) do
     t.date "terminated_on"
     t.datetime "updated_at", null: false
     t.index ["property_id"], name: "index_leases_on_property_id"
+    t.index ["renewed_from_id"], name: "index_leases_on_renewed_from_id"
     t.index ["tenant_id"], name: "index_leases_on_tenant_id"
   end
 
@@ -132,6 +134,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_28_054912) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "invoices", "leases"
+  add_foreign_key "leases", "leases", column: "renewed_from_id"
   add_foreign_key "leases", "properties"
   add_foreign_key "leases", "tenants"
   add_foreign_key "line_items", "invoices"

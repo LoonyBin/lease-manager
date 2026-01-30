@@ -5,9 +5,14 @@ require "rails_helper"
 RSpec.describe Lease do
   subject(:lease) { build(:lease) }
 
-  describe "validations" do
+  describe "associations" do
     it { is_expected.to belong_to(:property) }
     it { is_expected.to belong_to(:tenant) }
+    it { is_expected.to belong_to(:renewed_from).class_name("Lease").optional }
+    it { is_expected.to have_one(:renewal).class_name("Lease").with_foreign_key(:renewed_from_id) }
+  end
+
+  describe "validations" do
     it { is_expected.to validate_presence_of(:start_date) }
     it { is_expected.to validate_presence_of(:rent_amount) }
     it { is_expected.to validate_numericality_of(:rent_amount).is_greater_than(0) }
@@ -82,6 +87,63 @@ RSpec.describe Lease do
     it "handles fixed amount enhancement" do
       lease.update(enhancement_type: :fixed, enhancement_amount: 100)
       expect(lease.current_rent_at(Date.new(2024, 1, 1))).to eq(1100)
+    end
+  end
+
+  describe ".build_renewal" do
+    let(:old_lease) do
+      create(:lease,
+             start_date: Date.new(2024, 1, 1),
+             duration_months: 12,
+             rent_amount: 1000,
+             enhancement_period_months: 12,
+             enhancement_amount: 5,
+             enhancement_type: :percentage,
+             tax_name: "GST",
+             tax_rate: 18)
+    end
+
+    let(:new_lease) { described_class.build_renewal(old_lease) }
+
+    it "copies property and tenant" do
+      expect(new_lease).to have_attributes(property_id: old_lease.property_id, tenant_id: old_lease.tenant_id)
+    end
+
+    it "sets start date to day after old lease ends" do
+      expect(new_lease.start_date).to eq(old_lease.end_date + 1.day)
+    end
+
+    it "calculates enhanced rent amount" do
+      expect(new_lease.rent_amount).to eq(1050.0) # 1000 + 5%
+    end
+
+    it "links to old lease" do
+      expect(new_lease.renewed_from).to eq(old_lease)
+    end
+
+    it "does not persist the new lease" do
+      expect(new_lease).not_to be_persisted
+    end
+  end
+
+  describe "after_create callback" do
+    let(:old_lease) do
+      create(:lease,
+             start_date: Date.new(2024, 1, 1),
+             duration_months: 12,
+             rent_amount: 1000)
+    end
+
+    it "terminates the old lease when creating a renewal" do
+      new_lease = described_class.build_renewal(old_lease)
+      new_lease.save!
+
+      expect(old_lease.reload.terminated_on).to eq(new_lease.start_date - 1.day)
+    end
+
+    it "does not affect other leases when not a renewal" do
+      regular_lease = create(:lease)
+      expect(regular_lease.terminated_on).to be_nil
     end
   end
 end

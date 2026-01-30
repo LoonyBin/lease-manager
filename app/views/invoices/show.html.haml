@@ -59,6 +59,6 @@
       = link_to "Edit", edit_invoice_path(@invoice), class: "btn btn-secondary"
       = link_to "Back", invoices_path, class: "btn btn-ghost"
       - if @invoice.draft?
-        = button_to "Finalize Invoice", finalize_invoice_path(@invoice), method: :patch, class: "btn btn-primary", data: { turbo_confirm: "Are you sure? This will assign an invoice number and cannot be undone." }
+        = button_to "Finalize Invoice", invoice_path(@invoice), method: :patch, params: { invoice: { status: 'finalized' } }, class: "btn btn-primary", data: { turbo_confirm: "Are you sure? This will assign an invoice number and cannot be undone." }
       - else
         %button.btn.btn-secondary{disabled: true} Paid (Mock)

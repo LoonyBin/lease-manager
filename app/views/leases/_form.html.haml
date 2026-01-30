@@ -2,6 +2,11 @@
   = f.error_notification
   = f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present?
 
+  - if f.object.renewed_from_id
+    = f.hidden_field :renewed_from_id
+    .alert.alert-info.mb-4
+      %span Renewing lease ##{f.object.renewed_from_id}
+
   .form-inputs.grid.grid-cols-1.md:grid-cols-2.gap-4
     = f.association :property
     = f.association :tenant

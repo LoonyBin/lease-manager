@@ -3,11 +3,15 @@
 class Lease < ApplicationRecord
   belongs_to :property
   belongs_to :tenant
+  belongs_to :renewed_from, class_name: "Lease", optional: true, inverse_of: :renewal
+  has_one :renewal, class_name: "Lease", foreign_key: :renewed_from_id, dependent: :nullify, inverse_of: :renewed_from
   has_many :invoices, dependent: :destroy
   has_many :payments, dependent: :destroy
   has_many :payment_allocations, through: :payments
 
   has_many_attached :documents
+
+  after_create :terminate_renewed_from_lease, if: :renewed_from_id?
 
   enum :enhancement_type, { percentage: 0, fixed: 1 }
 
@@ -88,5 +92,22 @@ class Lease < ApplicationRecord
     return unless terminated_on <= start_date
 
     errors.add(:terminated_on, "must be after the start date")
+  end
+
+  def self.build_renewal(old_lease)
+    new(renewal_attributes_from(old_lease).merge(renewed_from: old_lease))
+  end
+
+  def self.renewal_attributes_from(old_lease)
+    new_start = old_lease.end_date + 1.day
+    old_lease.slice(:property_id, :tenant_id, :duration_months, :security_deposit_in_months,
+                    :enhancement_period_months, :enhancement_amount, :enhancement_type, :tax_name, :tax_rate)
+             .merge(start_date: new_start, rent_amount: old_lease.current_rent_at(new_start))
+  end
+
+  private
+
+  def terminate_renewed_from_lease
+    renewed_from.update!(terminated_on: start_date - 1.day)
   end
 end

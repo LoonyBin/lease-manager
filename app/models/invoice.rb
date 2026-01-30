@@ -13,6 +13,9 @@ class Invoice < ApplicationRecord
   validates :date, presence: true
   validates :status, presence: true
 
+  before_save :assign_number, if: -> { finalized? && number.nil? }
+  after_save :allocate_excess_payment, if: -> { saved_change_to_status? && finalized? }
+
   def total_amount
     line_items.sum(:amount)
   end
@@ -31,5 +34,15 @@ class Invoice < ApplicationRecord
     elsif paid_amount.positive?
       partially_paid!
     end
+  end
+
+  private
+
+  def assign_number
+    InvoiceNumberingService.new(self).call
+  end
+
+  def allocate_excess_payment
+    PaymentService.allocate_excess(self)
   end
 end
