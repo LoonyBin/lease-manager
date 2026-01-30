@@ -2,7 +2,7 @@
   .card-body
     .flex.justify-between.items-center.mb-4
       %h2.card-title Owners
-      - if policy(Owner).new?
+      - if policy(@owners.new).new?
         = link_to "New Owner", new_owner_path, class: "btn btn-primary"
 
     .overflow-x-auto
