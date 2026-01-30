@@ -4,8 +4,8 @@ FactoryBot.define do
   factory :user do
     sequence(:uid) { |n| "user#{n}" }
     provider { "developer" }
-    name { "Test User" }
-    email { "test@example.com" }
+    name { Faker::Name.name }
+    email { Faker::Internet.email }
     role { "normal" }
 
     trait :admin do
