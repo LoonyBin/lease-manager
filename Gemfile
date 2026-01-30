@@ -88,3 +88,4 @@ gem "capybara", "~> 3.40", group: :test
 
 gem "omniauth"
 gem "omniauth-rails_csrf_protection"
+gem "pundit"

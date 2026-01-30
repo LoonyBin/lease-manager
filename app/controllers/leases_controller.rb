@@ -2,11 +2,12 @@
 
 class LeasesController < ApplicationController
   def index
-    @leases = Lease.all
+    @leases = policy_scope(Lease)
   end
 
   def show
     @lease = Lease.find(params[:id])
+    authorize @lease
   end
 
   def new
@@ -16,14 +17,17 @@ class LeasesController < ApplicationController
     else
       @lease = Lease.new
     end
+    authorize @lease
   end
 
   def edit
     @lease = Lease.find(params[:id])
+    authorize @lease
   end
 
   def create
     @lease = Lease.new(lease_params)
+    authorize @lease
 
     if @lease.save
       redirect_to @lease, notice: t(".success")
@@ -34,6 +38,7 @@ class LeasesController < ApplicationController
 
   def update
     @lease = Lease.find(params[:id])
+    authorize @lease
     if @lease.update(lease_params)
       redirect_to @lease, notice: t(".success")
     else
@@ -43,6 +48,7 @@ class LeasesController < ApplicationController
 
   def destroy
     @lease = Lease.find(params[:id])
+    authorize @lease
     @lease.destroy
     redirect_to leases_url, notice: t(".success")
   end

@@ -13,5 +13,6 @@
       = @property.address
 
     .card-actions.justify-end.mt-4
-      = link_to 'Edit', edit_property_path(@property), class: "btn btn-primary"
+      - if policy(@property).edit?
+        = link_to 'Edit', edit_property_path(@property), class: "btn btn-primary"
       = link_to 'Back', properties_path, class: "btn btn-ghost"

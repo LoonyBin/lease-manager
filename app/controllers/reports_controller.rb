@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 class ReportsController < ApplicationController
+  skip_after_action :verify_pundit_authorization
+  before_action { authorize :report }
+
   def index
     @total_revenue = finalized_invoices.sum(&:total_amount)
     @total_outstanding = Invoice.where.not(status: %i[cancelled draft]).sum(&:outstanding_amount)

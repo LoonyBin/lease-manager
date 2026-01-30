@@ -66,10 +66,9 @@ RSpec.describe "Sessions" do
       expect(response).to redirect_to(root_path)
     end
 
-    it "displays success notice" do
+    it "sets success notice" do
       delete logout_path
-      follow_redirect!
-      expect(response.body).to include("Signed out successfully")
+      expect(flash[:notice]).to eq("Signed out successfully.")
     end
   end
 end

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 class SessionsController < ApplicationController
+  skip_after_action :verify_pundit_authorization
   skip_before_action :verify_authenticity_token, only: :create
 
   def create

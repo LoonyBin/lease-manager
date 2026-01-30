@@ -2,7 +2,8 @@
   .card-body
     .flex.justify-between.items-center.mb-4
       %h2.card-title Owners
-      = link_to "New Owner", new_owner_path, class: "btn btn-primary"
+      - if policy(Owner).new?
+        = link_to "New Owner", new_owner_path, class: "btn btn-primary"
 
     .overflow-x-auto
       %table.table.table-zebra.w-full
@@ -22,5 +23,7 @@
               %td= owner.properties.count
               %td
                 .join
-                  = link_to "Edit", edit_owner_path(owner), class: "btn btn-xs btn-ghost join-item"
-                  = button_to "Delete", owner_path(owner), method: :delete, data: { turbo_confirm: "Are you sure?" }, class: "btn btn-xs btn-ghost text-error join-item"
+                  - if policy(owner).edit?
+                    = link_to "Edit", edit_owner_path(owner), class: "btn btn-xs btn-ghost join-item"
+                  - if policy(owner).destroy?
+                    = button_to "Delete", owner_path(owner), method: :delete, data: { turbo_confirm: "Are you sure?" }, class: "btn btn-xs btn-ghost text-error join-item"

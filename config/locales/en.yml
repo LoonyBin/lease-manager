@@ -1,5 +1,7 @@
 ---
 en:
+  authorization:
+    not_authorized: You are not authorized to perform this action.
   invoices:
     create:
       success: Invoice was successfully created.

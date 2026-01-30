@@ -1,6 +1,7 @@
 .flex.justify-between.items-center.mb-6
   %h1.text-2xl.font-bold Leases
-  = link_to 'New Lease', new_lease_path, class: "btn btn-primary"
+  - if policy(Lease).new?
+    = link_to 'New Lease', new_lease_path, class: "btn btn-primary"
 
 .overflow-x-auto
   %table.table.w-full
@@ -28,5 +29,7 @@
           %td.text-center
             .join
               = link_to 'Show', lease, class: "btn btn-sm btn-ghost join-item"
-              = link_to 'Edit', edit_lease_path(lease), class: "btn btn-sm btn-ghost join-item"
-              = link_to 'Destroy', lease, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-sm btn-ghost text-error join-item"
+              - if policy(lease).edit?
+                = link_to 'Edit', edit_lease_path(lease), class: "btn btn-sm btn-ghost join-item"
+              - if policy(lease).destroy?
+                = link_to 'Destroy', lease, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-sm btn-ghost text-error join-item"

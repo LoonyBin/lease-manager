@@ -19,5 +19,6 @@
       = @user.role
 
     .card-actions.justify-end.mt-4
-      = link_to 'Edit', edit_user_path(@user), class: "btn btn-primary"
+      - if policy(@user).edit?
+        = link_to 'Edit', edit_user_path(@user), class: "btn btn-primary"
       = link_to 'Back', users_path, class: "btn btn-ghost"

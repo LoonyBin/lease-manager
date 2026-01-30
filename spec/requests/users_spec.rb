@@ -3,6 +3,8 @@
 require "rails_helper"
 
 RSpec.describe "Users" do
+  before { sign_in_admin }
+
   describe "GET /users" do
     it "returns http success" do
       get users_path

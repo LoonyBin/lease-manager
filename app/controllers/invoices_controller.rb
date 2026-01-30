@@ -2,11 +2,12 @@
 
 class InvoicesController < ApplicationController
   def index
-    @invoices = Invoice.order(date: :desc)
+    @invoices = policy_scope(Invoice).order(date: :desc)
   end
 
   def show
     @invoice = Invoice.find(params[:id])
+    authorize @invoice
   end
 
   def new
@@ -17,14 +18,17 @@ class InvoicesController < ApplicationController
     else
       @invoice = Invoice.new
     end
+    authorize @invoice
   end
 
   def edit
     @invoice = Invoice.find(params[:id])
+    authorize @invoice
   end
 
   def create
     @invoice = Invoice.new(invoice_params)
+    authorize @invoice
 
     if @invoice.save
       redirect_to @invoice, notice: t(".success")
@@ -35,6 +39,7 @@ class InvoicesController < ApplicationController
 
   def update
     @invoice = Invoice.find(params[:id])
+    authorize @invoice
     if @invoice.update(invoice_params)
       redirect_to @invoice, notice: t(".success")
     else

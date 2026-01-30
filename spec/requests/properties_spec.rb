@@ -3,6 +3,8 @@
 require "rails_helper"
 
 RSpec.describe "Properties" do
+  before { sign_in_admin }
+
   describe "GET /properties" do
     it "returns http success" do
       get properties_path
