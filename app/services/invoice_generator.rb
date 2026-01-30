@@ -10,18 +10,16 @@ class InvoiceGenerator
     existing_invoice = Invoice.find_by(lease: @lease, date: @date)
     return existing_invoice if existing_invoice
 
-    Invoice.transaction do
-      invoice = create_invoice
-      create_rent_line_item!(invoice)
-      create_discount_line_item!(invoice)
-      invoice
-    end
+    invoice = build_invoice
+    build_rent_line_item(invoice)
+    build_discount_line_item(invoice)
+    invoice
   end
 
   private
 
-  def create_invoice
-    Invoice.create!(
+  def build_invoice
+    Invoice.new(
       lease: @lease,
       date: @date,
       status: :draft
@@ -32,9 +30,8 @@ class InvoiceGenerator
     @rent_amount ||= @lease.current_rent_at(@date)
   end
 
-  def create_rent_line_item!(invoice)
-    LineItem.create!(
-      invoice: invoice,
+  def build_rent_line_item(invoice)
+    invoice.line_items.build(
       name: "Rent for #{@date.strftime('%B %Y')}",
       amount: rent_amount,
       tax_rate: @lease.tax_rate,
@@ -42,11 +39,10 @@ class InvoiceGenerator
     )
   end
 
-  def create_discount_line_item!(invoice)
+  def build_discount_line_item(invoice)
     return unless prorated_discount.positive?
 
-    LineItem.create!(
-      invoice: invoice,
+    invoice.line_items.build(
       name: "Pro-rated discount (#{unused_days} days)",
       amount: -prorated_discount,
       tax_rate: @lease.tax_rate,

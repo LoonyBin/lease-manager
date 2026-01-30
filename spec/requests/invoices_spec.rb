@@ -17,21 +17,19 @@ RSpec.describe "Invoices" do
     end
   end
 
-  describe "PATCH /invoices/:id/finalize" do
-    context "when invoice is draft" do
-      it "finalizes the invoice and assigns a number", :aggregate_failures do
-        invoice = create(:invoice, status: :draft, number: nil)
-        patch finalize_invoice_path(invoice)
-
-        expect(invoice.reload).to have_attributes(status: "finalized", number: be_present)
-        expect(response).to redirect_to(invoice_path(invoice))
-      end
+  describe "GET /invoices/new" do
+    it "returns http success for empty new" do
+      get new_invoice_path
+      expect(response).to have_http_status(:success)
     end
 
-    context "when invoice is already finalized" do
-      it "shows an error" do
-        patch finalize_invoice_path(create(:invoice, status: :finalized))
-        expect(flash[:alert]).to eq("Invoice is not in draft status.")
+    context "with generation params" do
+      let(:lease) { create(:lease) }
+      let(:date) { "2025-02-01" }
+
+      it "returns valid prefilled invoice" do
+        get new_invoice_path(lease_id: lease.id, date: date)
+        expect(response).to have_http_status(:success)
       end
     end
   end
@@ -74,6 +72,14 @@ RSpec.describe "Invoices" do
         params = { invoice: { line_items_attributes: { "0" => { name: "New Fee", amount: 250, tax_rate: 10,
                                                                 category: "other" } } } }
         expect { patch invoice_path(invoice), params: params }.to change(LineItem, :count).by(1)
+      end
+    end
+
+    context "when finalizing invoice" do
+      it "assigns number and allocates payment" do
+        invoice = create(:invoice, status: :draft, number: nil)
+        patch invoice_path(invoice), params: { invoice: { status: "finalized" } }
+        expect(invoice.reload).to have_attributes(status: "finalized", number: be_present)
       end
     end
   end

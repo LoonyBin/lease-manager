@@ -4,13 +4,13 @@ require "rails_helper"
 
 RSpec.describe InvoiceNumberingService do
   describe "#call" do
-    it "assigns a sequential number to the invoice" do
+    it "assigns a sequential number to the invoice instance" do
       invoice = create(:invoice, status: :draft, number: nil)
       invoice.lease.property.owner.update!(name: "John Smith", invoice_sequence: 10)
 
       described_class.new(invoice).call
 
-      expect(invoice.reload.number).to eq("JOH-011")
+      expect(invoice.number).to eq("JOH-011")
     end
 
     it "increments the owner's invoice_sequence" do
