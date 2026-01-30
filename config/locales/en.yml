@@ -1,48 +1,38 @@
+---
 en:
-  number:
-    currency:
-      format:
-        unit: "₹"
-        precision: 2
-        separator: "."
-        delimiter: ","
-        format: "%u%n"
-
-  leases:
-    create:
-      success: "Lease was successfully created."
-    update:
-      success: "Lease was successfully updated."
-    destroy:
-      success: "Lease was successfully destroyed."
-
-  owners:
-    create:
-      success: "Owner was successfully created."
-    update:
-      success: "Owner was successfully updated."
-    destroy:
-      success: "Owner was successfully destroyed."
   invoices:
     create:
-      success: "Invoice was successfully created."
+      success: Invoice was successfully created.
     update:
-      success: "Invoice was successfully updated."
+      success: Invoice was successfully updated.
+  leases:
+    create:
+      success: Lease was successfully created.
+    destroy:
+      success: Lease was successfully destroyed.
+    update:
+      success: Lease was successfully updated.
+  owners:
+    create:
+      success: Owner was successfully created.
+    destroy:
+      success: Owner was successfully destroyed.
+    update:
+      success: Owner was successfully updated.
   payments:
     create:
-      success: "Payment recorded successfully."
+      success: Payment recorded successfully.
   properties:
     create:
-      success: "Property was successfully created."
-    update:
-      success: "Property was successfully updated."
+      success: Property was successfully created.
     destroy:
-      success: "Property was successfully destroyed."
-
+      success: Property was successfully destroyed.
+    update:
+      success: Property was successfully updated.
   tenants:
     create:
-      success: "Tenant was successfully created."
-    update:
-      success: "Tenant was successfully updated."
+      success: Tenant was successfully created.
     destroy:
-      success: "Tenant was successfully destroyed."
+      success: Tenant was successfully destroyed.
+    update:
+      success: Tenant was successfully updated.
