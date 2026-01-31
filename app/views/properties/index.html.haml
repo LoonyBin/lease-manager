@@ -1,6 +1,6 @@
 .flex.justify-between.items-center.mb-6
   %h1.text-2xl.font-bold Properties
-  - if policy(Property).new?
+  - if policy(@properties.new).new?
     = link_to 'New Property', new_property_path, class: "btn btn-primary"
 
 .overflow-x-auto

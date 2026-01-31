@@ -8,7 +8,7 @@ class OwnersController < ApplicationController
   def show
     @owner = Owner.find(params[:id])
     authorize @owner
-    @properties = @owner.properties.includes(:leases)
+    @properties = policy_scope(@owner.properties).includes(:leases)
   end
 
   def new
