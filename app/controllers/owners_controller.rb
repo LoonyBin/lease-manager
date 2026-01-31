@@ -1,24 +1,29 @@
 # frozen_string_literal: true
 
 class OwnersController < ApplicationController
-  before_action :set_owner, only: %i[show edit update destroy]
-
   def index
-    @owners = Owner.order(:name)
+    @owners = policy_scope(Owner).order(:name)
   end
 
   def show
-    @properties = @owner.properties.includes(:leases)
+    @owner = Owner.find(params[:id])
+    authorize @owner
+    @properties = policy_scope(@owner.properties).includes(:leases)
   end
 
   def new
     @owner = Owner.new
+    authorize @owner
   end
 
-  def edit; end
+  def edit
+    @owner = Owner.find(params[:id])
+    authorize @owner
+  end
 
   def create
     @owner = Owner.new(owner_params)
+    authorize @owner
 
     if @owner.save
       redirect_to @owner, notice: t(".success")
@@ -28,6 +33,8 @@ class OwnersController < ApplicationController
   end
 
   def update
+    @owner = Owner.find(params[:id])
+    authorize @owner
     if @owner.update(owner_params)
       redirect_to @owner, notice: t(".success")
     else
@@ -36,15 +43,13 @@ class OwnersController < ApplicationController
   end
 
   def destroy
+    @owner = Owner.find(params[:id])
+    authorize @owner
     @owner.destroy
     redirect_to owners_url, notice: t(".success")
   end
 
   private
-
-  def set_owner
-    @owner = Owner.find(params[:id])
-  end
 
   def owner_params
     params.expect(owner: %i[name address])

@@ -1,0 +1,8 @@
+.max-w-lg.mx-auto.card.bg-base-100.shadow-xl
+  .card-body
+    %h2.card-title.mb-5 Editing User
+    = render 'form', user: @user
+
+= link_to 'Show', @user
+\|
+= link_to 'Back', users_path

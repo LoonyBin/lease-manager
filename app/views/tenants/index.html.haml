@@ -1,6 +1,7 @@
 .flex.justify-between.items-center.mb-6
   %h1.text-2xl.font-bold Tenants
-  = link_to 'New Tenant', new_tenant_path, class: "btn btn-primary"
+  - if policy(@tenants.new).new?
+    = link_to 'New Tenant', new_tenant_path, class: "btn btn-primary"
 
 .overflow-x-auto
   %table.table.w-full
@@ -19,5 +20,7 @@
           %td.text-center
             .join
               = link_to 'Show', tenant, class: "btn btn-sm btn-ghost join-item"
-              = link_to 'Edit', edit_tenant_path(tenant), class: "btn btn-sm btn-ghost join-item"
-              = link_to 'Destroy', tenant, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-sm btn-ghost text-error join-item"
+              - if policy(tenant).edit?
+                = link_to 'Edit', edit_tenant_path(tenant), class: "btn btn-sm btn-ghost join-item"
+              - if policy(tenant).destroy?
+                = link_to 'Destroy', tenant, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-sm btn-ghost text-error join-item"

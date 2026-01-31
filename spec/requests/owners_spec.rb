@@ -3,6 +3,8 @@
 require "rails_helper"
 
 RSpec.describe "Owners" do
+  before { sign_in_admin }
+
   let!(:owner) { create(:owner) }
   let(:valid_attributes) { { name: "New Owner", address: "123 Main St" } }
   let(:invalid_attributes) { { name: "" } }

@@ -9,7 +9,8 @@
       = f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present?
 
       .grid.grid-cols-2.gap-4.mb-6
-        = f.association :lease, collection: Lease.all.map { |l| ["#{l.property.name} - #{l.tenant.name}", l.id] }, include_blank: false
+        = f.input :lease, readonly: true
+        = f.input :lease_id, as: :hidden
         = f.input :date, as: :date, html5: true
         = f.input :status, collection: Invoice.statuses.keys, include_blank: false
 

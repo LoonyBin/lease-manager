@@ -2,23 +2,27 @@
 
 class PropertiesController < ApplicationController
   def index
-    @properties = Property.all
+    @properties = policy_scope(Property)
   end
 
   def show
     @property = Property.find(params[:id])
+    authorize @property
   end
 
   def new
     @property = Property.new
+    authorize @property
   end
 
   def edit
     @property = Property.find(params[:id])
+    authorize @property
   end
 
   def create
     @property = Property.new(property_params)
+    authorize @property
 
     if @property.save
       redirect_to @property, notice: t(".success")
@@ -29,6 +33,7 @@ class PropertiesController < ApplicationController
 
   def update
     @property = Property.find(params[:id])
+    authorize @property
     if @property.update(property_params)
       redirect_to @property, notice: t(".success")
     else
@@ -38,6 +43,7 @@ class PropertiesController < ApplicationController
 
   def destroy
     @property = Property.find(params[:id])
+    authorize @property
     @property.destroy
     redirect_to properties_url, notice: t(".success")
   end

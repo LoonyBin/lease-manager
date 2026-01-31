@@ -3,6 +3,8 @@
 require "rails_helper"
 
 RSpec.describe "Invoices" do
+  before { sign_in_admin }
+
   describe "GET /invoices" do
     it "returns http success" do
       get invoices_path

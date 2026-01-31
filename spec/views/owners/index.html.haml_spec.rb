@@ -8,7 +8,7 @@ RSpec.describe "owners/index" do
   before do
     owner = create(:owner, name: "John Smith", address: "123 Main St")
     create(:property, owner: owner)
-    assign(:owners, [owner])
+    assign(:owners, Owner.where(id: owner.id))
     render
   end
 

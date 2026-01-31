@@ -1,5 +1,7 @@
 ---
 en:
+  authorization:
+    not_authorized: You are not authorized to perform this action.
   invoices:
     create:
       success: Invoice was successfully created.
@@ -29,6 +31,11 @@ en:
       success: Property was successfully destroyed.
     update:
       success: Property was successfully updated.
+  sessions:
+    create:
+      success: Signed in successfully.
+    destroy:
+      success: Signed out successfully.
   tenants:
     create:
       success: Tenant was successfully created.
@@ -36,3 +43,15 @@ en:
       success: Tenant was successfully destroyed.
     update:
       success: Tenant was successfully updated.
+  user_associations:
+    create:
+      success: Association was successfully added.
+    destroy:
+      success: Association was successfully removed.
+  users:
+    create:
+      success: User was successfully created.
+    destroy:
+      success: User was successfully destroyed.
+    update:
+      success: User was successfully updated.

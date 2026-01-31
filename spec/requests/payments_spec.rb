@@ -3,6 +3,8 @@
 require "rails_helper"
 
 RSpec.describe "Payments" do
+  before { sign_in_admin }
+
   let(:lease) { create(:lease) }
 
   describe "GET /payments" do

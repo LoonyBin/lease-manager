@@ -3,6 +3,8 @@
 require "rails_helper"
 
 RSpec.describe "Leases" do
+  before { sign_in_admin }
+
   let(:property) { create(:property) }
   let(:tenant) { create(:tenant) }
 

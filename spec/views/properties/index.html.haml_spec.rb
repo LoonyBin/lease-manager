@@ -6,10 +6,11 @@ RSpec.describe "properties/index" do
   subject { Capybara.string(rendered) }
 
   before do
-    assign(:properties, [
-             create(:property, name: "Name 1", address: "Address 1"),
-             create(:property, name: "Name 2", address: "Address 2")
-           ])
+    properties = [
+      create(:property, name: "Name 1", address: "Address 1"),
+      create(:property, name: "Name 2", address: "Address 2")
+    ]
+    assign(:properties, Property.where(id: properties.map(&:id)))
     render
   end
 

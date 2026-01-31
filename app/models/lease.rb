@@ -105,6 +105,10 @@ class Lease < ApplicationRecord
              .merge(start_date: new_start, rent_amount: old_lease.current_rent_at(new_start))
   end
 
+  def to_s
+    "#{property.name}/#{start_date}(#{tenant.name})"
+  end
+
   private
 
   def terminate_renewed_from_lease

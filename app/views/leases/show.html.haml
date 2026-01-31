@@ -102,12 +102,15 @@
                   %span.badge.badge-warning Missing
                 %td -
                 %td
-                  = link_to "Generate", new_invoice_path(lease_id: @lease.id, date: month.to_s), class: "btn btn-xs btn-primary"
+                  - if policy(Invoice.new(lease: @lease)).new?
+                    = link_to "Generate", new_invoice_path(lease_id: @lease.id, date: month.to_s), class: "btn btn-xs btn-primary"
 
     .card-actions.justify-end.mt-6
-      = link_to 'Edit', edit_lease_path(@lease), class: "btn btn-primary"
-      - unless @lease.terminated_on
+      - if policy(@lease).edit?
+        = link_to 'Edit', edit_lease_path(@lease), class: "btn btn-primary"
+      - if policy(@lease).update? && !@lease.terminated_on
         %label.btn.btn-warning{for: "terminate-modal"} Terminate
+      - if policy(@lease).new? && !@lease.terminated_on
         = link_to "Renew", new_lease_path(renewed_from_id: @lease.id), class: "btn btn-success"
       = link_to 'Back', leases_path, class: "btn btn-ghost"
 

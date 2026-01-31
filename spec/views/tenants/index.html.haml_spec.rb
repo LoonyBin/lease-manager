@@ -6,10 +6,11 @@ RSpec.describe "tenants/index" do
   subject { Capybara.string(rendered) }
 
   before do
-    assign(:tenants, [
-             create(:tenant, name: "Name 1", email: "Email 1", phone_number: "Phone 1"),
-             create(:tenant, name: "Name 2", email: "Email 2", phone_number: "Phone 2")
-           ])
+    tenants = [
+      create(:tenant, name: "Name 1", email: "Email 1", phone_number: "Phone 1"),
+      create(:tenant, name: "Name 2", email: "Email 2", phone_number: "Phone 2")
+    ]
+    assign(:tenants, Tenant.where(id: tenants.map(&:id)))
     render
   end
 

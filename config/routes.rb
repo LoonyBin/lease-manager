@@ -4,6 +4,11 @@ Rails.application.routes.draw do
   resources :tenants
   resources :owners
   resources :invoices, except: %i[destroy]
+  resources :users
+  resources :user_associations, only: %i[create destroy]
+
+  get "/auth/:provider/callback", to: "sessions#create"
+  delete "/logout", to: "sessions#destroy", as: :logout
 
   resources :payments, only: [:index, :new, :create]
   resources :reports, only: [:index] do

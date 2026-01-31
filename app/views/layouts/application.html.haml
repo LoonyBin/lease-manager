@@ -17,7 +17,7 @@
     = javascript_importmap_tags
   %body.bg-base-200.font-sans.min-h-screen
     .navbar.bg-base-100.shadow-lg.mb-8
-      .container.mx-auto
+      .container.mx-auto.flex.items-center
         .flex-1
           %a.btn.btn-ghost.normal-case.text-xl{href: root_path} Lease Manager
         .flex-none
@@ -29,6 +29,14 @@
             %li= link_to 'Invoices', invoices_path
             %li= link_to 'Payments', payments_path
             %li= link_to 'Reports', reports_path
+            %li= link_to 'Users', users_path
+        .flex-none.ml-4
+          - if logged_in?
+            .flex.items-center.gap-2
+              %span.text-sm= current_user.name
+              = button_to 'Logout', logout_path, method: :delete, class: "btn btn-sm btn-outline"
+          - else
+            = button_to 'Login', '/auth/developer', method: :post, class: "btn btn-sm btn-primary", data: { turbo: false }
 
     %main.container.mx-auto.px-4.pb-12
       - if notice

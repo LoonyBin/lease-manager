@@ -56,9 +56,10 @@
             %th.text-right.text-lg= number_to_currency(@invoice.line_items.sum(&:total))
 
     .card-actions.justify-end
-      = link_to "Edit", edit_invoice_path(@invoice), class: "btn btn-secondary"
+      - if policy(@invoice).edit?
+        = link_to "Edit", edit_invoice_path(@invoice), class: "btn btn-secondary"
       = link_to "Back", invoices_path, class: "btn btn-ghost"
-      - if @invoice.draft?
+      - if policy(@invoice).update? && @invoice.draft?
         = button_to "Finalize Invoice", invoice_path(@invoice), method: :patch, params: { invoice: { status: 'finalized' } }, class: "btn btn-primary", data: { turbo_confirm: "Are you sure? This will assign an invoice number and cannot be undone." }
-      - else
+      - elsif !@invoice.draft?
         %button.btn.btn-secondary{disabled: true} Paid (Mock)
