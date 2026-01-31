@@ -28,8 +28,8 @@
                 %th Leases
             %tbody
               - @properties.each do |property|
-                %tr
-                  %td= link_to property.name, property_path(property), class: "link link-hover"
+                %tr.hover.cursor-pointer{data: { controller: "clickable-row", clickable_row_url_value: property_path(property), action: "click->clickable-row#click" }}
+                  %td.font-medium= link_to property.name, property, class: "link link-hover"
                   %td= property.leases.count
       - else
         %p.text-base-content.opacity-60 No properties assigned.

@@ -16,8 +16,8 @@
         %th.text-center Actions
     %tbody
       - @leases.each do |lease|
-        %tr.hover
-          %td= lease.property.name
+        %tr.hover.cursor-pointer{data: { controller: "clickable-row", clickable_row_url_value: lease_path(lease), action: "click->clickable-row#click" }}
+          %td= link_to lease.property.name, lease, class: "link link-hover font-medium"
           %td= lease.tenant.name
           %td= lease.start_date
           %td
@@ -27,9 +27,9 @@
           %td= "#{lease.duration_months} months"
           %td.text-right= number_to_currency(lease.rent_amount)
           %td.text-center
-            .join
-              = link_to 'Show', lease, class: "btn btn-sm btn-ghost join-item"
-              - if policy(lease).edit?
-                = link_to 'Edit', edit_lease_path(lease), class: "btn btn-sm btn-ghost join-item"
-              - if policy(lease).destroy?
-                = link_to 'Destroy', lease, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-sm btn-ghost text-error join-item"
+            - if policy(lease).edit? || policy(lease).destroy?
+              .join
+                - if policy(lease).edit?
+                  = link_to 'Edit', edit_lease_path(lease), class: "btn btn-sm btn-ghost join-item"
+                - if policy(lease).destroy?
+                  = link_to 'Destroy', lease, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-sm btn-ghost text-error join-item"

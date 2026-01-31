@@ -84,20 +84,21 @@
             %th Month
             %th Status
             %th Amount
-            %th Actions
+            %th
         %tbody
           - @lease.billable_months.reverse.each do |month|
             - invoice = @lease.invoices.find { |i| i.date.beginning_of_month == month }
-            %tr
-              %td= month.strftime("%B %Y")
-              - if invoice
+            - if invoice
+              %tr.hover.cursor-pointer{data: { controller: "clickable-row", clickable_row_url_value: invoice_path(invoice), action: "click->clickable-row#click" }}
+                %td= link_to month.strftime("%B %Y"), invoice, class: "link link-hover font-medium"
                 %td
                   %span{class: "badge badge-#{invoice.paid? ? 'success' : invoice.draft? ? 'ghost' : 'info'}"}
                     = invoice.status.humanize
                 %td= number_to_currency(invoice.total_amount)
                 %td
-                  = link_to "View", invoice_path(invoice), class: "btn btn-xs btn-ghost"
-              - else
+            - else
+              %tr
+                %td= month.strftime("%B %Y")
                 %td
                   %span.badge.badge-warning Missing
                 %td -
