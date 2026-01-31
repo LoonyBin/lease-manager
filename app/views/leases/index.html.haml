@@ -1,6 +1,6 @@
 .flex.justify-between.items-center.mb-6
   %h1.text-2xl.font-bold Leases
-  - if policy(Lease).new?
+  - if policy(@leases.new).new?
     = link_to 'New Lease', new_lease_path, class: "btn btn-primary"
 
 .overflow-x-auto

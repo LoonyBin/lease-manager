@@ -110,7 +110,7 @@
         = link_to 'Edit', edit_lease_path(@lease), class: "btn btn-primary"
       - if policy(@lease).update? && !@lease.terminated_on
         %label.btn.btn-warning{for: "terminate-modal"} Terminate
-      - if policy(Lease).new? && !@lease.terminated_on
+      - if policy(@lease).new? && !@lease.terminated_on
         = link_to "Renew", new_lease_path(renewed_from_id: @lease.id), class: "btn btn-success"
       = link_to 'Back', leases_path, class: "btn btn-ghost"
 

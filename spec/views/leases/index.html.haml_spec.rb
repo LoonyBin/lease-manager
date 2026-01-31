@@ -9,10 +9,10 @@ RSpec.describe "leases/index" do
   let(:tenant) { create(:tenant, name: "Tenant 1") }
 
   before do
-    assign(:leases, [
-             create(:lease, property: property, tenant: tenant, rent_amount: 1000),
-             create(:lease, property: property, tenant: tenant, rent_amount: 1200)
-           ])
+    assign(:leases, Lease.where(id: [
+                                  create(:lease, property: property, tenant: tenant, rent_amount: 1000).id,
+                                  create(:lease, property: property, tenant: tenant, rent_amount: 1200).id
+                                ]))
     render
   end
 

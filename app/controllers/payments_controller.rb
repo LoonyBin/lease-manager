@@ -8,7 +8,7 @@ class PaymentsController < ApplicationController
   def new
     @payment = Payment.new
     authorize @payment
-    @leases = Lease.includes(:property, :tenant).all
+    @leases = policy_scope(Lease).includes(:property, :tenant)
   end
 
   # TODO: Refactor to push this down to model or service
@@ -21,7 +21,7 @@ class PaymentsController < ApplicationController
       PaymentService.new(@payment).call
       redirect_to payments_path, notice: t(".success")
     else
-      @leases = Lease.includes(:property, :tenant).all
+      @leases = policy_scope(Lease).includes(:property, :tenant)
       render :new, status: :unprocessable_content
     end
   end
