@@ -36,6 +36,18 @@ en:
       success: Signed in successfully.
     destroy:
       success: Signed out successfully.
+  shared:
+    item_history:
+      system: System
+      table:
+        changes: Changes
+        date: Date
+        event: Event
+        user: User
+      title: History
+      unknown_user: Unknown User
+      view: View
+      view_all: View all %{count} changes
   tenants:
     create:
       success: Tenant was successfully created.

@@ -64,3 +64,5 @@
       = f.hidden_field :associable_type, value: "Tenant"
       = f.collection_select :associable_id, Tenant.where.not(id: @user.tenant_ids).order(:name), :id, :name, { prompt: "Select tenant to add..." }, class: "select select-bordered select-sm flex-1"
       = f.submit "Add", class: "btn btn-sm btn-primary"
+
+  = render "shared/item_history", item: @user

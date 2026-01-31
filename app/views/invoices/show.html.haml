@@ -55,6 +55,8 @@
             %th.text-right{colspan: 3} Total
             %th.text-right.text-lg= number_to_currency(@invoice.line_items.sum(&:total))
 
+    = render "shared/item_history", item: @invoice
+
     .card-actions.justify-end
       - if policy(@invoice).edit?
         = link_to "Edit", edit_invoice_path(@invoice), class: "btn btn-secondary"
