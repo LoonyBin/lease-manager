@@ -1,0 +1,32 @@
+.card.w-full.bg-base-100.shadow-xl
+  .card-body
+    .flex.justify-between.items-center.mb-4
+      %h2.card-title= t(".title")
+
+    .overflow-x-auto
+      %table.table.table-zebra.w-full
+        %thead
+          %tr
+            %th= t(".table.date")
+            %th= t(".table.resource")
+            %th= t(".table.event")
+            %th= t(".table.user")
+            %th= t(".table.actions")
+        %tbody
+          - @versions.each do |version|
+            %tr
+              %td= version.created_at.strftime("%Y-%m-%d %H:%M")
+              %td
+                = version.item_type
+                %span.badge.badge-ghost.badge-sm= "##{version.item_id}"
+              %td
+                %span{class: event_badge_class(version.event)}
+                  = version.event.humanize
+              %td
+                - if version.whodunnit.present?
+                  - user = User.find_by(id: version.whodunnit)
+                  = user&.name || t(".unknown_user")
+                - else
+                  %span.opacity-50= t(".system")
+              %td
+                = link_to t(".view"), version_path(version), class: "btn btn-sm btn-ghost"

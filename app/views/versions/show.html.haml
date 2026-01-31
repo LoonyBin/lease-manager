@@ -1,0 +1,79 @@
+.card.w-full.max-w-4xl.bg-base-100.shadow-xl.mx-auto
+  .card-body
+    .flex.justify-between.items-start.mb-6
+      %div
+        %h2.card-title.text-2xl.mb-2
+          = t(".title")
+          %span.badge.badge-outline= "##{@version.id}"
+        %p.text-sm.text-base-content
+          %span.font-bold= t(".resource")
+          = @version.item_type
+          %span.badge.badge-ghost.badge-sm= "##{@version.item_id}"
+        %p.text-sm.text-base-content
+          %span.font-bold= t(".event")
+          %span{class: event_badge_class(@version.event)}
+            = @version.event.humanize
+        %p.text-sm.text-base-content
+          %span.font-bold= t(".date")
+          = @version.created_at.strftime("%Y-%m-%d %H:%M:%S")
+        %p.text-sm.text-base-content
+          %span.font-bold= t(".user")
+          - if @version.whodunnit.present?
+            - user = User.find_by(id: @version.whodunnit)
+            = user&.name || t(".unknown_user")
+          - else
+            %span.opacity-50= t(".system")
+
+    .divider
+
+    - if @version.object_changes.present?
+      %h3.font-bold.text-lg.mb-4= t(".changes")
+      .overflow-x-auto.mb-8
+        %table.table.w-full
+          %thead
+            %tr
+              %th= t(".table.field")
+              %th= t(".table.from")
+              %th= t(".table.to")
+          %tbody
+            - changes = JSON.parse(@version.object_changes)
+            - changes.each do |field, (from_val, to_val)|
+              - next if %w[created_at updated_at].include?(field)
+              %tr
+                %td.font-medium= field.humanize
+                %td
+                  - if from_val.nil?
+                    %span.opacity-50= t(".empty")
+                  - else
+                    = from_val
+                %td
+                  - if to_val.nil?
+                    %span.opacity-50= t(".empty")
+                  - else
+                    = to_val
+    - elsif @version.object.present?
+      %h3.font-bold.text-lg.mb-4= t(".previous_state")
+      .overflow-x-auto.mb-8
+        %table.table.w-full
+          %thead
+            %tr
+              %th= t(".table.field")
+              %th= t(".table.value")
+          %tbody
+            - obj = JSON.parse(@version.object)
+            - obj.each do |field, value|
+              - next if %w[created_at updated_at].include?(field)
+              %tr
+                %td.font-medium= field.humanize
+                %td
+                  - if value.present?
+                    = value
+                  - else
+                    %span.opacity-50= t(".empty")
+
+    .card-actions.justify-end
+      = link_to t(".back"), versions_path, class: "btn btn-ghost"
+      - if @version.item.present?
+        = link_to t(".view_resource"), polymorphic_path(@version.item), class: "btn btn-secondary"
+      - if VersionPolicy.new(current_user, @version).destroy?
+        = button_to t(".delete"), version_path(@version), method: :delete, class: "btn btn-error", data: { turbo_confirm: t(".delete_confirm") }
