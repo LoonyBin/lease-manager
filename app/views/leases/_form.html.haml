@@ -7,7 +7,7 @@
     .alert.alert-info.mb-4
       %span Renewing lease ##{f.object.renewed_from_id}
 
-  .form-inputs.grid.grid-cols-1.md:grid-cols-2.gap-4
+  = f.grid_inputs do
     = f.association :property
     = f.association :tenant
 
@@ -17,28 +17,23 @@
     = f.input :rent_amount
     = f.input :security_deposit_in_months
 
+    = f.input :enhancement_amount, as: :string do
+      .join.w-full.flex{data: {controller: "enhancement-toggle"}}
+        = f.input_field :enhancement_amount, class: "input input-bordered join-item w-full"
+        = f.hidden_field :enhancement_type, value: f.object.enhancement_type || "percentage", data: { enhancement_toggle_target: "typeInput" }
+        %button.btn.join-item{type: "button", data: { action: "click->enhancement-toggle#toggle", enhancement_toggle_target: "buttonLabel" }}
+          = f.object.percentage? ? "%" : "₹"
     = f.input :enhancement_period_months
-    = f.input :enhancement_amount, as: :string, wrapper: false, label_html: { class: "label" }, input_html: { class: "input input-bordered w-full join-item" } do
-      .form-control.w-full{data: {controller: "enhancement-toggle"}}
-        %label.label{for: "lease_enhancement_amount"}
-          %span.label-text Enhancement Amount
-        .join.w-full
-          = f.input_field :enhancement_amount, class: "input input-bordered join-item w-full"
-          = f.hidden_field :enhancement_type, value: f.object.enhancement_type || "percentage", data: { enhancement_toggle_target: "typeInput" }
-          %button.btn.join-item{type: "button", data: { action: "click->enhancement-toggle#toggle", enhancement_toggle_target: "buttonLabel" }}
-            = f.object.percentage? ? "%" : "₹"
 
-
-    = f.input :tax_name, placeholder: "e.g., GST"
     = f.input :tax_rate, placeholder: "e.g., 18"
+    = f.input :tax_name, placeholder: "e.g., GST"
 
     - if f.object.terminated_on.present?
-      = f.input :terminated_on, as: :date, html5: true, wrapper_class: "col-span-2 form-control", input_html: { class: "input input-bordered w-full" }
+      .col-span-1.md:col-span-2
+        = f.input :terminated_on, as: :date, html5: true
 
-    .col-span-2
-      = f.input :documents, as: :file, input_html: { multiple: true, class: "file-input file-input-bordered w-full" },
+    .col-span-1.md:col-span-2
+      = f.input :documents, as: :file, input_html: { multiple: true },
                 label: "Upload Documents (PDF, images)", hint: "You can select multiple files"
 
-  .form-actions.mt-5.card-actions.justify-end
-    = f.button :submit, class: "btn btn-primary"
-    = link_to "Back", leases_path, class: "btn btn-ghost ml-4"
+  = f.form_actions

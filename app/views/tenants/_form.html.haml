@@ -2,11 +2,10 @@
   = f.error_notification
   = f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present?
 
-  .form-inputs
-    = f.input :name
+  = f.grid_inputs do
+    .col-span-1.md:col-span-2
+      = f.input :name
     = f.input :email
     = f.input :phone_number
 
-  .form-actions.mt-5
-    = f.button :submit, class: "btn btn-primary"
-    = link_to "Back", tenants_path, class: "btn btn-ghost ml-4"
+  = f.form_actions
