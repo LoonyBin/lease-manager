@@ -52,6 +52,7 @@ group :development, :test do
   gem "brakeman", require: false
 
   gem "factory_bot_rails"
+  gem "faker"
   gem "i18n-tasks"
   gem "rspec-rails", "~> 8.0"
   gem "rubocop", require: false
