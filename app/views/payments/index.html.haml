@@ -2,7 +2,7 @@
   .card-body
     .flex.justify-between.items-center.mb-4
       %h2.card-title Payments
-      - if policy(Payment).new?
+      - if policy(@payments.new).new?
         = link_to "Record Payment", new_payment_path, class: "btn btn-primary"
 
     .overflow-x-auto

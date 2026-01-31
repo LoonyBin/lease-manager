@@ -102,7 +102,7 @@
                   %span.badge.badge-warning Missing
                 %td -
                 %td
-                  - if policy(Invoice).new?
+                  - if policy(Invoice.new(lease: @lease)).new?
                     = link_to "Generate", new_invoice_path(lease_id: @lease.id, date: month.to_s), class: "btn btn-xs btn-primary"
 
     .card-actions.justify-end.mt-6
