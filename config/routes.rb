@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 Rails.application.routes.draw do
   resources :leases
   resources :properties
@@ -10,7 +12,7 @@ Rails.application.routes.draw do
   get "/auth/:provider/callback", to: "sessions#create"
   delete "/logout", to: "sessions#destroy", as: :logout
 
-  resources :payments, only: [:index, :new, :create]
+  resources :payments, only: %i[index new create]
   resources :reports, only: [:index] do
     collection do
       get :revenue

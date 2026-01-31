@@ -11,7 +11,7 @@
 #   = f.association :owner, collection: Owner.all # Explicit collection, no scoping
 #
 module SimpleFormPundit
-  def association(association, options = {}, &block)
+  def association(association, options = {}, &)
     unless options.key?(:collection)
       reflection = object.class.reflect_on_association(association)
       if reflection

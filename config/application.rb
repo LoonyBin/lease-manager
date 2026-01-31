@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative "boot"
 
 require "rails"
@@ -36,19 +38,18 @@ module LeaseManager
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
 
-
     # Don't generate system test files.
     config.generators.system_tests = nil
 
     config.generators do |g|
       g.template_engine :haml
       g.test_framework :rspec,
-        fixtures: true,
-        view_specs: true,
-        helper_specs: false,
-        routing_specs: false,
-        controller_specs: true,
-        request_specs: true
+                       fixtures: true,
+                       view_specs: true,
+                       helper_specs: false,
+                       routing_specs: false,
+                       controller_specs: true,
+                       request_specs: true
       g.fixture_replacement :factory_bot, dir: "spec/factories"
     end
   end

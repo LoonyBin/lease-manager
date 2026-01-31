@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Use this setup block to configure all options available in SimpleForm.
-SimpleForm.setup do |config|
+SimpleForm.setup do |config| # rubocop:disable Metrics/BlockLength
   config.wrappers :default, class: "form-control w-full mb-2" do |b|
     b.use :html5
     b.use :placeholder
@@ -11,7 +11,7 @@ SimpleForm.setup do |config|
     b.optional :min_max
     b.optional :readonly
     b.use :label, class: "label" do |ba|
-        ba.use :label_text, class: "label-text font-bold"
+      ba.use :label_text, class: "label-text font-bold"
     end
     b.use :input, class: "input input-bordered w-full"
 
@@ -38,6 +38,6 @@ SimpleForm.setup do |config|
 
   config.browser_validations = false
 
-  config.boolean_label_class = 'checkbox'
+  config.boolean_label_class = "checkbox"
   config.input_class = "input input-bordered w-full"
 end
