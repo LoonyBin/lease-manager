@@ -1,16 +1,14 @@
 # frozen_string_literal: true
 
 module VersionsHelper
-  def event_badge_class(event)
-    case event
-    when "create"
-      "badge badge-success"
-    when "update"
-      "badge badge-info"
-    when "destroy"
-      "badge badge-error"
-    else
-      "badge badge-ghost"
-    end
+  EVENT_BADGES = {
+    create: "badge-success",
+    update: "badge-info",
+    destroy: "badge-error"
+  }.freeze
+
+  def event_badge(event)
+    modifier = EVENT_BADGES.fetch(event.to_sym, "badge-ghost")
+    tag.span(event.humanize, class: token_list("badge", modifier))
   end
 end
