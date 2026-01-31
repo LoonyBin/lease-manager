@@ -18,5 +18,5 @@ RSpec.describe "owners/index" do
   it { is_expected.to have_css("th", text: "Address") }
   it { is_expected.to have_link("John Smith") }
   it { is_expected.to have_css("td", text: "123 Main St") }
-  it { is_expected.to have_link("Edit") }
+  it { is_expected.to have_css("a[aria-label='Edit John Smith']") }
 end

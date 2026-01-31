@@ -30,6 +30,8 @@
             - if policy(lease).edit? || policy(lease).destroy?
               .join
                 - if policy(lease).edit?
-                  = link_to 'Edit', edit_lease_path(lease), class: "btn btn-sm btn-ghost join-item"
+                  = link_to edit_lease_path(lease), class: "btn btn-sm btn-ghost join-item", aria: { label: "Edit lease for #{lease.property.name}" } do
+                    = heroicon "pencil-square", options: { class: "w-4 h-4" }
                 - if policy(lease).destroy?
-                  = link_to 'Destroy', lease, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-sm btn-ghost text-error join-item"
+                  = link_to lease, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-sm btn-ghost text-error join-item", aria: { label: "Delete lease for #{lease.property.name}" } do
+                    = heroicon "trash", options: { class: "w-4 h-4" }

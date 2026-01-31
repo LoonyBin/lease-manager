@@ -69,7 +69,8 @@ SimpleForm.setup do |config|
   config.include_default_input_wrapper_class = false
   config.item_wrapper_tag = :div
   config.wrappers :vertical_radio, tag: "div", class: "form-control w-fit", error_class: "",
-                                   item_wrapper_class: "form-check", item_label_class: "label gap-2 items-center justify-start" do |b|
+                                   item_wrapper_class: "form-check",
+                                   item_label_class: "label gap-2 items-center justify-start" do |b|
     b.use :html5
     b.optional :readonly
     b.use :label, class: "label-text"
@@ -97,7 +98,7 @@ SimpleForm.setup do |config|
   config.error_notification_tag = :div
   # CSS class to add for error notification helper.
   config.error_notification_class = ""
-  config.label_text = ->(label, required, explicit_label) { "#{label}" }
+  config.label_text = ->(label, _required, _explicit_label) { label.to_s }
 
   config.default_form_class = nil
 

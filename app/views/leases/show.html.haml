@@ -63,8 +63,7 @@
           .card.bg-base-200.shadow-sm
             .card-body.p-4
               .flex.items-center.gap-3
-                %svg.w-8.h-8.text-primary{xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor"}
-                  %path{stroke_linecap: "round", stroke_linejoin: "round", stroke_width: "2", d: "M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"}
+                = heroicon "document", options: { class: "w-8 h-8 text-primary" }
                 %div
                   %p.font-medium.truncate= doc.filename.to_s
                   %p.text-xs.text-base-content.opacity-60= number_to_human_size(doc.byte_size)

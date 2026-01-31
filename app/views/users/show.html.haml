@@ -31,9 +31,8 @@
           .badge.badge-outline.gap-2
             = assoc.associable.name
             - if policy(assoc).destroy?
-              = button_to user_association_path(assoc), method: :delete, class: "btn btn-ghost btn-xs p-0", data: { turbo_confirm: "Remove this association?" } do
-                %svg.w-4.h-4{xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor"}
-                  %path{stroke_linecap: "round", stroke_linejoin: "round", stroke_width: "2", d: "M6 18L18 6M6 6l12 12"}
+              = button_to user_association_path(assoc), method: :delete, class: "btn btn-ghost btn-xs p-0", data: { turbo_confirm: "Remove this association?" }, aria: { label: "Remove #{assoc.associable.name}" } do
+                = heroicon "x-mark", options: { class: "w-4 h-4" }
     - else
       %p.text-base-content.opacity-50.mb-4 No owners associated.
 
@@ -53,9 +52,8 @@
           .badge.badge-outline.gap-2
             = assoc.associable.name
             - if policy(assoc).destroy?
-              = button_to user_association_path(assoc), method: :delete, class: "btn btn-ghost btn-xs p-0", data: { turbo_confirm: "Remove this association?" } do
-                %svg.w-4.h-4{xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor"}
-                  %path{stroke_linecap: "round", stroke_linejoin: "round", stroke_width: "2", d: "M6 18L18 6M6 6l12 12"}
+              = button_to user_association_path(assoc), method: :delete, class: "btn btn-ghost btn-xs p-0", data: { turbo_confirm: "Remove this association?" }, aria: { label: "Remove #{assoc.associable.name}" } do
+                = heroicon "x-mark", options: { class: "w-4 h-4" }
     - else
       %p.text-base-content.opacity-50.mb-4 No tenants associated.
 

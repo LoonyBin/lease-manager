@@ -21,6 +21,8 @@
             - if policy(tenant).edit? || policy(tenant).destroy?
               .join
                 - if policy(tenant).edit?
-                  = link_to 'Edit', edit_tenant_path(tenant), class: "btn btn-sm btn-ghost join-item"
+                  = link_to edit_tenant_path(tenant), class: "btn btn-sm btn-ghost join-item", aria: { label: "Edit #{tenant.name}" } do
+                    = heroicon "pencil-square", options: { class: "w-4 h-4" }
                 - if policy(tenant).destroy?
-                  = link_to 'Destroy', tenant, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-sm btn-ghost text-error join-item"
+                  = link_to tenant, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-sm btn-ghost text-error join-item", aria: { label: "Delete #{tenant.name}" } do
+                    = heroicon "trash", options: { class: "w-4 h-4" }

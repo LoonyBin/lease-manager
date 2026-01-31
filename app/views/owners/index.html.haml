@@ -25,6 +25,8 @@
                 - if policy(owner).edit? || policy(owner).destroy?
                   .join
                     - if policy(owner).edit?
-                      = link_to "Edit", edit_owner_path(owner), class: "btn btn-xs btn-ghost join-item"
+                      = link_to edit_owner_path(owner), class: "btn btn-xs btn-ghost join-item", aria: { label: "Edit #{owner.name}" } do
+                        = heroicon "pencil-square", options: { class: "w-4 h-4" }
                     - if policy(owner).destroy?
-                      = button_to "Delete", owner_path(owner), method: :delete, data: { turbo_confirm: "Are you sure?" }, class: "btn btn-xs btn-ghost text-error join-item"
+                      = button_to owner_path(owner), method: :delete, data: { turbo_confirm: "Are you sure?" }, class: "btn btn-xs btn-ghost text-error join-item", aria: { label: "Delete #{owner.name}" } do
+                        = heroicon "trash", options: { class: "w-4 h-4" }
