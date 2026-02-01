@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class UsersController < ApplicationController
+  layout "settings"
+
   def index
     @users = policy_scope(User)
   end

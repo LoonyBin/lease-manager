@@ -17,4 +17,8 @@ class User < ApplicationRecord
       user.name = auth.info.name
     end
   end
+
+  def initials
+    name.split.pluck(0).join.upcase
+  end
 end

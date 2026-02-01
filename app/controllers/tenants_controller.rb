@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class TenantsController < ApplicationController
+  layout "settings"
+
   def index
     @tenants = policy_scope(Tenant)
   end

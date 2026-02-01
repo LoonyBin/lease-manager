@@ -1,0 +1,24 @@
+.navbar.bg-base-100.shadow-lg.mb-8
+  .container.mx-auto.flex.items-center
+    .flex-1
+      %a.btn.btn-ghost.normal-case.text-xl{href: root_path} Lease Manager
+    .flex-none
+      %ul.menu.menu-horizontal.px-1.gap-2
+        %li= link_to 'Dashboard', root_path
+        %li= link_to 'Leases', leases_path
+        %li= link_to 'Invoices', invoices_path
+        %li= link_to 'Payments', payments_path
+    .flex-none.ml-4
+      - if logged_in?
+        .dropdown.dropdown-end
+          %label.btn.btn-ghost.btn-circle.avatar.placeholder{tabindex: "0"}
+            .bg-neutral.text-neutral-content.rounded-full.w-10.flex.items-center.justify-center
+              %span.text-xs= current_user.initials
+          %ul.mt-3.p-2.shadow.menu.menu-compact.dropdown-content.bg-base-100.rounded-box.w-52{tabindex: "0"}
+            %li.menu-title
+              %span Signed in as #{current_user.name}
+            %li= link_to 'Settings', settings_path
+            %li
+              = button_to 'Logout', logout_path, method: :delete, class: ""
+      - else
+        = button_to 'Login', '/auth/developer', method: :post, class: "btn btn-sm btn-primary", data: { turbo: false }
