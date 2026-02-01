@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class OwnersController < ApplicationController
+  layout "settings"
+
   def index
     @owners = policy_scope(Owner).order(:name)
   end

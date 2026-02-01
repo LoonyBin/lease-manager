@@ -16,5 +16,5 @@ RSpec.describe "invoices/index" do
   it { is_expected.to have_css("th", text: "Date") }
   it { is_expected.to have_css("th", text: "Amount") }
   it { is_expected.to have_css("td", text: "₹1,000.00") }
-  it { is_expected.to have_link("View") }
+  it { is_expected.to have_css("tr[data-controller='clickable-row']") }
 end

@@ -13,21 +13,19 @@
             %th Tenant
             %th Amount
             %th Status
-            %th Actions
         %tbody
           - @invoices.each do |invoice|
-            %tr
+            %tr.hover.cursor-pointer{data: { controller: "clickable-row", clickable_row_url_value: invoice_path(invoice), action: "click->clickable-row#click" }}
               %td= invoice.date.strftime("%b %Y")
               %td
-                - if invoice.number.present?
-                  .badge.badge-outline= invoice.number
-                - else
-                  .badge.badge-ghost Draft
+                = link_to invoice_path(invoice), class: "link link-hover" do
+                  - if invoice.number.present?
+                    .badge.badge-outline= invoice.number
+                  - else
+                    .badge.badge-ghost Draft
               %td= invoice.lease.property.name
               %td= invoice.lease.tenant.name
               %td= number_to_currency(invoice.line_items.sum(:amount))
               %td
                 %span{class: "badge badge-#{invoice.draft? ? 'ghost' : 'success'}"}
                   = invoice.status.humanize
-              %td
-                = link_to "View", invoice_path(invoice), class: "btn btn-sm btn-ghost"

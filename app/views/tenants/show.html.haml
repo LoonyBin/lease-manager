@@ -1,44 +1,39 @@
-.card.w-full.max-w-2xl.bg-base-100.shadow-xl.mx-auto
-  .card-body
-    %h2.card-title Tenant Details
+.max-w-2xl.mx-auto
+  .flex.justify-between.items-start.mb-6
+    %h1.text-2xl.font-bold Tenant Details
+    - if policy(@tenant).edit?
+      = link_to edit_tenant_path(@tenant), class: "btn btn-sm btn-ghost", aria: { label: "Edit" } do
+        = heroicon "pencil-square", options: { class: "w-4 h-4" }
 
-    .grid.grid-cols-1.md:grid-cols-2.gap-4.mb-4
-      %div
-        %p.mb-2
-          %strong Name:
-          = @tenant.name
-        %p.mb-2
-          %strong Email:
-          = @tenant.email
-      %div
-        %p.mb-2
-          %strong Phone:
-          = @tenant.phone_number
+  .grid.grid-cols-1.md:grid-cols-2.gap-4.mb-6
+    %div
+      %h3.font-bold.text-sm.opacity-70 Name
+      %p= @tenant.name
+    %div
+      %h3.font-bold.text-sm.opacity-70 Email
+      %p= @tenant.email
+    %div
+      %h3.font-bold.text-sm.opacity-70 Phone
+      %p= @tenant.phone_number
 
-    .divider
+  .divider
 
-    %h3.text-lg.font-bold.mb-4 Associated Users
+  %h3.text-lg.font-bold.mb-4 Associated Users
 
-    - if @tenant.users.any?
-      .flex.flex-wrap.gap-2.mb-4
-        - @tenant.user_associations.includes(:user).each do |assoc|
-          .badge.badge-outline.gap-2
-            = assoc.user.name
-            - if policy(assoc).destroy?
-              = button_to user_association_path(assoc), method: :delete, class: "btn btn-ghost btn-xs p-0", data: { turbo_confirm: "Remove this association?" } do
-                %svg.w-4.h-4{xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor"}
-                  %path{stroke_linecap: "round", stroke_linejoin: "round", stroke_width: "2", d: "M6 18L18 6M6 6l12 12"}
-    - else
-      %p.text-base-content.opacity-50.mb-4 No users associated.
+  - if @tenant.users.any?
+    .flex.flex-wrap.gap-2.mb-4
+      - @tenant.user_associations.includes(:user).each do |assoc|
+        .badge.badge-outline.gap-2
+          = assoc.user.name
+          - if policy(assoc).destroy?
+            = button_to user_association_path(assoc), method: :delete, class: "btn btn-ghost btn-xs p-0", data: { turbo_confirm: "Remove this association?" }, aria: { label: "Remove #{assoc.user.name}" } do
+              = heroicon "x-mark", options: { class: "w-4 h-4" }
+  - else
+    %p.text-base-content.opacity-50.mb-4 No users associated.
 
-    - if policy(UserAssociation).create?
-      = form_with model: UserAssociation.new, class: "flex gap-2" do |f|
-        = f.hidden_field :associable_type, value: "Tenant"
-        = f.hidden_field :associable_id, value: @tenant.id
-        = f.collection_select :user_id, User.where.not(id: @tenant.user_ids).order(:name), :id, :name, { prompt: "Select user to add..." }, class: "select select-bordered select-sm flex-1"
-        = f.submit "Add", class: "btn btn-sm btn-primary"
-
-    .card-actions.justify-end.mt-4
-      - if policy(@tenant).edit?
-        = link_to 'Edit', edit_tenant_path(@tenant), class: "btn btn-primary"
-      = link_to 'Back', tenants_path, class: "btn btn-ghost"
+  - if policy(UserAssociation).create?
+    = form_with model: UserAssociation.new, class: "flex gap-2" do |f|
+      = f.hidden_field :associable_type, value: "Tenant"
+      = f.hidden_field :associable_id, value: @tenant.id
+      = f.collection_select :user_id, User.where.not(id: @tenant.user_ids).order(:name), :id, :name, { prompt: "Select user to add..." }, class: "select select-bordered select-sm flex-1"
+      = f.submit "Add", class: "btn btn-sm btn-primary"

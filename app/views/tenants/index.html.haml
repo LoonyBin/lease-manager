@@ -13,14 +13,16 @@
         %th.text-center Actions
     %tbody
       - @tenants.each do |tenant|
-        %tr.hover
-          %td.font-medium= tenant.name
+        %tr.hover.cursor-pointer{data: { controller: "clickable-row", clickable_row_url_value: tenant_path(tenant), action: "click->clickable-row#click" }}
+          %td.font-medium= link_to tenant.name, tenant, class: "link link-hover"
           %td= tenant.email
           %td= tenant.phone_number
           %td.text-center
-            .join
-              = link_to 'Show', tenant, class: "btn btn-sm btn-ghost join-item"
-              - if policy(tenant).edit?
-                = link_to 'Edit', edit_tenant_path(tenant), class: "btn btn-sm btn-ghost join-item"
-              - if policy(tenant).destroy?
-                = link_to 'Destroy', tenant, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-sm btn-ghost text-error join-item"
+            - if policy(tenant).edit? || policy(tenant).destroy?
+              .join
+                - if policy(tenant).edit?
+                  = link_to edit_tenant_path(tenant), class: "btn btn-sm btn-ghost join-item", aria: { label: "Edit #{tenant.name}" } do
+                    = heroicon "pencil-square", options: { class: "w-4 h-4" }
+                - if policy(tenant).destroy?
+                  = link_to tenant, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-sm btn-ghost text-error join-item", aria: { label: "Delete #{tenant.name}" } do
+                    = heroicon "trash", options: { class: "w-4 h-4" }

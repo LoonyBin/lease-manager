@@ -1,8 +1,3 @@
-.max-w-lg.mx-auto.card.bg-base-100.shadow-xl
-  .card-body
-    %h2.card-title.mb-5 Editing Tenant
-    = render 'form', tenant: @tenant
-
-= link_to 'Show', @tenant
-\|
-= link_to 'Back', tenants_path
+.max-w-lg.mx-auto
+  %h2.text-xl.font-bold.mb-5 Editing Tenant
+  = render 'form', tenant: @tenant

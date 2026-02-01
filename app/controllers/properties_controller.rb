@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class PropertiesController < ApplicationController
+  layout "settings"
+
   def index
     @properties = policy_scope(Property)
   end

@@ -24,6 +24,7 @@ Style/StringLiterals:
 Metrics/BlockLength:
   Exclude:
     - "Guardfile"
+    - config/initializers/simple_form.rb
 
 Layout/LineLength:
   Max: 120

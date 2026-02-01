@@ -12,13 +12,15 @@
         %th.text-center Actions
     %tbody
       - @properties.each do |property|
-        %tr.hover
-          %td.font-medium= property.name
+        %tr.hover.cursor-pointer{data: { controller: "clickable-row", clickable_row_url_value: property_path(property), action: "click->clickable-row#click" }}
+          %td.font-medium= link_to property.name, property, class: "link link-hover"
           %td= property.address
           %td.text-center
-            .join
-              = link_to 'Show', property, class: "btn btn-sm btn-ghost join-item"
-              - if policy(property).edit?
-                = link_to 'Edit', edit_property_path(property), class: "btn btn-sm btn-ghost join-item"
-              - if policy(property).destroy?
-                = link_to 'Destroy', property, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-sm btn-ghost text-error join-item"
+            - if policy(property).edit? || policy(property).destroy?
+              .join
+                - if policy(property).edit?
+                  = link_to edit_property_path(property), class: "btn btn-sm btn-ghost join-item", aria: { label: "Edit #{property.name}" } do
+                    = heroicon "pencil-square", options: { class: "w-4 h-4" }
+                - if policy(property).destroy?
+                  = link_to property, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-sm btn-ghost text-error join-item", aria: { label: "Delete #{property.name}" } do
+                    = heroicon "trash", options: { class: "w-4 h-4" }

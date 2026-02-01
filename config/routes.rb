@@ -2,6 +2,7 @@
 
 Rails.application.routes.draw do
   resources :leases
+  resources :payments, only: %i[index new create]
   resources :properties
   resources :tenants
   resources :owners
@@ -12,7 +13,8 @@ Rails.application.routes.draw do
   get "/auth/:provider/callback", to: "sessions#create"
   delete "/logout", to: "sessions#destroy", as: :logout
 
-  resources :payments, only: %i[index new create]
+  get "/settings", to: redirect("/properties", status: 307), as: :settings
+
   resources :reports, only: [:index] do
     collection do
       get :revenue

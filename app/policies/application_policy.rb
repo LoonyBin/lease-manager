@@ -4,7 +4,7 @@ class ApplicationPolicy
   attr_reader :user, :record
 
   def initialize(user, record)
-    @user = user
+    @user = user || User::Anonymous.new
     @record = record
   end
 
@@ -39,17 +39,17 @@ class ApplicationPolicy
   private
 
   def admin?
-    user&.admin?
+    user.admin?
   end
 
   class Scope
     def initialize(user, scope)
-      @user = user
+      @user = user || User::Anonymous.new
       @scope = scope
     end
 
     def resolve
-      return scope.none unless user&.admin?
+      return scope.none unless user.admin?
 
       scope.all
     end

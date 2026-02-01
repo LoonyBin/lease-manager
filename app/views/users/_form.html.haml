@@ -2,13 +2,11 @@
   = f.error_notification
   = f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present?
 
-  .form-inputs
+  = f.grid_inputs do
     = f.input :name
     = f.input :email
     = f.input :provider
-    = f.input :role, collection: User.roles.keys
+    = f.input :role, collection: User.roles.keys, include_blank: false
     = f.input :uid
 
-  .form-actions.mt-5
-    = f.button :submit, class: "btn btn-primary"
-    = link_to "Back", users_path, class: "btn btn-ghost ml-4"
+  = f.form_actions

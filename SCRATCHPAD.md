@@ -11,7 +11,9 @@
 - [x] Implement Payments Support
 
 # Current Goal
-- [x] Lease Taxes
+- [x] Review Navigation Bar Order
+
+
     - [x] Add `tax_name` and `tax_rate` to Lease
     - [x] Update InvoiceGenerator to create tax LineItems
     - [x] Display taxes on Invoice views

@@ -63,8 +63,7 @@
           .card.bg-base-200.shadow-sm
             .card-body.p-4
               .flex.items-center.gap-3
-                %svg.w-8.h-8.text-primary{xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor"}
-                  %path{stroke_linecap: "round", stroke_linejoin: "round", stroke_width: "2", d: "M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"}
+                = heroicon "document", options: { class: "w-8 h-8 text-primary" }
                 %div
                   %p.font-medium.truncate= doc.filename.to_s
                   %p.text-xs.text-base-content.opacity-60= number_to_human_size(doc.byte_size)
@@ -84,20 +83,21 @@
             %th Month
             %th Status
             %th Amount
-            %th Actions
+            %th
         %tbody
           - @lease.billable_months.reverse.each do |month|
             - invoice = @lease.invoices.find { |i| i.date.beginning_of_month == month }
-            %tr
-              %td= month.strftime("%B %Y")
-              - if invoice
+            - if invoice
+              %tr.hover.cursor-pointer{data: { controller: "clickable-row", clickable_row_url_value: invoice_path(invoice), action: "click->clickable-row#click" }}
+                %td= link_to month.strftime("%B %Y"), invoice, class: "link link-hover font-medium"
                 %td
                   %span{class: "badge badge-#{invoice.paid? ? 'success' : invoice.draft? ? 'ghost' : 'info'}"}
                     = invoice.status.humanize
                 %td= number_to_currency(invoice.total_amount)
                 %td
-                  = link_to "View", invoice_path(invoice), class: "btn btn-xs btn-ghost"
-              - else
+            - else
+              %tr
+                %td= month.strftime("%B %Y")
                 %td
                   %span.badge.badge-warning Missing
                 %td -

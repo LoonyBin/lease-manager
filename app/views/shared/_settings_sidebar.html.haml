@@ -1,0 +1,7 @@
+.menu.bg-base-100.w-64.p-2.rounded-box.shadow-lg.h-fit
+  %li.menu-title
+    %span Settings
+  %li= link_to 'Properties', properties_path, class: ('active' if controller_name == 'properties')
+  %li= link_to 'Owners', owners_path, class: ('active' if controller_name == 'owners')
+  %li= link_to 'Tenants', tenants_path, class: ('active' if controller_name == 'tenants')
+  %li= link_to 'Users', users_path, class: ('active' if controller_name == 'users')

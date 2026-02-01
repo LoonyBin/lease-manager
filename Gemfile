@@ -53,6 +53,7 @@ end
 
 group :test do
   gem "capybara", "~> 3.40"
+  gem "pundit-matchers", "~> 4.0"
   gem "rspec-its"
   gem "shoulda-matchers"
   gem "simplecov", require: false
