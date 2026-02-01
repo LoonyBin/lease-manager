@@ -1,10 +1,9 @@
 # frozen_string_literal: true
 
 require "rails_helper"
-require "pundit/rspec"
 
-RSpec.describe LeasePolicy, type: :policy do
-  subject { described_class }
+RSpec.describe LeasePolicy do
+  subject { described_class.new(user, lease) }
 
   let(:user) { create(:user) }
   let(:lease) { create(:lease) }
@@ -12,11 +11,7 @@ RSpec.describe LeasePolicy, type: :policy do
   context "when user is an admin" do
     let(:user) { create(:user, :admin) }
 
-    permissions :index?, :show?, :create?, :new?, :update?, :edit?, :destroy? do
-      it "grants access" do
-        is_expected.to permit(user, lease)
-      end
-    end
+    it { is_expected.to permit_actions(%i[index show create new update edit destroy]) }
   end
 
   context "when user is associated with the lease's property owner" do
@@ -24,11 +19,7 @@ RSpec.describe LeasePolicy, type: :policy do
       create(:user_association, user: user, associable: lease.property.owner)
     end
 
-    permissions :index?, :show?, :create?, :new?, :update?, :edit?, :destroy? do
-      it "grants access" do
-        is_expected.to permit(user, lease)
-      end
-    end
+    it { is_expected.to permit_actions(%i[index show create new update edit destroy]) }
   end
 
   context "when user is associated with the lease's tenant" do
@@ -36,17 +27,8 @@ RSpec.describe LeasePolicy, type: :policy do
       create(:user_association, user: user, associable: lease.tenant)
     end
 
-    permissions :index?, :show? do
-      it "grants access" do
-        is_expected.to permit(user, lease)
-      end
-    end
-
-    permissions :create?, :new?, :update?, :edit?, :destroy? do
-      it "denies access" do
-        is_expected.not_to permit(user, lease)
-      end
-    end
+    it { is_expected.to permit_actions(%i[index show]) }
+    it { is_expected.to forbid_actions(%i[create new update edit destroy]) }
   end
 
   context "when user is a tenant on a different lease" do
@@ -56,34 +38,24 @@ RSpec.describe LeasePolicy, type: :policy do
       create(:user_association, user: user, associable: other_lease.tenant)
     end
 
-    permissions :show?, :create?, :new?, :update?, :edit?, :destroy? do
-      it "denies access" do
-        is_expected.not_to permit(user, lease)
-      end
-    end
+    it { is_expected.to forbid_actions(%i[show create new update edit destroy]) }
   end
 
   context "when user is unrelated" do
-    permissions :show?, :create?, :new?, :update?, :edit?, :destroy? do
-      it "denies access" do
-        is_expected.not_to permit(user, lease)
-      end
-    end
+    it { is_expected.to forbid_actions(%i[show create new update edit destroy]) }
   end
 
   describe "Scope" do
-    let(:user) { create(:user) }
+    subject(:scope) { described_class::Scope.new(user, Lease).resolve }
 
-    def resolve_scope
-      described_class::Scope.new(user, Lease).resolve
-    end
+    let(:user) { create(:user) }
 
     context "when user is admin" do
       let(:user) { create(:user, :admin) }
 
       it "includes all leases" do
         leases = create_list(:lease, 3)
-        expect(resolve_scope).to include(*leases)
+        expect(scope).to include(*leases)
       end
     end
 
@@ -94,11 +66,11 @@ RSpec.describe LeasePolicy, type: :policy do
       before { create(:user_association, user: user, associable: owned_lease.property.owner) }
 
       it "includes owned lease" do
-        expect(resolve_scope).to include(owned_lease)
+        expect(scope).to include(owned_lease)
       end
 
       it "excludes unrelated leases" do
-        expect(resolve_scope).not_to include(unrelated_lease)
+        expect(scope).not_to include(unrelated_lease)
       end
     end
 
@@ -109,11 +81,11 @@ RSpec.describe LeasePolicy, type: :policy do
       before { create(:user_association, user: user, associable: tenant_lease.tenant) }
 
       it "includes tenant lease" do
-        expect(resolve_scope).to include(tenant_lease)
+        expect(scope).to include(tenant_lease)
       end
 
       it "excludes unrelated leases" do
-        expect(resolve_scope).not_to include(unrelated_lease)
+        expect(scope).not_to include(unrelated_lease)
       end
     end
   end

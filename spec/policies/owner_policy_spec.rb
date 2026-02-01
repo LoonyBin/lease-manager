@@ -1,10 +1,9 @@
 # frozen_string_literal: true
 
 require "rails_helper"
-require "pundit/rspec"
 
-RSpec.describe OwnerPolicy, type: :policy do
-  subject { described_class }
+RSpec.describe OwnerPolicy do
+  subject { described_class.new(user, owner) }
 
   let(:user) { create(:user) }
   let(:owner) { create(:owner) }
@@ -12,11 +11,7 @@ RSpec.describe OwnerPolicy, type: :policy do
   context "when user is an admin" do
     let(:user) { create(:user, :admin) }
 
-    permissions :index?, :show?, :create?, :new?, :update?, :edit?, :destroy? do
-      it "grants access" do
-        is_expected.to permit(user, owner)
-      end
-    end
+    it { is_expected.to permit_actions(%i[index show create new update edit destroy]) }
   end
 
   context "when user is associated with the owner" do
@@ -24,17 +19,8 @@ RSpec.describe OwnerPolicy, type: :policy do
       create(:user_association, user: user, associable: owner)
     end
 
-    permissions :show?, :update?, :edit?, :destroy? do
-      it "grants access" do
-        is_expected.to permit(user, owner)
-      end
-    end
-
-    permissions :create?, :new? do
-      it "denies access" do
-        is_expected.not_to permit(user, owner)
-      end
-    end
+    it { is_expected.to permit_actions(%i[show update edit destroy]) }
+    it { is_expected.to forbid_actions(%i[create new]) }
   end
 
   context "when user is a tenant of the owner" do
@@ -46,17 +32,8 @@ RSpec.describe OwnerPolicy, type: :policy do
       create(:user_association, user: user, associable: tenant)
     end
 
-    permissions :show? do
-      it "grants access" do
-        is_expected.to permit(user, owner)
-      end
-    end
-
-    permissions :create?, :new?, :update?, :edit?, :destroy? do
-      it "denies access" do
-        is_expected.not_to permit(user, owner)
-      end
-    end
+    it { is_expected.to permit_action(:show) }
+    it { is_expected.to forbid_actions(%i[create new update edit destroy]) }
   end
 
   context "when user is a tenant of another owner" do
@@ -69,19 +46,11 @@ RSpec.describe OwnerPolicy, type: :policy do
       create(:user_association, user: user, associable: tenant)
     end
 
-    permissions :show? do
-      it "denies access" do
-        is_expected.not_to permit(user, owner)
-      end
-    end
+    it { is_expected.to forbid_action(:show) }
   end
 
   context "when user is unrelated" do
-    permissions :show?, :create?, :new?, :update?, :edit?, :destroy? do
-      it "denies access" do
-        is_expected.not_to permit(user, owner)
-      end
-    end
+    it { is_expected.to forbid_actions(%i[show create new update edit destroy]) }
   end
 
   describe "Scope" do

@@ -1,10 +1,9 @@
 # frozen_string_literal: true
 
 require "rails_helper"
-require "pundit/rspec"
 
-RSpec.describe TenantPolicy, type: :policy do
-  subject { described_class }
+RSpec.describe TenantPolicy do
+  subject { described_class.new(user, tenant) }
 
   let(:user) { create(:user) }
   let(:tenant) { create(:tenant) }
@@ -12,11 +11,7 @@ RSpec.describe TenantPolicy, type: :policy do
   context "when user is an admin" do
     let(:user) { create(:user, :admin) }
 
-    permissions :index?, :show?, :create?, :new?, :update?, :edit?, :destroy? do
-      it "grants access" do
-        is_expected.to permit(user, tenant)
-      end
-    end
+    it { is_expected.to permit_actions(%i[index show create new update edit destroy]) }
   end
 
   context "when user is associated with the tenant" do
@@ -24,17 +19,8 @@ RSpec.describe TenantPolicy, type: :policy do
       create(:user_association, user: user, associable: tenant)
     end
 
-    permissions :show?, :update?, :edit? do
-      it "grants access" do
-        is_expected.to permit(user, tenant)
-      end
-    end
-
-    permissions :create?, :new?, :destroy? do
-      it "denies access" do
-        is_expected.not_to permit(user, tenant)
-      end
-    end
+    it { is_expected.to permit_actions(%i[show update edit]) }
+    it { is_expected.to forbid_actions(%i[create new destroy]) }
   end
 
   context "when user is an owner of the tenant" do
@@ -46,25 +32,12 @@ RSpec.describe TenantPolicy, type: :policy do
       create(:user_association, user: user, associable: owner)
     end
 
-    permissions :show? do
-      it "grants access" do
-        is_expected.to permit(user, tenant)
-      end
-    end
-
-    permissions :create?, :new?, :update?, :edit?, :destroy? do
-      it "denies access" do
-        is_expected.not_to permit(user, tenant)
-      end
-    end
+    it { is_expected.to permit_action(:show) }
+    it { is_expected.to forbid_actions(%i[create new update edit destroy]) }
   end
 
   context "when user is unrelated" do
-    permissions :show?, :create?, :new?, :update?, :edit?, :destroy? do
-      it "denies access" do
-        is_expected.not_to permit(user, tenant)
-      end
-    end
+    it { is_expected.to forbid_actions(%i[show create new update edit destroy]) }
   end
 
   describe "Scope" do

@@ -1,10 +1,9 @@
 # frozen_string_literal: true
 
 require "rails_helper"
-require "pundit/rspec"
 
-RSpec.describe PaymentPolicy, type: :policy do
-  subject { described_class }
+RSpec.describe PaymentPolicy do
+  subject { described_class.new(user, payment) }
 
   let(:user) { create(:user) }
   let(:lease) { create(:lease) }
@@ -13,11 +12,7 @@ RSpec.describe PaymentPolicy, type: :policy do
   context "when user is an admin" do
     let(:user) { create(:user, :admin) }
 
-    permissions :index?, :show?, :create?, :new?, :update?, :edit?, :destroy? do
-      it "grants access" do
-        is_expected.to permit(user, payment)
-      end
-    end
+    it { is_expected.to permit_actions(%i[index show create new update edit destroy]) }
   end
 
   context "when user is associated with the lease's property owner" do
@@ -25,11 +20,7 @@ RSpec.describe PaymentPolicy, type: :policy do
       create(:user_association, user: user, associable: lease.property.owner)
     end
 
-    permissions :index?, :show?, :create?, :new?, :update?, :edit?, :destroy? do
-      it "grants access" do
-        is_expected.to permit(user, payment)
-      end
-    end
+    it { is_expected.to permit_actions(%i[index show create new update edit destroy]) }
   end
 
   context "when user is associated with the lease's tenant" do
@@ -37,40 +28,25 @@ RSpec.describe PaymentPolicy, type: :policy do
       create(:user_association, user: user, associable: lease.tenant)
     end
 
-    permissions :index?, :show? do
-      it "grants access" do
-        is_expected.to permit(user, payment)
-      end
-    end
-
-    permissions :create?, :new?, :update?, :edit?, :destroy? do
-      it "denies access" do
-        is_expected.not_to permit(user, payment)
-      end
-    end
+    it { is_expected.to permit_actions(%i[index show]) }
+    it { is_expected.to forbid_actions(%i[create new update edit destroy]) }
   end
 
   context "when user is unrelated" do
-    permissions :show?, :create?, :new?, :update?, :edit?, :destroy? do
-      it "denies access" do
-        is_expected.not_to permit(user, payment)
-      end
-    end
+    it { is_expected.to forbid_actions(%i[show create new update edit destroy]) }
   end
 
   describe "Scope" do
-    let(:user) { create(:user) }
+    subject(:scope) { described_class::Scope.new(user, Payment).resolve }
 
-    def resolve_scope
-      described_class::Scope.new(user, Payment).resolve
-    end
+    let(:user) { create(:user) }
 
     context "when user is admin" do
       let(:user) { create(:user, :admin) }
 
       it "includes all payments" do
         payments = create_list(:payment, 3)
-        expect(resolve_scope).to include(*payments)
+        expect(scope).to include(*payments)
       end
     end
 
@@ -81,11 +57,11 @@ RSpec.describe PaymentPolicy, type: :policy do
       before { create(:user_association, user: user, associable: owned_payment.lease.property.owner) }
 
       it "includes owned payment" do
-        expect(resolve_scope).to include(owned_payment)
+        expect(scope).to include(owned_payment)
       end
 
       it "excludes unrelated payments" do
-        expect(resolve_scope).not_to include(unrelated_payment)
+        expect(scope).not_to include(unrelated_payment)
       end
     end
 
@@ -96,11 +72,11 @@ RSpec.describe PaymentPolicy, type: :policy do
       before { create(:user_association, user: user, associable: tenant_payment.lease.tenant) }
 
       it "includes tenant payment" do
-        expect(resolve_scope).to include(tenant_payment)
+        expect(scope).to include(tenant_payment)
       end
 
       it "excludes unrelated payments" do
-        expect(resolve_scope).not_to include(unrelated_payment)
+        expect(scope).not_to include(unrelated_payment)
       end
     end
   end

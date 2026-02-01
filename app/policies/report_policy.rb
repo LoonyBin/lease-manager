@@ -2,18 +2,18 @@
 
 class ReportPolicy < ApplicationPolicy
   def index?
-    user.present?
+    user.is_a?(User)
   end
 
   def revenue?
-    user.present?
+    user.is_a?(User)
   end
 
   def outstanding?
-    user.present?
+    user.is_a?(User)
   end
 
   def taxes?
-    user.present?
+    user.is_a?(User)
   end
 end

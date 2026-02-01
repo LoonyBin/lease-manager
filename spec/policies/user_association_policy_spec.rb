@@ -3,28 +3,25 @@
 require "rails_helper"
 
 RSpec.describe UserAssociationPolicy do
-  subject { described_class.new(user, user_association) }
+  subject { described_class.new(user, record) }
 
-  let(:user_association) { build(:user_association) }
+  let(:record) { build_stubbed(:user_association) }
 
-  context "when user is admin" do
-    let(:user) { build(:user, role: :admin) }
+  context "when user is an admin" do
+    let(:user) { build_stubbed(:user, :admin) }
 
-    it { is_expected.to be_create }
-    it { is_expected.to be_destroy }
+    it { is_expected.to permit_actions(%i[index show create new update edit destroy]) }
   end
 
-  context "when user is normal" do
-    let(:user) { build(:user, role: :normal) }
+  context "when user is a normal user" do
+    let(:user) { build_stubbed(:user) }
 
-    it { is_expected.not_to be_create }
-    it { is_expected.not_to be_destroy }
+    it { is_expected.to forbid_actions(%i[index show create new update edit destroy]) }
   end
 
   context "when user is nil" do
     let(:user) { nil }
 
-    it { is_expected.not_to be_create }
-    it { is_expected.not_to be_destroy }
+    it { is_expected.to forbid_actions(%i[index show create new update edit destroy]) }
   end
 end

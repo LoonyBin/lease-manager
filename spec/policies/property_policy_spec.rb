@@ -1,10 +1,9 @@
 # frozen_string_literal: true
 
 require "rails_helper"
-require "pundit/rspec"
 
-RSpec.describe PropertyPolicy, type: :policy do
-  subject { described_class }
+RSpec.describe PropertyPolicy do
+  subject { described_class.new(user, property) }
 
   let(:user) { create(:user) }
   let(:property) { create(:property) }
@@ -12,11 +11,7 @@ RSpec.describe PropertyPolicy, type: :policy do
   context "when user is an admin" do
     let(:user) { create(:user, :admin) }
 
-    permissions :index?, :show?, :create?, :new?, :update?, :edit?, :destroy? do
-      it "grants access" do
-        is_expected.to permit(user, property)
-      end
-    end
+    it { is_expected.to permit_actions(%i[index show create new update edit destroy]) }
   end
 
   context "when user is associated with the property's owner" do
@@ -24,11 +19,7 @@ RSpec.describe PropertyPolicy, type: :policy do
       create(:user_association, user: user, associable: property.owner)
     end
 
-    permissions :index?, :show?, :create?, :new?, :update?, :edit?, :destroy? do
-      it "grants access" do
-        is_expected.to permit(user, property)
-      end
-    end
+    it { is_expected.to permit_actions(%i[index show create new update edit destroy]) }
   end
 
   context "when user is a tenant with a lease on the property" do
@@ -39,17 +30,8 @@ RSpec.describe PropertyPolicy, type: :policy do
       create(:user_association, user: user, associable: tenant)
     end
 
-    permissions :index?, :show? do
-      it "grants access" do
-        is_expected.to permit(user, property)
-      end
-    end
-
-    permissions :create?, :new?, :update?, :edit?, :destroy? do
-      it "denies access" do
-        is_expected.not_to permit(user, property)
-      end
-    end
+    it { is_expected.to permit_actions(%i[index show]) }
+    it { is_expected.to forbid_actions(%i[create new update edit destroy]) }
   end
 
   context "when user is a tenant with a lease on another property" do
@@ -61,34 +43,24 @@ RSpec.describe PropertyPolicy, type: :policy do
       create(:user_association, user: user, associable: tenant)
     end
 
-    permissions :show?, :create?, :new?, :update?, :edit?, :destroy? do
-      it "denies access" do
-        is_expected.not_to permit(user, property)
-      end
-    end
+    it { is_expected.to forbid_actions(%i[show create new update edit destroy]) }
   end
 
   context "when user is unrelated" do
-    permissions :show?, :create?, :new?, :update?, :edit?, :destroy? do
-      it "denies access" do
-        is_expected.not_to permit(user, property)
-      end
-    end
+    it { is_expected.to forbid_actions(%i[show create new update edit destroy]) }
   end
 
   describe "Scope" do
-    let(:user) { create(:user) }
+    subject(:scope) { described_class::Scope.new(user, Property).resolve }
 
-    def resolve_scope
-      described_class::Scope.new(user, Property).resolve
-    end
+    let(:user) { create(:user) }
 
     context "when user is admin" do
       let(:user) { create(:user, :admin) }
 
       it "includes all properties" do
         properties = create_list(:property, 3)
-        expect(resolve_scope).to include(*properties)
+        expect(scope).to include(*properties)
       end
     end
 
@@ -99,11 +71,11 @@ RSpec.describe PropertyPolicy, type: :policy do
       before { create(:user_association, user: user, associable: owned.owner) }
 
       it "includes owned property" do
-        expect(resolve_scope).to include(owned)
+        expect(scope).to include(owned)
       end
 
       it "excludes unrelated properties" do
-        expect(resolve_scope).not_to include(unrelated)
+        expect(scope).not_to include(unrelated)
       end
     end
 
@@ -118,11 +90,11 @@ RSpec.describe PropertyPolicy, type: :policy do
       end
 
       it "includes leased property" do
-        expect(resolve_scope).to include(leased)
+        expect(scope).to include(leased)
       end
 
       it "excludes unrelated properties" do
-        expect(resolve_scope).not_to include(unrelated)
+        expect(scope).not_to include(unrelated)
       end
     end
   end
