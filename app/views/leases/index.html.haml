@@ -3,16 +3,27 @@
   - if policy(@leases.new).new?
     = link_to 'New Lease', new_lease_path, class: "btn btn-primary"
 
+.mb-4
+  = search_form_for @q, class: "flex gap-2 items-end" do |f|
+    .form-control
+      = f.label :property_name_cont, "Property", class: "label-text"
+      = f.search_field :property_name_cont, class: "input input-bordered input-sm"
+    .form-control
+      = f.label :tenant_name_cont, "Tenant", class: "label-text"
+      = f.search_field :tenant_name_cont, class: "input input-bordered input-sm"
+    = f.submit "Search", class: "btn btn-sm btn-secondary"
+    = link_to "Clear", leases_path, class: "btn btn-sm btn-ghost"
+
 .overflow-x-auto
   %table.table.w-full
     %thead
       %tr
-        %th Property
-        %th Tenant
-        %th Start Date
-        %th End Date
+        %th= sort_link(@q, :property_name, "Property")
+        %th= sort_link(@q, :tenant_name, "Tenant")
+        %th= sort_link(@q, :start_date, "Start Date")
+        %th= sort_link(@q, :end_date, "End Date")
         %th Duration
-        %th.text-right Rent
+        %th.text-right= sort_link(@q, :rent_amount, "Rent")
         %th.text-center Actions
     %tbody
       - @leases.each do |lease|

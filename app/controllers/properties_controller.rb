@@ -4,7 +4,8 @@ class PropertiesController < ApplicationController
   layout "settings"
 
   def index
-    @properties = policy_scope(Property).page(params[:page]).per(20)
+    @q = policy_scope(Property).ransack(params[:q])
+    @properties = @q.result.page(params[:page]).per(20)
   end
 
   def show

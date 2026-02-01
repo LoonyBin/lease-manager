@@ -3,16 +3,37 @@
     .flex.justify-between.items-center.mb-4
       %h2.card-title Invoices
 
+      - if policy(@invoices.new).new?
+        -# Assuming there isn't a direct "New Invoice" button on index usually, but preserving structure if there was.
+        -# The view didn't show one, so I won't add one unless I missed it.
+
+    .mb-4
+      = search_form_for @q, class: "flex gap-2 items-end flex-wrap" do |f|
+        .form-control
+          = f.label :number_cont, "Number", class: "label-text"
+          = f.search_field :number_cont, class: "input input-bordered input-sm"
+        .form-control
+          = f.label :lease_property_name_cont, "Property", class: "label-text"
+          = f.search_field :lease_property_name_cont, class: "input input-bordered input-sm"
+        .form-control
+          = f.label :lease_tenant_name_cont, "Tenant", class: "label-text"
+          = f.search_field :lease_tenant_name_cont, class: "input input-bordered input-sm"
+        .form-control
+          = f.label :status_eq, "Status", class: "label-text"
+          = f.select :status_eq, Invoice.statuses.map { |k, v| [k.humanize, v] }, { include_blank: true }, class: "select select-bordered select-sm"
+        = f.submit "Search", class: "btn btn-sm btn-secondary"
+        = link_to "Clear", invoices_path, class: "btn btn-sm btn-ghost"
+
     .overflow-x-auto
       %table.table.table-zebra.w-full
         %thead
           %tr
-            %th Date
-            %th Number
-            %th Property
-            %th Tenant
+            %th= sort_link(@q, :date, "Date")
+            %th= sort_link(@q, :number, "Number")
+            %th= sort_link(@q, :lease_property_name, "Property")
+            %th= sort_link(@q, :lease_tenant_name, "Tenant")
             %th Amount
-            %th Status
+            %th= sort_link(@q, :status, "Status")
         %tbody
           - @invoices.each do |invoice|
             %tr.hover.cursor-pointer{data: { controller: "clickable-row", clickable_row_url_value: invoice_path(invoice), action: "click->clickable-row#click" }}

@@ -3,13 +3,27 @@
   - if policy(@tenants.new).new?
     = link_to 'New Tenant', new_tenant_path, class: "btn btn-primary"
 
+.mb-4
+  = search_form_for @q, class: "flex gap-2 items-end" do |f|
+    .form-control
+      = f.label :name_cont, "Name", class: "label-text"
+      = f.search_field :name_cont, class: "input input-bordered input-sm"
+    .form-control
+      = f.label :email_cont, "Email", class: "label-text"
+      = f.search_field :email_cont, class: "input input-bordered input-sm"
+    .form-control
+      = f.label :phone_number_cont, "Phone", class: "label-text"
+      = f.search_field :phone_number_cont, class: "input input-bordered input-sm"
+    = f.submit "Search", class: "btn btn-sm btn-secondary"
+    = link_to "Clear", tenants_path, class: "btn btn-sm btn-ghost"
+
 .overflow-x-auto
   %table.table.w-full
     %thead
       %tr
-        %th Name
-        %th Email
-        %th Phone
+        %th= sort_link(@q, :name, "Name")
+        %th= sort_link(@q, :email, "Email")
+        %th= sort_link(@q, :phone_number, "Phone")
         %th.text-center Actions
     %tbody
       - @tenants.each do |tenant|

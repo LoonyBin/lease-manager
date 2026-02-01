@@ -1,13 +1,27 @@
 .flex.justify-between.items-center.mb-6
   %h1.text-2xl.font-bold= t(".title")
 
+.mb-4
+  = search_form_for @q, class: "flex gap-2 items-end flex-wrap" do |f|
+    .form-control
+      = f.label :item_type_eq, t(".table.resource"), class: "label-text"
+      = f.select :item_type_eq, Version.select(:item_type).distinct.pluck(:item_type), { include_blank: true }, class: "select select-bordered select-sm"
+    .form-control
+      = f.label :item_id_eq, "ID", class: "label-text"
+      = f.search_field :item_id_eq, class: "input input-bordered input-sm", style: "width: 80px;"
+    .form-control
+      = f.label :event_eq, t(".table.event"), class: "label-text"
+      = f.select :event_eq, %w[create update destroy], { include_blank: true }, class: "select select-bordered select-sm"
+    = f.submit "Search", class: "btn btn-sm btn-secondary"
+    = link_to "Clear", versions_path, class: "btn btn-sm btn-ghost"
+
 .overflow-x-auto
   %table.table.w-full
     %thead
       %tr
-        %th= t(".table.date")
-        %th= t(".table.resource")
-        %th= t(".table.event")
+        %th= sort_link(@q, :created_at, t(".table.date"))
+        %th= sort_link(@q, :item_type, t(".table.resource"))
+        %th= sort_link(@q, :event, t(".table.event"))
         %th= t(".table.user")
         %th.text-center= t(".table.actions")
     %tbody

@@ -4,7 +4,8 @@ class UsersController < ApplicationController
   layout "settings"
 
   def index
-    @users = policy_scope(User).page(params[:page]).per(20)
+    @q = policy_scope(User).ransack(params[:q])
+    @users = @q.result.page(params[:page]).per(20)
   end
 
   def show

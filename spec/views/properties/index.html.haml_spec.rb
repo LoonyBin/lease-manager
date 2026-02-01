@@ -11,6 +11,7 @@ RSpec.describe "properties/index" do
       create(:property, name: "Name 2", address: "Address 2")
     ]
     assign(:properties, Property.where(id: properties.map(&:id)).page(1))
+    assign(:q, Property.ransack(nil))
     render
   end
 

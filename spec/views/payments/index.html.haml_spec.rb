@@ -10,6 +10,7 @@ RSpec.describe "payments/index" do
     payment = create(:payment, amount: 1000)
     create(:payment_allocation, payment: payment, invoice: invoice, amount: 1000)
     assign(:payments, Payment.where(id: payment.id).page(1))
+    assign(:q, Payment.ransack(nil))
     render
   end
 

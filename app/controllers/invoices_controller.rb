@@ -2,7 +2,9 @@
 
 class InvoicesController < ApplicationController
   def index
-    @invoices = policy_scope(Invoice).order(date: :desc).page(params[:page]).per(20)
+    @q = policy_scope(Invoice).ransack(params[:q])
+    @q.sorts = "date desc" if @q.sorts.empty?
+    @invoices = @q.result.includes(lease: %i[property tenant]).page(params[:page]).per(20)
   end
 
   def show

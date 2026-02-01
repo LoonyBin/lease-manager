@@ -2,7 +2,8 @@
 
 class LeasesController < ApplicationController
   def index
-    @leases = policy_scope(Lease).page(params[:page]).per(20)
+    @q = policy_scope(Lease).ransack(params[:q])
+    @leases = @q.result.page(params[:page]).per(20)
   end
 
   def show
