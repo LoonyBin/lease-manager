@@ -71,6 +71,7 @@ en:
     destroy:
       success: Audit record was successfully deleted.
     index:
+      delete_confirm: Are you sure you want to delete this audit record?
       system: System
       table:
         actions: Actions
@@ -80,7 +81,6 @@ en:
         user: User
       title: Audit Trail
       unknown_user: Unknown User
-      view: View
     show:
       back: Back
       changes: Changes

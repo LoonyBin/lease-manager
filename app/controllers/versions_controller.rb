@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class VersionsController < ApplicationController
+  layout "settings"
+
   def index
     @versions = policy_scope(PaperTrail::Version, policy_scope_class: VersionPolicy::Scope)
     @versions = @versions.where(item_type: params[:item_type]) if params[:item_type].present?
