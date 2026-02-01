@@ -15,6 +15,7 @@ Rails.application.routes.draw do
 
   get "/settings", to: redirect("/properties", status: 307), as: :settings
 
+  resources :versions, only: %i[index show destroy]
   resources :reports, only: [:index] do
     collection do
       get :revenue
