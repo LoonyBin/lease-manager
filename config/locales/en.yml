@@ -2,6 +2,9 @@
 en:
   authorization:
     not_authorized: You are not authorized to perform this action.
+  helpers:
+    links:
+      clear: Clear
   invoices:
     create:
       success: Invoice was successfully created.

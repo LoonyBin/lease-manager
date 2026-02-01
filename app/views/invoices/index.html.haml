@@ -1,66 +1,48 @@
-.card.w-full.bg-base-100.shadow-xl
-  .card-body
-    .flex.justify-between.items-center.mb-4
-      %h2.card-title Invoices
+.drawer.drawer-end
+  %input#filter-drawer.drawer-toggle{type: "checkbox"}
+  .drawer-content.flex.flex-col
+    .card.w-full.bg-base-100.shadow-xl
+      .card-body
+        .flex.justify-between.items-center.mb-4
+          %h2.card-title Invoices
 
-      - if policy(@invoices.new).new?
-        -# Assuming there isn't a direct "New Invoice" button on index usually, but preserving structure if there was.
-        -# The view didn't show one, so I won't add one unless I missed it.
+          %label.btn.btn-ghost.btn-sm.gap-2{for: "filter-drawer"}
+            = heroicon "funnel", options: { class: "w-4 h-4" }
+            Filters
 
-    .mb-4
-      = search_form_for @q, class: "flex gap-2 items-end flex-wrap" do |f|
-        .form-control
-          = f.label :number_cont, "Number", class: "label-text"
-          = f.search_field :number_cont, class: "input input-bordered input-sm"
-        .form-control
-          = f.label :lease_property_name_cont, "Property", class: "label-text"
-          = f.search_field :lease_property_name_cont, class: "input input-bordered input-sm"
-        .form-control
-          = f.label :lease_tenant_name_cont, "Tenant", class: "label-text"
-          = f.search_field :lease_tenant_name_cont, class: "input input-bordered input-sm"
-        .form-control
-          = f.label :date_gteq, "Date From", class: "label-text"
-          = f.date_field :date_gteq, class: "input input-bordered input-sm"
-        .form-control
-          = f.label :date_lteq, "Date To", class: "label-text"
-          = f.date_field :date_lteq, class: "input input-bordered input-sm"
-        .form-control
-          = f.label :total_amount_gteq, "Amount Min", class: "label-text"
-          = f.number_field :total_amount_gteq, class: "input input-bordered input-sm", step: "0.01"
-        .form-control
-          = f.label :total_amount_lteq, "Amount Max", class: "label-text"
-          = f.number_field :total_amount_lteq, class: "input input-bordered input-sm", step: "0.01"
-        .form-control
-          = f.label :status_eq, "Status", class: "label-text"
-          = f.select :status_eq, Invoice.statuses.map { |k, v| [k.humanize, v] }, { include_blank: true }, class: "select select-bordered select-sm"
-        = f.submit "Search", class: "btn btn-sm btn-secondary"
-        = link_to "Clear", invoices_path, class: "btn btn-sm btn-ghost"
+        = render_active_filters(@q)
 
-    .overflow-x-auto
-      %table.table.table-zebra.w-full
-        %thead
-          %tr
-            %th= sort_link(@q, :date, "Date")
-            %th= sort_link(@q, :number, "Number")
-            %th= sort_link(@q, :lease_property_name, "Property")
-            %th= sort_link(@q, :lease_tenant_name, "Tenant")
-            %th Amount
-            %th= sort_link(@q, :status, "Status")
-        %tbody
-          - @invoices.each do |invoice|
-            %tr.hover.cursor-pointer{data: { controller: "clickable-row", clickable_row_url_value: invoice_path(invoice), action: "click->clickable-row#click" }}
-              %td= invoice.date.strftime("%b %Y")
-              %td
-                = link_to invoice_path(invoice), class: "link link-hover" do
-                  - if invoice.number.present?
-                    .badge.badge-outline= invoice.number
-                  - else
-                    .badge.badge-ghost Draft
-              %td= invoice.lease.property.name
-              %td= invoice.lease.tenant.name
-              %td= number_to_currency(invoice.line_items.sum(:amount))
-              %td
-                %span{class: "badge badge-#{invoice.draft? ? 'ghost' : 'success'}"}
-                  = invoice.status.humanize
+        .overflow-x-auto
+          %table.table.table-zebra.w-full
+            %thead
+              %tr
+                %th= sort_link(@q, :date, "Date")
+                %th= sort_link(@q, :number, "Number")
+                %th= sort_link(@q, :lease_property_name, "Property")
+                %th= sort_link(@q, :lease_tenant_name, "Tenant")
+                %th Amount
+                %th= sort_link(@q, :status, "Status")
+            %tbody
+              - @invoices.each do |invoice|
+                %tr.hover.cursor-pointer{data: { controller: "clickable-row", clickable_row_url_value: invoice_path(invoice), action: "click->clickable-row#click" }}
+                  %td= invoice.date.strftime("%b %Y")
+                  %td
+                    = link_to invoice_path(invoice), class: "link link-hover" do
+                      - if invoice.number.present?
+                        .badge.badge-outline= invoice.number
+                      - else
+                        .badge.badge-ghost Draft
+                  %td= invoice.lease.property.name
+                  %td= invoice.lease.tenant.name
+                  %td= number_to_currency(invoice.line_items.sum(:amount))
+                  %td
+                    %span{class: "badge badge-#{invoice.draft? ? 'ghost' : 'success'}"}
+                      = invoice.status.humanize
 
-    = paginate @invoices
+        = paginate @invoices
+
+  .drawer-side
+    %label.drawer-overlay{for: "filter-drawer", aria: { label: "close sidebar" }}
+    .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
+      %h3.text-lg.font-bold.mb-4 Filter Invoices
+      = render "search"

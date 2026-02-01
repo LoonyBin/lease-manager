@@ -1,52 +1,47 @@
-.flex.justify-between.items-center.mb-6
-  %h1.text-2xl.font-bold= t(".title")
+.drawer.drawer-end
+  %input#filter-drawer.drawer-toggle{type: "checkbox"}
+  .drawer-content.flex.flex-col
+    .flex.justify-between.items-center.mb-6
+      %h1.text-2xl.font-bold= t(".title")
+      .flex.gap-2
+        %label.btn.btn-ghost.btn-sm.gap-2{for: "filter-drawer"}
+          = heroicon "funnel", options: { class: "w-4 h-4" }
+          Filters
 
-.mb-4
-  = search_form_for @q, class: "flex gap-2 items-end flex-wrap" do |f|
-    .form-control
-      = f.label :item_type_eq, t(".table.resource"), class: "label-text"
-      = f.select :item_type_eq, Version.select(:item_type).distinct.pluck(:item_type), { include_blank: true }, class: "select select-bordered select-sm"
-    .form-control
-      = f.label :item_id_eq, "ID", class: "label-text"
-      = f.search_field :item_id_eq, class: "input input-bordered input-sm", style: "width: 80px;"
-    .form-control
-      = f.label :created_at_gteq, "Time From", class: "label-text"
-      = f.datetime_field :created_at_gteq, class: "input input-bordered input-sm"
-    .form-control
-      = f.label :created_at_lteq, "Time To", class: "label-text"
-      = f.datetime_field :created_at_lteq, class: "input input-bordered input-sm"
-    .form-control
-      = f.label :event_eq, t(".table.event"), class: "label-text"
-      = f.select :event_eq, %w[create update destroy], { include_blank: true }, class: "select select-bordered select-sm"
-    = f.submit "Search", class: "btn btn-sm btn-secondary"
-    = link_to "Clear", versions_path, class: "btn btn-sm btn-ghost"
+    = render_active_filters(@q)
 
-.overflow-x-auto
-  %table.table.w-full
-    %thead
-      %tr
-        %th= sort_link(@q, :created_at, t(".table.date"))
-        %th= sort_link(@q, :item_type, t(".table.resource"))
-        %th= sort_link(@q, :event, t(".table.event"))
-        %th= t(".table.user")
-        %th.text-center= t(".table.actions")
-    %tbody
-      - @versions.each do |version|
-        %tr.hover.cursor-pointer{data: { controller: "clickable-row", clickable_row_url_value: version_path(version.id), action: "click->clickable-row#click" }}
-          %td= link_to version.created_at.strftime("%Y-%m-%d %H:%M"), version_path(version.id), class: "link link-hover font-medium"
-          %td
-            = version.item_type
-            %span.badge.badge-ghost.badge-sm= "##{version.item_id}"
-          %td= event_badge(version.event)
-          %td
-            - if version.whodunnit.present?
-              - user = User.find_by(id: version.whodunnit)
-              = user&.name || t(".unknown_user")
-            - else
-              %span.opacity-50= t(".system")
-          %td.text-center
-            - if VersionPolicy.new(current_user, version).destroy?
-              = link_to version_path(version.id), data: { turbo_method: :delete, turbo_confirm: t(".delete_confirm") }, class: "btn btn-sm btn-ghost text-error", aria: { label: "Delete version ##{version.id}" } do
-                = heroicon "trash", options: { class: "w-4 h-4" }
+    .overflow-x-auto
+      %table.table.w-full
+        %thead
+          %tr
+            %th= sort_link(@q, :created_at, t(".table.date"))
+            %th= sort_link(@q, :item_type, t(".table.resource"))
+            %th= sort_link(@q, :event, t(".table.event"))
+            %th= t(".table.user")
+            %th.text-center= t(".table.actions")
+        %tbody
+          - @versions.each do |version|
+            %tr.hover.cursor-pointer{data: { controller: "clickable-row", clickable_row_url_value: version_path(version.id), action: "click->clickable-row#click" }}
+              %td= link_to version.created_at.strftime("%Y-%m-%d %H:%M"), version_path(version.id), class: "link link-hover font-medium"
+              %td
+                = version.item_type
+                %span.badge.badge-ghost.badge-sm= "##{version.item_id}"
+              %td= event_badge(version.event)
+              %td
+                - if version.whodunnit.present?
+                  - user = User.find_by(id: version.whodunnit)
+                  = user&.name || t(".unknown_user")
+                - else
+                  %span.opacity-50= t(".system")
+              %td.text-center
+                - if VersionPolicy.new(current_user, version).destroy?
+                  = link_to version_path(version.id), data: { turbo_method: :delete, turbo_confirm: t(".delete_confirm") }, class: "btn btn-sm btn-ghost text-error", aria: { label: "Delete version ##{version.id}" } do
+                    = heroicon "trash", options: { class: "w-4 h-4" }
 
-= paginate @versions
+    = paginate @versions
+
+  .drawer-side
+    %label.drawer-overlay{for: "filter-drawer", aria: { label: "close sidebar" }}
+    .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
+      %h3.text-lg.font-bold.mb-4 Filter Versions
+      = render "search"

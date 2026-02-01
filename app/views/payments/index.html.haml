@@ -1,66 +1,56 @@
-.card.w-full.bg-base-100.shadow-xl
-  .card-body
-    .flex.justify-between.items-center.mb-4
-      %h2.card-title Payments
-      - if policy(@payments.new).new?
-        = link_to "Record Payment", new_payment_path, class: "btn btn-primary"
+.drawer.drawer-end
+  %input#filter-drawer.drawer-toggle{type: "checkbox"}
+  .drawer-content.flex.flex-col
+    .card.w-full.bg-base-100.shadow-xl
+      .card-body
+        .flex.justify-between.items-center.mb-4
+          %h2.card-title Payments
 
-    .mb-4
-      = search_form_for @q, class: "flex gap-2 items-end flex-wrap" do |f|
-        .form-control
-          = f.label :lease_tenant_name_cont, "Tenant", class: "label-text"
-          = f.search_field :lease_tenant_name_cont, class: "input input-bordered input-sm"
-        .form-control
-          = f.label :reference_number_cont, "Ref #", class: "label-text"
-          = f.search_field :reference_number_cont, class: "input input-bordered input-sm"
-        .form-control
-          = f.label :date_gteq, "Date From", class: "label-text"
-          = f.date_field :date_gteq, class: "input input-bordered input-sm"
-        .form-control
-          = f.label :date_lteq, "Date To", class: "label-text"
-          = f.date_field :date_lteq, class: "input input-bordered input-sm"
-        .form-control
-          = f.label :amount_gteq, "Amount Min", class: "label-text"
-          = f.number_field :amount_gteq, class: "input input-bordered input-sm", step: "0.01"
-        .form-control
-          = f.label :amount_lteq, "Amount Max", class: "label-text"
-          = f.number_field :amount_lteq, class: "input input-bordered input-sm", step: "0.01"
-        .form-control
-          = f.label :mode_eq, "Mode", class: "label-text"
-          = f.select :mode_eq, Payment.modes.map { |k, v| [k.humanize, v] }, { include_blank: true }, class: "select select-bordered select-sm"
-        = f.submit "Search", class: "btn btn-sm btn-secondary"
-        = link_to "Clear", payments_path, class: "btn btn-sm btn-ghost"
+          .flex.gap-2
+            %label.btn.btn-ghost.btn-sm.gap-2{for: "filter-drawer"}
+              = heroicon "funnel", options: { class: "w-4 h-4" }
+              Filters
+            - if policy(@payments.new).new?
+              = link_to "Record Payment", new_payment_path, class: "btn btn-primary"
 
-    .overflow-x-auto
-      %table.table.table-zebra.w-full
-        %thead
-          %tr
-            %th= sort_link(@q, :date, "Date")
-            %th= sort_link(@q, :lease_tenant_name, "Tenant")
-            %th Details
-            %th= sort_link(@q, :amount, "Amount")
-            %th Allocations
-        %tbody
-          - @payments.each do |payment|
-            %tr
-              %td= payment.date.strftime("%b %d, %Y")
-              %td
-                %p.font-bold= payment.lease.tenant.name
-                %p.text-xs.opacity-50= payment.lease.property.name
-              %td
-                %p.font-semibold= payment.mode.humanize.titleize
-                - if payment.reference_number.present?
-                  %p.text-xs.font-mono.opacity-70= payment.reference_number
-              %td= number_to_currency(payment.amount)
-              %td
-                - if payment.payment_allocations.any?
-                  %ul.list-disc.list-inside.text-xs
-                    - payment.payment_allocations.each do |allocation|
-                      %li
-                        = number_to_currency(allocation.amount)
-                        to Invoice
-                        = link_to "##{allocation.invoice.number}", invoice_path(allocation.invoice), class: "link link-hover"
-                - else
-                  %span.badge.badge-ghost Unallocated
+        = render_active_filters(@q)
 
-    = paginate @payments
+        .overflow-x-auto
+          %table.table.table-zebra.w-full
+            %thead
+              %tr
+                %th= sort_link(@q, :date, "Date")
+                %th= sort_link(@q, :lease_tenant_name, "Tenant")
+                %th Details
+                %th= sort_link(@q, :amount, "Amount")
+                %th Allocations
+            %tbody
+              - @payments.each do |payment|
+                %tr
+                  %td= payment.date.strftime("%b %d, %Y")
+                  %td
+                    %p.font-bold= payment.lease.tenant.name
+                    %p.text-xs.opacity-50= payment.lease.property.name
+                  %td
+                    %p.font-semibold= payment.mode.humanize.titleize
+                    - if payment.reference_number.present?
+                      %p.text-xs.font-mono.opacity-70= payment.reference_number
+                  %td= number_to_currency(payment.amount)
+                  %td
+                    - if payment.payment_allocations.any?
+                      %ul.list-disc.list-inside.text-xs
+                        - payment.payment_allocations.each do |allocation|
+                          %li
+                            = number_to_currency(allocation.amount)
+                            to Invoice
+                            = link_to "##{allocation.invoice.number}", invoice_path(allocation.invoice), class: "link link-hover"
+                    - else
+                      %span.badge.badge-ghost Unallocated
+
+        = paginate @payments
+
+  .drawer-side
+    %label.drawer-overlay{for: "filter-drawer", aria: { label: "close sidebar" }}
+    .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
+      %h3.text-lg.font-bold.mb-4 Filter Payments
+      = render "search"

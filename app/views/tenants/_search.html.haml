@@ -1,0 +1,15 @@
+= search_form_for @q, class: "flex flex-col gap-4 p-4" do |f|
+  %h3.text-lg.font-bold Filters
+  .form-control
+    = f.label :name_cont, "Name", class: "label-text"
+    = f.search_field :name_cont, class: "input input-bordered input-sm w-full"
+  .form-control
+    = f.label :email_cont, "Email", class: "label-text"
+    = f.search_field :email_cont, class: "input input-bordered input-sm w-full"
+  .form-control
+    = f.label :phone_number_cont, "Phone", class: "label-text"
+    = f.search_field :phone_number_cont, class: "input input-bordered input-sm w-full"
+
+  .flex.gap-2.mt-4
+    = f.submit "Apply Filters", class: "btn btn-primary btn-sm flex-1"
+    = link_to "Clear", tenants_path, class: "btn btn-ghost btn-sm"
