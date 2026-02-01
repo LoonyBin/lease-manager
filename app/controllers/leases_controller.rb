@@ -2,7 +2,7 @@
 
 class LeasesController < ApplicationController
   def index
-    @leases = policy_scope(Lease)
+    @leases = policy_scope(Lease).page(params[:page]).per(20)
   end
 
   def show

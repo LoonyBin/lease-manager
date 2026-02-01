@@ -4,7 +4,7 @@ class UsersController < ApplicationController
   layout "settings"
 
   def index
-    @users = policy_scope(User)
+    @users = policy_scope(User).page(params[:page]).per(20)
   end
 
   def show

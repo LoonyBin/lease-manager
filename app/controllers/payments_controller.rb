@@ -2,7 +2,9 @@
 
 class PaymentsController < ApplicationController
   def index
-    @payments = policy_scope(Payment).includes(:lease, :invoices).order(date: :desc, created_at: :desc)
+    @payments = policy_scope(Payment).includes(:lease, :invoices)
+                                     .order(date: :desc, created_at: :desc)
+                                     .page(params[:page]).per(20)
   end
 
   def new

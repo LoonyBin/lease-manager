@@ -24,3 +24,5 @@
                 - if policy(property).destroy?
                   = link_to property, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-sm btn-ghost text-error join-item", aria: { label: "Delete #{property.name}" } do
                     = heroicon "trash", options: { class: "w-4 h-4" }
+
+= paginate @properties

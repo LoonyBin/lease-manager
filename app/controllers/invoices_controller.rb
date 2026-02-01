@@ -2,7 +2,7 @@
 
 class InvoicesController < ApplicationController
   def index
-    @invoices = policy_scope(Invoice).order(date: :desc)
+    @invoices = policy_scope(Invoice).order(date: :desc).page(params[:page]).per(20)
   end
 
   def show

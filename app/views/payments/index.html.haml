@@ -36,3 +36,5 @@
                         = link_to "##{allocation.invoice.number}", invoice_path(allocation.invoice), class: "link link-hover"
                 - else
                   %span.badge.badge-ghost Unallocated
+
+    = paginate @payments

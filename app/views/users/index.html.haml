@@ -28,3 +28,5 @@
                 - if policy(user).destroy?
                   = link_to user, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-sm btn-ghost text-error join-item", aria: { label: "Delete #{user.name}" } do
                     = heroicon "trash", options: { class: "w-4 h-4" }
+
+= paginate @users

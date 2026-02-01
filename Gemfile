@@ -8,8 +8,10 @@ gem "haml-rails"
 gem "importmap-rails"
 gem "jbuilder"
 gem "kamal", require: false
+gem "kaminari", "~> 1.2"
 gem "omniauth"
 gem "omniauth-rails_csrf_protection"
+gem "paper_trail"
 gem "pg", "~> 1.1"
 gem "propshaft"
 gem "puma", ">= 5.0"
@@ -58,5 +60,3 @@ group :test do
   gem "shoulda-matchers"
   gem "simplecov", require: false
 end
-
-gem "paper_trail"

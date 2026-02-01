@@ -29,3 +29,5 @@
               %td
                 %span{class: "badge badge-#{invoice.draft? ? 'ghost' : 'success'}"}
                   = invoice.status.humanize
+
+    = paginate @invoices
