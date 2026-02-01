@@ -82,10 +82,8 @@ en:
       title: Audit Trail
       unknown_user: Unknown User
     show:
-      back: Back
       changes: Changes
       date: 'Date:'
-      delete: Delete
       delete_confirm: Are you sure you want to delete this audit record?
       empty: "(empty)"
       event: 'Event:'
