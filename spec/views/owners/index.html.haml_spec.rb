@@ -12,7 +12,7 @@ RSpec.describe "owners/index" do
     render
   end
 
-  it { is_expected.to have_css("h2", text: "Owners") }
+  it { is_expected.to have_css("h1", text: "Owners") }
   it { is_expected.to have_link("New Owner") }
   it { is_expected.to have_css("th", text: "Name") }
   it { is_expected.to have_css("th", text: "Address") }

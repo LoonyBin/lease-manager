@@ -1,32 +1,30 @@
-.card.w-full.bg-base-100.shadow-xl
-  .card-body
-    .flex.justify-between.items-center.mb-4
-      %h2.card-title Owners
-      - if policy(@owners.new).new?
-        = link_to "New Owner", new_owner_path, class: "btn btn-primary"
+.flex.justify-between.items-center.mb-6
+  %h1.text-2xl.font-bold Owners
+  - if policy(@owners.new).new?
+    = link_to "New Owner", new_owner_path, class: "btn btn-primary"
 
-    .overflow-x-auto
-      %table.table.table-zebra.w-full
-        %thead
-          %tr
-            %th Name
-            %th Address
-            %th Invoice Sequence
-            %th Properties
-            %th Actions
-        %tbody
-          - @owners.each do |owner|
-            %tr.hover.cursor-pointer{data: { controller: "clickable-row", clickable_row_url_value: owner_path(owner), action: "click->clickable-row#click" }}
-              %td.font-bold= link_to owner.name, owner, class: "link link-hover"
-              %td= owner.address
-              %td= owner.invoice_sequence
-              %td= owner.properties.count
-              %td
-                - if policy(owner).edit? || policy(owner).destroy?
-                  .join
-                    - if policy(owner).edit?
-                      = link_to edit_owner_path(owner), class: "btn btn-xs btn-ghost join-item", aria: { label: "Edit #{owner.name}" } do
-                        = heroicon "pencil-square", options: { class: "w-4 h-4" }
-                    - if policy(owner).destroy?
-                      = button_to owner_path(owner), method: :delete, data: { turbo_confirm: "Are you sure?" }, class: "btn btn-xs btn-ghost text-error join-item", aria: { label: "Delete #{owner.name}" } do
-                        = heroicon "trash", options: { class: "w-4 h-4" }
+.overflow-x-auto
+  %table.table.w-full
+    %thead
+      %tr
+        %th Name
+        %th Address
+        %th Invoice Sequence
+        %th Properties
+        %th.text-center Actions
+    %tbody
+      - @owners.each do |owner|
+        %tr.hover.cursor-pointer{data: { controller: "clickable-row", clickable_row_url_value: owner_path(owner), action: "click->clickable-row#click" }}
+          %td.font-medium= link_to owner.name, owner, class: "link link-hover"
+          %td= owner.address
+          %td= owner.invoice_sequence
+          %td= owner.properties.count
+          %td.text-center
+            - if policy(owner).edit? || policy(owner).destroy?
+              .join
+                - if policy(owner).edit?
+                  = link_to edit_owner_path(owner), class: "btn btn-sm btn-ghost join-item", aria: { label: "Edit #{owner.name}" } do
+                    = heroicon "pencil-square", options: { class: "w-4 h-4" }
+                - if policy(owner).destroy?
+                  = button_to owner_path(owner), method: :delete, data: { turbo_confirm: "Are you sure?" }, class: "btn btn-sm btn-ghost text-error join-item", aria: { label: "Delete #{owner.name}" } do
+                    = heroicon "trash", options: { class: "w-4 h-4" }

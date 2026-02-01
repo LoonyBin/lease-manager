@@ -13,10 +13,10 @@ RSpec.describe "owners/show" do
     render
   end
 
-  it { is_expected.to have_css("h2", text: "John Smith") }
+  it { is_expected.to have_css("h1", text: "John Smith") }
   it { is_expected.to have_css("p", text: "123 Main St") }
   it { is_expected.to have_css("p", text: "5") }
-  it { is_expected.to have_css("h2", text: "Properties") }
+  it { is_expected.to have_css("h3", text: "Properties") }
   it { is_expected.to have_link("Sunset Villa") }
-  it { is_expected.to have_link("Edit") }
+  it { is_expected.to have_css("a[aria-label='Edit']") }
 end

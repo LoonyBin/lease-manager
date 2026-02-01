@@ -1,18 +1,17 @@
-.card.w-96.bg-base-100.shadow-xl.mx-auto
-  .card-body
-    %h2.card-title Property Details
+.max-w-lg.mx-auto
+  .flex.justify-between.items-start.mb-6
+    %h1.text-2xl.font-bold Property Details
+    - if policy(@property).edit?
+      = link_to edit_property_path(@property), class: "btn btn-sm btn-ghost", aria: { label: "Edit" } do
+        = heroicon "pencil-square", options: { class: "w-4 h-4" }
 
-    %p
-      %strong Owner:
-      = @property.owner.name
-    %p
-      %strong Name:
-      = @property.name
-    %p
-      %strong Address:
-      = @property.address
-
-    .card-actions.justify-end.mt-4
-      - if policy(@property).edit?
-        = link_to 'Edit', edit_property_path(@property), class: "btn btn-primary"
-      = link_to 'Back', properties_path, class: "btn btn-ghost"
+  .space-y-4
+    %div
+      %h3.font-bold.text-sm.opacity-70 Owner
+      %p= @property.owner.name
+    %div
+      %h3.font-bold.text-sm.opacity-70 Name
+      %p= @property.name
+    %div
+      %h3.font-bold.text-sm.opacity-70 Address
+      %p= @property.address
