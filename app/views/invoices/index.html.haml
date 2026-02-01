@@ -19,6 +19,12 @@
           = f.label :lease_tenant_name_cont, "Tenant", class: "label-text"
           = f.search_field :lease_tenant_name_cont, class: "input input-bordered input-sm"
         .form-control
+          = f.label :date_gteq, "Date From", class: "label-text"
+          = f.date_field :date_gteq, class: "input input-bordered input-sm"
+        .form-control
+          = f.label :date_lteq, "Date To", class: "label-text"
+          = f.date_field :date_lteq, class: "input input-bordered input-sm"
+        .form-control
           = f.label :status_eq, "Status", class: "label-text"
           = f.select :status_eq, Invoice.statuses.map { |k, v| [k.humanize, v] }, { include_blank: true }, class: "select select-bordered select-sm"
         = f.submit "Search", class: "btn btn-sm btn-secondary"

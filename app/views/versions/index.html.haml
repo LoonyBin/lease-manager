@@ -10,6 +10,12 @@
       = f.label :item_id_eq, "ID", class: "label-text"
       = f.search_field :item_id_eq, class: "input input-bordered input-sm", style: "width: 80px;"
     .form-control
+      = f.label :created_at_gteq, "Time From", class: "label-text"
+      = f.datetime_field :created_at_gteq, class: "input input-bordered input-sm"
+    .form-control
+      = f.label :created_at_lteq, "Time To", class: "label-text"
+      = f.datetime_field :created_at_lteq, class: "input input-bordered input-sm"
+    .form-control
       = f.label :event_eq, t(".table.event"), class: "label-text"
       = f.select :event_eq, %w[create update destroy], { include_blank: true }, class: "select select-bordered select-sm"
     = f.submit "Search", class: "btn btn-sm btn-secondary"
