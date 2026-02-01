@@ -13,6 +13,7 @@ RSpec.describe "leases/index" do
                                   create(:lease, property: property, tenant: tenant, rent_amount: 1000).id,
                                   create(:lease, property: property, tenant: tenant, rent_amount: 1200).id
                                 ]).page(1))
+    assign(:q, Lease.ransack(nil))
     render
   end
 

@@ -2,9 +2,9 @@
 
 class PaymentsController < ApplicationController
   def index
-    @payments = policy_scope(Payment).includes(:lease, :invoices)
-                                     .order(date: :desc, created_at: :desc)
-                                     .page(params[:page]).per(20)
+    @q = policy_scope(Payment).ransack(params[:q])
+    @q.sorts = ["date desc", "created_at desc"] if @q.sorts.empty?
+    @payments = @q.result.includes(:lease, :invoices).page(params[:page]).per(20)
   end
 
   def new

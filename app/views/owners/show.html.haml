@@ -15,7 +15,10 @@
 
 .divider
 
-%h3.text-lg.font-bold.mb-4 Properties
+.flex.items-center.gap-2.mb-4
+  %h3.text-lg.font-bold Properties
+  = link_to properties_path(q: { owner_id_eq: @owner.id }), class: "btn btn-ghost btn-xs", aria: { label: "View all properties" } do
+    = heroicon "arrows-pointing-out", options: { class: "w-4 h-4" }
 - if @properties.any?
   .overflow-x-auto
     %table.table

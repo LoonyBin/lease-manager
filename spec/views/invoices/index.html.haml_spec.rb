@@ -9,6 +9,7 @@ RSpec.describe "invoices/index" do
     invoice = create(:invoice)
     create(:line_item, invoice: invoice, amount: 1000)
     assign(:invoices, Invoice.where(id: invoice.id).page(1))
+    assign(:q, Invoice.ransack(nil))
     render
   end
 

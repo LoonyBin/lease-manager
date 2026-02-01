@@ -4,7 +4,9 @@ class OwnersController < ApplicationController
   layout "settings"
 
   def index
-    @owners = policy_scope(Owner).order(:name).page(params[:page]).per(20)
+    @q = policy_scope(Owner).ransack(params[:q])
+    @q.sorts = "name asc" if @q.sorts.empty?
+    @owners = @q.result.page(params[:page]).per(20)
   end
 
   def show
