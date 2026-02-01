@@ -175,8 +175,8 @@ ignore_unused:
 # - 'activerecord.attributes.*'
 
 ## Ignore these keys completely:
-# ignore:
-#  - kaminari.*
+ignore:
+ - views.pagination.*
 
 ## Sometimes, it isn't possible for i18n-tasks to match the key correctly,
 ## e.g. in case of a relative key defined in a helper method.

@@ -12,7 +12,7 @@ RSpec.describe "leases/index" do
     assign(:leases, Lease.where(id: [
                                   create(:lease, property: property, tenant: tenant, rent_amount: 1000).id,
                                   create(:lease, property: property, tenant: tenant, rent_amount: 1200).id
-                                ]))
+                                ]).page(1))
     render
   end
 

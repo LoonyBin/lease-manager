@@ -4,7 +4,7 @@ class TenantsController < ApplicationController
   layout "settings"
 
   def index
-    @tenants = policy_scope(Tenant)
+    @tenants = policy_scope(Tenant).page(params[:page]).per(20)
   end
 
   def show

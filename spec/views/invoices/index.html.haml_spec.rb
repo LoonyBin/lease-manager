@@ -8,7 +8,7 @@ RSpec.describe "invoices/index" do
   before do
     invoice = create(:invoice)
     create(:line_item, invoice: invoice, amount: 1000)
-    assign(:invoices, [invoice])
+    assign(:invoices, Invoice.where(id: invoice.id).page(1))
     render
   end
 
