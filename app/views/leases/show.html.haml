@@ -74,7 +74,10 @@
 
     .divider
 
-    %h3.text-lg.font-bold.mb-4 Invoices
+    .flex.items-center.gap-2.mb-4
+      %h3.text-lg.font-bold Invoices
+      = link_to invoices_path(q: { lease_id_eq: @lease.id }), class: "btn btn-ghost btn-xs", aria: { label: "View all invoices" } do
+        = heroicon "arrows-pointing-out", options: { class: "w-4 h-4" }
 
     .overflow-x-auto
       %table.table.w-full
