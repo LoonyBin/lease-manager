@@ -7,6 +7,10 @@ class Invoice < ApplicationRecord
   has_many :payment_allocations, dependent: :destroy
   has_many :payments, through: :payment_allocations
 
+  ransacker :total_amount do
+    Arel.sql("(SELECT COALESCE(SUM(line_items.amount), 0) FROM line_items WHERE line_items.invoice_id = invoices.id)")
+  end
+
   enum :status, { draft: 0, finalized: 1, sent: 2, paid: 3, cancelled: 4, partially_paid: 5 }, default: :draft,
                                                                                                validate: true
 

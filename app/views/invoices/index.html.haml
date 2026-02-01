@@ -25,6 +25,12 @@
           = f.label :date_lteq, "Date To", class: "label-text"
           = f.date_field :date_lteq, class: "input input-bordered input-sm"
         .form-control
+          = f.label :total_amount_gteq, "Amount Min", class: "label-text"
+          = f.number_field :total_amount_gteq, class: "input input-bordered input-sm", step: "0.01"
+        .form-control
+          = f.label :total_amount_lteq, "Amount Max", class: "label-text"
+          = f.number_field :total_amount_lteq, class: "input input-bordered input-sm", step: "0.01"
+        .form-control
           = f.label :status_eq, "Status", class: "label-text"
           = f.select :status_eq, Invoice.statuses.map { |k, v| [k.humanize, v] }, { include_blank: true }, class: "select select-bordered select-sm"
         = f.submit "Search", class: "btn btn-sm btn-secondary"
