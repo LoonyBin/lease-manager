@@ -65,3 +65,31 @@
         = button_to "Finalize Invoice", invoice_path(@invoice), method: :patch, params: { invoice: { status: 'finalized' } }, class: "btn btn-primary", data: { turbo_confirm: "Are you sure? This will assign an invoice number and cannot be undone." }
       - elsif !@invoice.draft?
         %button.btn.btn-secondary{disabled: true} Paid (Mock)
+
+- if @invoice.payment_allocations.any?
+  .w-full.max-w-4xl.mx-auto.mt-6
+    %h3.text-lg.font-bold.mb-4 Payments
+
+    .overflow-x-auto
+      %table.table.table-sm.w-full
+        %thead
+          %tr
+            %th Date
+            %th Reference
+            %th Mode
+            %th.text-right Amount
+        %tbody
+          - @invoice.payment_allocations.includes(:payment).each do |allocation|
+            %tr
+              %td= allocation.payment.date.strftime("%B %d, %Y")
+              %td= allocation.payment.reference_number
+              %td= allocation.payment.mode.humanize
+              %td.text-right= number_to_currency(allocation.amount)
+        %tfoot
+          %tr
+            %th.text-right{colspan: 3} Total Paid
+            %th.text-right= number_to_currency(@invoice.paid_amount)
+          - if @invoice.outstanding_amount.positive?
+            %tr.text-error
+              %th.text-right{colspan: 3} Outstanding
+              %th.text-right= number_to_currency(@invoice.outstanding_amount)
