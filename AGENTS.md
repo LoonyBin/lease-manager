@@ -13,6 +13,7 @@ You are an intelligent agent working on this project. Your first step is to iden
     -   NEVER commit directly to `main`.
     -   Create a branch for every task: `git checkout -b feature/task-name` or `fix/issue-name`.
 2.  **Pull Request Workflow**:
+    -   **NEVER commit without asking the user first**. Always give them a chance to review changes before committing.
     -   Commit changes to the feature branch.
     -   Verify all tests pass.
     -   **Create PR**: run `gh pr create --title "feat: ..." --body "..."`
