@@ -43,4 +43,4 @@
 
   - if item.versions.count > 10
     .text-center.mt-2
-      = link_to t("shared.item_history.view_all", count: item.versions.count), versions_path(item_type: item.class.name, item_id: item.id), class: "btn btn-sm btn-ghost"
+      = link_to t("shared.item_history.view_all", count: item.versions.count), versions_path(q: { item_type_eq: item.class.name, item_id_eq: item.id }), class: "btn btn-sm btn-ghost"
