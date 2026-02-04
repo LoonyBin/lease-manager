@@ -1,0 +1,37 @@
+-# Renders audit trail history in a drawer sidebar
+-# Usage: Include drawer structure in parent view and render this in .drawer-side
+- versions = item.versions.order(created_at: :desc).limit(20)
+
+%h3.text-lg.font-bold.mb-4= t("shared.item_history.title")
+
+- if versions.any?
+  .space-y-3
+    - versions.each do |version|
+      .card.bg-base-100.shadow-sm
+        .card-body.p-3
+          .flex.justify-between.items-start.mb-2
+            = event_badge(version.event)
+            %span.text-xs.opacity-60= version.created_at.strftime("%b %d, %H:%M")
+          .text-sm.mb-2
+            - if version.whodunnit.present?
+              - user = User.find_by(id: version.whodunnit)
+              = user&.name || t("shared.item_history.unknown_user")
+            - else
+              %span.opacity-50= t("shared.item_history.system")
+          - if version.object_changes.present?
+            - changes = JSON.parse(version.object_changes)
+            - display_changes = changes.except("created_at", "updated_at")
+            - if display_changes.any?
+              .flex.flex-wrap.gap-1
+                - display_changes.keys.first(3).each do |field|
+                  %span.badge.badge-ghost.badge-xs= field.humanize
+                - if display_changes.keys.size > 3
+                  %span.badge.badge-ghost.badge-xs= "+#{display_changes.keys.size - 3}"
+          .mt-2
+            = link_to t("shared.item_history.view"), version_path(version), class: "btn btn-xs btn-ghost"
+
+  - if item.versions.count > 20
+    .text-center.mt-4
+      = link_to t("shared.item_history.view_all", count: item.versions.count), versions_path(q: { item_type_eq: item.class.name, item_id_eq: item.id }), class: "btn btn-sm btn-ghost"
+- else
+  %p.text-base-content.opacity-50= t("shared.item_history.empty", default: "No history yet.")

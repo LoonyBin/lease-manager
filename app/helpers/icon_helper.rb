@@ -2,7 +2,8 @@
 
 module IconHelper
   # Drop-in compatible with heroicon gem (https://github.com/bharget/heroicon)
-  # Switch to gem by: 1) Add gem "heroicon" to Gemfile, 2) Delete this file
+  # Use until we cross 10 icon limit.
+  # Switch to gem by: 1) Add gem "heroicon" to Gemfile, 2) Delete this file, 3) Verify all icons are available.
   #
   # Usage:
   #   heroicon "pencil-square"
@@ -22,7 +23,8 @@ module IconHelper
       "document" => "M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z",
       "eye" => "M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178zM15 12a3 3 0 11-6 0 3 3 0 016 0z",
       "funnel" => "M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z",
-      "arrows-pointing-out" => "M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"
+      "arrows-pointing-out" => "M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15",
+      "clock" => "M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
     }.freeze
   }.freeze
   # rubocop:enable Layout/LineLength

@@ -41,12 +41,8 @@ en:
       success: Signed out successfully.
   shared:
     item_history:
+      empty: No history yet.
       system: System
-      table:
-        changes: Changes
-        date: Date
-        event: Event
-        user: User
       title: History
       unknown_user: Unknown User
       view: View

@@ -1,19 +1,30 @@
-.max-w-lg.mx-auto
-  .flex.justify-between.items-start.mb-6
-    %h1.text-2xl.font-bold Property Details
-    - if policy(@property).edit?
-      = link_to edit_property_path(@property), class: "btn btn-sm btn-ghost", aria: { label: "Edit" } do
-        = heroicon "pencil-square", options: { class: "w-4 h-4" }
+.drawer.drawer-end
+  %input#history-drawer.drawer-toggle{type: "checkbox"}
+  .drawer-content
+    .max-w-lg.mx-auto
+      .flex.justify-between.items-start.mb-6
+        %h1.text-2xl.font-bold Property Details
+        .flex.gap-2
+          - if policy(@property).edit?
+            = link_to edit_property_path(@property), class: "btn btn-sm btn-ghost", aria: { label: "Edit" } do
+              = heroicon "pencil-square", options: { class: "w-4 h-4" }
+          %label.btn.btn-ghost.btn-sm.btn-circle{for: "history-drawer"}
+            = heroicon "clock", options: { class: "w-4 h-4" }
+            %span.sr-only History
 
-  .space-y-4
-    %div
-      %h3.font-bold.text-sm.opacity-70 Owner
-      %p= @property.owner.name
-    %div
-      %h3.font-bold.text-sm.opacity-70 Name
-      %p= @property.name
-    %div
-      %h3.font-bold.text-sm.opacity-70 Address
-      %p= @property.address
+      .space-y-4
+        %div
+          %h3.font-bold.text-sm.opacity-70 Owner
+          %p= @property.owner.name
+        %div
+          %h3.font-bold.text-sm.opacity-70 Name
+          %p= @property.name
+        %div
+          %h3.font-bold.text-sm.opacity-70 Address
+          %p= @property.address
 
-  = render "shared/item_history", item: @property
+  .drawer-side
+    %label.drawer-overlay{for: "history-drawer", aria: { label: "close sidebar" }}
+    .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
+      = render "shared/history_sidebar", item: @property
+
