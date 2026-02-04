@@ -2,8 +2,7 @@
 
 class Payment < ApplicationRecord
   belongs_to :lease
-  has_many :payment_allocations, dependent: :destroy
-  has_many :invoices, through: :payment_allocations
+  has_many :entries, as: :instrument, dependent: :destroy
 
   validates :amount, presence: true, numericality: { greater_than: 0 }
   validates :date, presence: true
@@ -19,4 +18,38 @@ class Payment < ApplicationRecord
     demand_draft: 6,
     tax_deducted_at_source: 7
   }, default: :rtgs
+
+  enum :payment_type, { payment: 0, refund: 1 }, default: :payment
+
+  after_create :create_initial_entry
+  after_create :auto_settle
+
+  def credit?
+    payment?
+  end
+
+  def debit?
+    refund?
+  end
+
+  def signed_amount
+    credit? ? -amount : amount
+  end
+
+  # rubocop:disable Rails/SkipsModelValidations -- Intentionally skip callbacks to avoid infinite loops
+  def recalculate_balance!
+    update_column(:balance, entries.sum(:amount))
+  end
+  # rubocop:enable Rails/SkipsModelValidations
+
+  private
+
+  def create_initial_entry
+    entries.create!(lease: lease, amount: signed_amount, transaction_id: nil)
+    recalculate_balance!
+  end
+
+  def auto_settle
+    SettlementService.auto_settle(self)
+  end
 end
