@@ -7,7 +7,7 @@ class Lease < ApplicationRecord
   has_one :renewal, class_name: "Lease", foreign_key: :renewed_from_id, dependent: :nullify, inverse_of: :renewed_from
   has_many :invoices, dependent: :destroy
   has_many :payments, dependent: :destroy
-  has_many :payment_allocations, through: :payments
+  has_many :entries, dependent: :destroy
 
   has_many_attached :documents
 

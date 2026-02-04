@@ -66,30 +66,35 @@
       - elsif !@invoice.draft?
         %button.btn.btn-secondary{disabled: true} Paid (Mock)
 
-- if @invoice.payment_allocations.any?
+- settlement_entries = @invoice.entries.settlements.includes(:lease)
+- if settlement_entries.any?
   .w-full.max-w-4xl.mx-auto.mt-6
-    %h3.text-lg.font-bold.mb-4 Payments
+    .flex.items-center.gap-2.mb-4
+      %h3.text-lg.font-bold Settlements
+      - payment_ids = settlement_entries.flat_map { |e| Entry.where(transaction_id: e.transaction_id).where(instrument_type: "Payment").pluck(:instrument_id) }.uniq
+      = link_to payments_path(q: { id_in: payment_ids }), class: "btn btn-ghost btn-xs", title: "View all payments for this invoice" do
+        = heroicon "arrows-pointing-out", options: { class: "w-4 h-4" }
 
     .overflow-x-auto
       %table.table.table-sm.w-full
         %thead
           %tr
             %th Date
-            %th Reference
-            %th Mode
+            %th Settled By
             %th.text-right Amount
         %tbody
-          - @invoice.payment_allocations.includes(:payment).each do |allocation|
-            %tr
-              %td= allocation.payment.date.strftime("%B %d, %Y")
-              %td= allocation.payment.reference_number
-              %td= allocation.payment.mode.humanize
-              %td.text-right= number_to_currency(allocation.amount)
+          - settlement_entries.each do |entry|
+            - counterparts = Entry.where(transaction_id: entry.transaction_id).where.not(id: entry.id).includes(:instrument)
+            - counterparts.each do |counterpart|
+              %tr
+                %td= counterpart.instrument.date.strftime("%B %d, %Y")
+                %td= "#{counterpart.instrument_type} ##{counterpart.instrument_id}"
+                %td.text-right= number_to_currency(entry.amount.abs)
         %tfoot
           %tr
-            %th.text-right{colspan: 3} Total Paid
-            %th.text-right= number_to_currency(@invoice.paid_amount)
-          - if @invoice.outstanding_amount.positive?
+            %th.text-right{colspan: 2} Total Settled
+            %th.text-right= number_to_currency(settlement_entries.sum { |e| e.amount.abs })
+          - if @invoice.balance.positive?
             %tr.text-error
-              %th.text-right{colspan: 3} Outstanding
-              %th.text-right= number_to_currency(@invoice.outstanding_amount)
+              %th.text-right{colspan: 2} Outstanding
+              %th.text-right= number_to_currency(@invoice.balance)

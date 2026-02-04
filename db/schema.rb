@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_31_081455) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_04_020253) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -42,9 +42,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_31_081455) do
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
+  create_table "entries", force: :cascade do |t|
+    t.decimal "amount", precision: 10, scale: 2, null: false
+    t.datetime "created_at", null: false
+    t.bigint "instrument_id", null: false
+    t.string "instrument_type", null: false
+    t.bigint "lease_id", null: false
+    t.uuid "transaction_id"
+    t.datetime "updated_at", null: false
+    t.index ["instrument_type", "instrument_id"], name: "index_entries_on_instrument"
+    t.index ["lease_id"], name: "index_entries_on_lease_id"
+    t.index ["transaction_id"], name: "index_entries_on_transaction_id"
+  end
+
   create_table "invoices", force: :cascade do |t|
+    t.decimal "balance", precision: 10, scale: 2, default: "0.0"
     t.datetime "created_at", null: false
     t.date "date"
+    t.integer "document_type", default: 0, null: false
     t.bigint "lease_id", null: false
     t.string "number"
     t.integer "sequence_number"
@@ -88,28 +103,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_31_081455) do
   create_table "owners", force: :cascade do |t|
     t.text "address"
     t.datetime "created_at", null: false
+    t.integer "credit_note_sequence", default: 0, null: false
     t.integer "invoice_sequence", default: 0
     t.string "name"
     t.datetime "updated_at", null: false
   end
 
-  create_table "payment_allocations", force: :cascade do |t|
-    t.decimal "amount", precision: 10, scale: 2, null: false
-    t.datetime "created_at", null: false
-    t.bigint "invoice_id", null: false
-    t.bigint "payment_id", null: false
-    t.datetime "updated_at", null: false
-    t.index ["invoice_id"], name: "index_payment_allocations_on_invoice_id"
-    t.index ["payment_id"], name: "index_payment_allocations_on_payment_id"
-  end
-
   create_table "payments", force: :cascade do |t|
     t.decimal "amount", precision: 10, scale: 2, null: false
+    t.decimal "balance", precision: 10, scale: 2, default: "0.0"
     t.datetime "created_at", null: false
     t.date "date", null: false
     t.bigint "lease_id", null: false
     t.integer "mode"
+    t.integer "payment_type", default: 0, null: false
     t.string "reference_number"
+    t.integer "status", default: 0, null: false
     t.datetime "updated_at", null: false
     t.index ["lease_id"], name: "index_payments_on_lease_id"
   end
@@ -168,13 +177,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_31_081455) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "entries", "leases"
   add_foreign_key "invoices", "leases"
   add_foreign_key "leases", "leases", column: "renewed_from_id"
   add_foreign_key "leases", "properties"
   add_foreign_key "leases", "tenants"
   add_foreign_key "line_items", "invoices"
-  add_foreign_key "payment_allocations", "invoices"
-  add_foreign_key "payment_allocations", "payments"
   add_foreign_key "payments", "leases"
   add_foreign_key "properties", "owners"
   add_foreign_key "user_associations", "users"

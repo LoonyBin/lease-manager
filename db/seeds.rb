@@ -10,7 +10,7 @@ puts "Seeding database..."
 
 # Clear existing data in reverse dependency order
 puts "Clearing existing data..."
-PaymentAllocation.destroy_all
+Entry.destroy_all
 Payment.destroy_all
 LineItem.destroy_all
 Invoice.destroy_all
@@ -211,21 +211,19 @@ Invoice.where(status: %i[finalized sent]).find_each do |invoice|
   payment_chance = rand(100)
 
   if payment_chance < 75
-    # Full payment
-    payment = create(:payment,
-                     lease: invoice.lease,
-                     date: invoice.date + rand(1..15).days,
-                     amount: invoice_total)
-    PaymentService.new(payment).call
+    # Full payment - auto-settles via callback
+    create(:payment,
+           lease: invoice.lease,
+           date: invoice.date + rand(1..15).days,
+           amount: invoice_total)
     puts "  Paid invoice #{invoice.number}: #{invoice_total}"
   elsif payment_chance < 90
-    # Partial payment
+    # Partial payment - auto-settles via callback
     partial_amount = (invoice_total * rand(0.3..0.7)).round(2)
-    payment = create(:payment,
-                     lease: invoice.lease,
-                     date: invoice.date + rand(1..15).days,
-                     amount: partial_amount)
-    PaymentService.new(payment).call
+    create(:payment,
+           lease: invoice.lease,
+           date: invoice.date + rand(1..15).days,
+           amount: partial_amount)
     puts "  Partial payment for invoice #{invoice.number}: #{partial_amount} of #{invoice_total}"
   else
     puts "  Invoice #{invoice.number} remains unpaid: #{invoice_total}"
@@ -250,14 +248,16 @@ puts "  Owners: #{Owner.count}"
 puts "  Properties: #{Property.count}"
 puts "  Tenants: #{Tenant.count}"
 puts "  Leases: #{Lease.count}"
-puts "  Invoices: #{Invoice.count} (#{Invoice.draft.count} draft, #{Invoice.finalized.count} finalized, #{Invoice.sent.count} sent, #{Invoice.cancelled.count} cancelled)"
+puts "  Invoices: #{Invoice.count} (#{Invoice.draft.count} draft, #{Invoice.finalized.count} finalized, #{Invoice.partially_paid.count} partial, #{Invoice.paid.count} paid, #{Invoice.cancelled.count} cancelled)"
 puts "  Payments: #{Payment.count}"
+puts "  Entries: #{Entry.count} (#{Entry.initial.count} initial, #{Entry.settlements.count} settlements)"
 puts "  Users: #{User.count}"
 puts "\nTest scenarios:"
 puts "  - Properties without leases: #{Property.left_joins(:leases).where(leases: { id: nil }).count}"
 puts "  - Leases with missing invoices (for generate testing): #{Lease.all.count { |l| l.missing_invoice_months.any? }}"
 puts "  - Terminated leases: #{Lease.where.not(terminated_on: nil).count}"
-puts "  - Unpaid/partially paid invoices: #{Invoice.where(status: %i[finalized sent partially_paid]).count}"
+puts "  - Outstanding invoices: #{Invoice.invoice.where('balance > 0').count}"
+puts "  - Unallocated payments: #{Payment.payment.where('balance < 0').count}"
 puts "\nLogin credentials:"
 puts "  Admin: admin@example.com (use 'admin' as name in developer login)"
 puts "  User: user@example.com (use 'user' as name in developer login) - has access to 2 owners"

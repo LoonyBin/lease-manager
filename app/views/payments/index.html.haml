@@ -37,15 +37,25 @@
                       %p.text-xs.font-mono.opacity-70= payment.reference_number
                   %td= number_to_currency(payment.amount)
                   %td
-                    - if payment.payment_allocations.any?
+                    - settlement_entries = payment.entries.settlements
+                    - if settlement_entries.any?
                       %ul.list-disc.list-inside.text-xs
-                        - payment.payment_allocations.each do |allocation|
-                          %li
-                            = number_to_currency(allocation.amount)
-                            to Invoice
-                            = link_to "##{allocation.invoice.number}", invoice_path(allocation.invoice), class: "link link-hover"
+                        - settlement_entries.each do |entry|
+                          - Entry.where(transaction_id: entry.transaction_id).where.not(id: entry.id).each do |counterpart|
+                            %li
+                              = number_to_currency(entry.amount.abs)
+                              to
+                              = counterpart.instrument_type
+                              - if counterpart.instrument_type == "Invoice" && counterpart.instrument.number.present?
+                                = link_to "##{counterpart.instrument.number}", invoice_path(counterpart.instrument), class: "link link-hover"
+                              - else
+                                = "##{counterpart.instrument_id}"
+                    - elsif payment.balance.abs.positive?
+                      %span.badge.badge-warning
+                        = number_to_currency(payment.balance.abs)
+                        unallocated
                     - else
-                      %span.badge.badge-ghost Unallocated
+                      %span.badge.badge-success Fully allocated
 
         = paginate @payments
 
