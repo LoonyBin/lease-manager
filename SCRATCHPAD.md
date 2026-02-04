@@ -37,7 +37,13 @@
 - [ ] Lease Lifecycle
 - [ ] Lease Documents
 - [ ] Reconciliation
-- [ ] Reports
+- [x] Reports
+
+# Future TODO
+- [ ] Ability to generate invoices and credit notes for security deposit on lease creation, renewal, and termination
+- [ ] Google OIDC or OAuth
+- [ ] Mobile interface
+- [ ] Finding and setting up hosting for production
 
 # Blockers
 - None

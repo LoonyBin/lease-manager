@@ -5,10 +5,8 @@ class ReportsController < ApplicationController
   before_action { authorize :report }
 
   def index
-    @total_revenue = finalized_invoices.sum(&:total_amount)
-    @total_outstanding = policy_scope(Invoice).where.not(status: %i[cancelled draft]).sum(&:outstanding_amount)
-    @total_taxes = finalized_line_items.sum("ROUND(amount * tax_rate / 100.0, 2)")
-    @total_collected = policy_scope(Payment).sum(:amount)
+    set_summary_stats
+    set_chart_data
   end
 
   def revenue
@@ -31,6 +29,35 @@ class ReportsController < ApplicationController
   end
 
   private
+
+  def set_summary_stats
+    @total_revenue = finalized_invoices.to_a.sum(&:total_amount)
+    @total_outstanding = policy_scope(Invoice).where.not(status: %i[cancelled draft]).sum(:balance)
+    @total_taxes = finalized_line_items.sum("ROUND(amount * tax_rate / 100.0, 2)")
+    @total_collected = policy_scope(Payment).sum(:amount)
+  end
+
+  def set_chart_data
+    @revenue_by_month = revenue_by_month_data
+    @payments_by_month = policy_scope(Payment).group_by_month(:date, last: 12, format: "%b %Y").sum(:amount)
+    @occupancy_stats = calculate_occupancy_stats
+    @invoice_status_distribution = policy_scope(Invoice).group(:status).count.transform_keys(&:titleize)
+  end
+
+  def revenue_by_month_data
+    finalized_invoices.joins(:line_items)
+                      .group_by_month(:date, last: 12, format: "%b %Y")
+                      .sum("line_items.amount")
+  end
+
+  def calculate_occupancy_stats
+    active_leases_count = policy_scope(Lease).to_a.count do |l|
+      l.end_date && l.end_date >= Date.current && l.start_date <= Date.current
+    end
+    total_properties = policy_scope(Property).count
+
+    { "Occupied" => active_leases_count, "Vacant" => [total_properties - active_leases_count, 0].max }
+  end
 
   def finalized_invoices
     @finalized_invoices ||= policy_scope(Invoice).where(status: %i[finalized sent paid partially_paid])
