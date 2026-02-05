@@ -14,9 +14,15 @@ RSpec.describe InvoiceNumberingService do
         owner.update!(name: "John Smith", invoice_sequence: 10)
       end
 
-      it "assigns a sequential number to the invoice instance" do
+      it "assigns a sequential number" do
         described_class.new(invoice).call
-        expect(invoice.number).to eq("JOH-011")
+        expect(invoice.number).to eq("011")
+      end
+
+      it "uses the custom prefix if set" do
+        owner.update!(invoice_prefix: "ABC-")
+        described_class.new(invoice).call
+        expect(invoice.number).to eq("ABC-011")
       end
 
       it "increments the owner's invoice_sequence" do
@@ -33,7 +39,13 @@ RSpec.describe InvoiceNumberingService do
 
       it "assigns a sequential credit note number" do
         described_class.new(credit_note).call
-        expect(credit_note.number).to eq("CN-JOH-006")
+        expect(credit_note.number).to eq("006")
+      end
+
+      it "uses the custom prefix if set" do
+        owner.update!(credit_note_prefix: "RET-")
+        described_class.new(credit_note).call
+        expect(credit_note.number).to eq("RET-006")
       end
 
       it "increments the owner's credit_note_sequence" do

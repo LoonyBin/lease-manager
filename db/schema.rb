@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_04_172153) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_05_141647) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -103,7 +103,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_04_172153) do
   create_table "owners", force: :cascade do |t|
     t.text "address"
     t.datetime "created_at", null: false
+    t.string "credit_note_prefix"
     t.integer "credit_note_sequence", default: 0, null: false
+    t.string "invoice_prefix"
     t.integer "invoice_sequence", default: 0
     t.string "name"
     t.datetime "updated_at", null: false

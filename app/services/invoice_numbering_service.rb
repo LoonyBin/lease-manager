@@ -30,9 +30,8 @@ class InvoiceNumberingService
   end
 
   def format_number(owner, sequence)
-    prefix = owner.name.gsub(/[^a-zA-Z]/, "").upcase[0..2]
-    prefix = "OWN" if prefix.blank?
-    prefix = "CN-#{prefix}" if @invoice.credit_note?
-    "#{prefix}-#{sequence.to_s.rjust(3, '0')}"
+    prefix = @invoice.credit_note? ? owner.credit_note_prefix : owner.invoice_prefix
+    prefix ||= ""
+    prefix + sequence.to_s.rjust(3, "0")
   end
 end

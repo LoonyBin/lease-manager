@@ -13,12 +13,16 @@ RSpec.describe Owner do
     it { is_expected.to validate_presence_of(:name) }
     it { is_expected.to validate_presence_of(:address) }
     it { is_expected.to validate_numericality_of(:invoice_sequence).only_integer.is_greater_than_or_equal_to(0) }
+    it { is_expected.to validate_numericality_of(:credit_note_sequence).only_integer.is_greater_than_or_equal_to(0) }
   end
 
   describe "defaults" do
-    it "sets default invoice_sequence to 0" do
+    it "sets default sequences to 0" do
       owner = described_class.new
-      expect(owner.invoice_sequence).to eq(0)
+      aggregate_failures do
+        expect(owner.invoice_sequence).to eq(0)
+        expect(owner.credit_note_sequence).to eq(0)
+      end
     end
   end
 end
