@@ -11,6 +11,7 @@
 - [x] Implement Payments Support
 
 # Current Goal
+- [x] Ability to generate invoices and credit notes for security deposit on lease creation, renewal, and termination
 - [x] Review Navigation Bar Order
 
 

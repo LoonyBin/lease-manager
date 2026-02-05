@@ -12,6 +12,8 @@ class Lease < ApplicationRecord
   has_many_attached :documents
 
   after_create :terminate_renewed_from_lease, if: :renewed_from_id?
+  after_create :handle_security_deposit_creation
+  after_update :handle_security_deposit_termination, if: :saved_change_to_terminated_on?
 
   enum :enhancement_type, { percentage: 0, fixed: 1 }
 
@@ -113,5 +115,13 @@ class Lease < ApplicationRecord
 
   def terminate_renewed_from_lease
     renewed_from.update!(terminated_on: start_date - 1.day)
+  end
+
+  def handle_security_deposit_creation
+    SecurityDepositInvoicer.new(self).call
+  end
+
+  def handle_security_deposit_termination
+    SecurityDepositInvoicer.new(self).call
   end
 end

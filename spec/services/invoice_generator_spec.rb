@@ -5,7 +5,7 @@ require "rails_helper"
 RSpec.describe InvoiceGenerator do
   subject(:service) { described_class.new(lease, date) }
 
-  let(:lease) { create(:lease, rent_amount: 1000) }
+  let!(:lease) { create(:lease, rent_amount: 1000) }
   let(:date) { Date.new(2025, 2, 1) }
 
   describe "#call" do
@@ -18,9 +18,16 @@ RSpec.describe InvoiceGenerator do
                                               status: "draft", lease: lease)
     end
 
-    it "creates a rent line item with correct amount" do
-      line_item = service.call.line_items.find { |i| i.category == "rent" }
-      expect(line_item).to have_attributes(present?: true, amount: 1000, name: "Rent for February 2025")
+    describe "rent line item" do
+      let(:line_item) { service.call.line_items.find { |i| i.category == "rent" } }
+
+      it "is present" do
+        expect(line_item).to be_present
+      end
+
+      it "has correct attributes" do
+        expect(line_item).to have_attributes(amount: 1000, name: "Rent for February 2025")
+      end
     end
 
     context "with enhanced rent" do
@@ -43,17 +50,13 @@ RSpec.describe InvoiceGenerator do
 
     context "with tax configured" do
       let(:lease) { create(:lease, rent_amount: 1000, tax_name: "GST", tax_rate: 18) }
+      let(:rent_item) { service.call.line_items.find { |i| i.category == "rent" } }
 
       it "sets tax_rate on the rent line item" do
-        invoice = service.call
-        rent_item = invoice.line_items.find { |i| i.category == "rent" }
         expect(rent_item.tax_rate).to eq(18.0)
       end
 
       it "calculates tax_amount dynamically" do
-        invoice = service.call
-        rent_item = invoice.line_items.find { |i| i.category == "rent" }
-        # 1000 * 18% = 180
         expect(rent_item.tax_amount).to eq(180.0)
       end
 
@@ -63,8 +66,6 @@ RSpec.describe InvoiceGenerator do
       end
 
       it "calculates correct total for the line item" do
-        invoice = service.call
-        rent_item = invoice.line_items.find { |i| i.category == "rent" }
         expect(rent_item.total).to eq(1180.0)
       end
     end
@@ -72,16 +73,17 @@ RSpec.describe InvoiceGenerator do
     context "with proration (first month mid-start)" do
       let(:lease) { create(:lease, rent_amount: 3100, start_date: Date.new(2025, 1, 16)) }
       let(:date) { Date.new(2025, 1, 1) }
+      let(:discount_item) { service.call.line_items.find { |i| i.category == "discount" } }
 
-      it "creates a discount line item for unused days" do
-        invoice = service.call
-        discount_item = invoice.line_items.find { |i| i.category == "discount" }
-        expect(discount_item).to have_attributes(present?: true, name: "Pro-rated discount (15 days)")
+      it "creates a discount line item" do
+        expect(discount_item).to be_present
+      end
+
+      it "has correct name" do
+        expect(discount_item.name).to eq("Pro-rated discount (15 days)")
       end
 
       it "calculates correct discount amount" do
-        invoice = service.call
-        discount_item = invoice.line_items.find { |i| i.category == "discount" }
         expect(discount_item.amount).to eq(-1500.0)
       end
     end
@@ -91,29 +93,24 @@ RSpec.describe InvoiceGenerator do
         create(:lease, rent_amount: 3100, start_date: Date.new(2025, 1, 16), tax_name: "GST", tax_rate: 10)
       end
       let(:date) { Date.new(2025, 1, 1) }
+      let(:invoice) { service.call }
+      let(:rent_item) { invoice.line_items.find { |i| i.category == "rent" } }
+      let(:discount_item) { invoice.line_items.find { |i| i.category == "discount" } }
 
       it "sets tax_rate on the rent line item" do
-        invoice = service.call
-        rent_item = invoice.line_items.find { |i| i.category == "rent" }
         expect(rent_item.tax_rate).to eq(10.0)
       end
 
       it "sets tax_rate on the discount line item" do
-        invoice = service.call
-        discount_item = invoice.line_items.find { |i| i.category == "discount" }
         expect(discount_item.tax_rate).to eq(10.0)
       end
 
       it "calculates correct tax amount on the rent line item" do
-        invoice = service.call
-        rent_item = invoice.line_items.find { |i| i.category == "rent" }
-        expect(rent_item.tax_amount).to eq(310.0) # 3100 * 10%
+        expect(rent_item.tax_amount).to eq(310.0)
       end
 
       it "calculates correct tax amount on the discount line item" do
-        invoice = service.call
-        discount_item = invoice.line_items.find { |i| i.category == "discount" }
-        expect(discount_item.tax_amount).to eq(-150.0) # -1500 * 10%
+        expect(discount_item.tax_amount).to eq(-150.0)
       end
     end
 
@@ -125,8 +122,8 @@ RSpec.describe InvoiceGenerator do
       end
 
       it "returns the existing invoice" do
-        invoice = service.call
-        expect(invoice).to eq(Invoice.find_by(lease: lease, date: date.beginning_of_month))
+        existing_invoice = Invoice.find_by(lease: lease, date: date.beginning_of_month)
+        expect(service.call).to eq(existing_invoice)
       end
     end
   end
