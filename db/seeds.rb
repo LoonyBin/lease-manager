@@ -266,7 +266,16 @@ puts "  Entries: #{Entry.count} (#{Entry.initial.count} initial, #{Entry.settlem
 puts "  Users: #{User.count}"
 puts "\nTest scenarios:"
 puts "  - Properties without leases: #{Property.left_joins(:leases).where(leases: { id: nil }).count}"
-puts "  - Leases with missing invoices (for generate testing): #{Lease.all.count { |l| l.missing_invoice_months.any? }}"
+leases_with_gaps = Lease.all.count do |l|
+  next false unless l.start_date && l.end_date
+
+  first_month = l.start_date.beginning_of_month
+  last_month = [l.end_date, Date.current].min.beginning_of_month
+  expected_months = ((last_month.year * 12) + last_month.month) - ((first_month.year * 12) + first_month.month) + 1
+  rental_invoice_count = l.invoices.rental.where(date: first_month..last_month).count
+  rental_invoice_count < expected_months
+end
+puts "  - Leases with missing invoices (for generate testing): #{leases_with_gaps}"
 puts "  - Terminated leases: #{Lease.where.not(terminated_on: nil).count}"
 puts "  - Outstanding invoices: #{Invoice.invoice.where('balance > 0').count}"
 puts "  - Unallocated payments: #{Payment.payment.where('balance < 0').count}"

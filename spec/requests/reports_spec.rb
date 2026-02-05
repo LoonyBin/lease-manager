@@ -8,9 +8,9 @@ RSpec.describe "Reports" do
 
   describe "GET /reports" do
     context "when unauthenticated" do
-      it "redirects to root" do
+      it "redirects to login" do
         get reports_path
-        expect(response).to redirect_to(root_path)
+        expect(response).to redirect_to(login_path)
       end
     end
 

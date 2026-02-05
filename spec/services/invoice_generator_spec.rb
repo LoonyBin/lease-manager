@@ -114,16 +114,35 @@ RSpec.describe InvoiceGenerator do
       end
     end
 
-    context "when invoice already exists" do
-      before { create(:invoice, lease: lease, date: date.beginning_of_month) }
+    context "when rental invoice already exists" do
+      let!(:existing_invoice) do
+        invoice = create(:invoice, lease: lease, date: date.beginning_of_month)
+        invoice.line_items.create!(name: "Rent", amount: 1000, category: "rent")
+        invoice
+      end
 
       it "does not create a new invoice" do
         expect { service.call }.not_to change(Invoice, :count)
       end
 
       it "returns the existing invoice" do
-        existing_invoice = Invoice.find_by(lease: lease, date: date.beginning_of_month)
         expect(service.call).to eq(existing_invoice)
+      end
+    end
+
+    context "when only security deposit invoice exists" do
+      before do
+        invoice = create(:invoice, lease: lease, date: date.beginning_of_month)
+        invoice.line_items.create!(name: "Security Deposit", amount: 2000, category: "security_deposit")
+      end
+
+      it "builds a new rental invoice" do
+        expect(service.call).to be_new_record
+      end
+
+      it "includes a rent line item" do
+        result = service.call
+        expect(result.line_items.any? { |li| li.category == "rent" }).to be true
       end
     end
   end
