@@ -21,7 +21,48 @@ RSpec.describe Lease do
     it { is_expected.to validate_presence_of(:enhancement_period_months) }
     it { is_expected.to validate_numericality_of(:enhancement_period_months).only_integer.is_greater_than(0) }
     it { is_expected.to validate_numericality_of(:enhancement_amount).is_greater_than_or_equal_to(0).allow_nil }
+
+    it do
+      expect(lease).to validate_numericality_of(:tax_rate)
+        .is_greater_than_or_equal_to(0)
+        .is_less_than_or_equal_to(100)
+        .allow_nil
+    end
+
+    it { is_expected.to validate_presence_of(:quantity) }
+    it { is_expected.to validate_numericality_of(:quantity).only_integer.is_greater_than(0) }
     it { is_expected.to have_many_attached(:documents) }
+
+    describe "#quantity_within_capacity" do
+      let(:property) { create(:property, capacity: 10) }
+      let(:lease) { build(:lease, property: property, quantity: 11, start_date: Date.current) }
+
+      it "is invalid if quantity exceeds capacity" do
+        aggregate_failures do
+          expect(lease).not_to be_valid
+          expect(lease.errors[:quantity])
+            .to include("exceeds available capacity of 10 Units during the lease period")
+        end
+      end
+
+      it "is valid if quantity is within capacity" do
+        lease.quantity = 10
+        expect(lease).to be_valid
+      end
+
+      it "considers existing leases with overlapping future lease" do # rubocop:disable RSpec/ExampleLength
+        create(:lease, property: property, quantity: 5, start_date: 6.months.from_now, duration_months: 6)
+
+        lease.quantity = 6
+        lease.duration_months = 12
+
+        aggregate_failures do
+          expect(lease).not_to be_valid
+          expect(lease.errors[:quantity])
+            .to include("exceeds available capacity of 5 Units during the lease period")
+        end
+      end
+    end
 
     describe "#termination_date_after_start_date" do
       let(:lease) { build(:lease, start_date: Time.zone.today, terminated_on: Date.yesterday) }

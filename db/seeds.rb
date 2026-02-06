@@ -177,7 +177,19 @@ leases.each do |lease_data|
   end
 
   # Report gaps for testing
-  missing = lease.missing_invoice_months
+  billable_months = []
+  if lease.start_date
+    first_month = lease.start_date.beginning_of_month
+    last_month = [lease.end_date || Date.current, Date.current].min.beginning_of_month
+    if last_month >= first_month
+      month_count = ((last_month.year * 12) + last_month.month) - ((first_month.year * 12) + first_month.month) + 1
+      billable_months = month_count.times.map { |i| first_month.next_month(i) }
+    end
+  end
+
+  existing_dates = lease.invoices.pluck(:date).map(&:beginning_of_month)
+  missing = billable_months - existing_dates
+
   if missing.any?
     puts "    -> #{missing.size} months left ungenerated for testing: #{missing.map { |d| d.strftime('%b %Y') }.join(', ')}"
   end

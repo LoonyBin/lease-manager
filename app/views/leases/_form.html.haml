@@ -11,6 +11,8 @@
     = f.association :property
     = f.association :tenant
 
+    = f.input :quantity, hint: "Amount of property capacity to lease. Available: #{lease.property&.available_capacity || 'N/A'}"
+
     = f.input :start_date, as: :date, html5: true
     = f.input :duration_months
 
