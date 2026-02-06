@@ -4,6 +4,7 @@ class ApplicationController < ActionController::Base
   include Pundit::Authorization
 
   before_action :set_paper_trail_whodunnit
+  before_action :require_login
   after_action :verify_pundit_authorization
 
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
@@ -21,6 +22,10 @@ class ApplicationController < ActionController::Base
 
   def logged_in?
     current_user.present?
+  end
+
+  def require_login
+    redirect_to login_path unless logged_in?
   end
 
   def verify_pundit_authorization

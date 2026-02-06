@@ -7,7 +7,7 @@ module AuthenticationHelper
       uid: user.uid,
       info: { email: user.email, name: user.name }
     )
-    get "/auth/developer/callback"
+    post "/auth/developer/callback"
   end
 
   def sign_in_admin

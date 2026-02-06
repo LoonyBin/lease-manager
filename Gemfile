@@ -10,6 +10,7 @@ gem "jbuilder"
 gem "kamal", require: false
 gem "kaminari", "~> 1.2"
 gem "omniauth"
+gem "omniauth-google-oauth2"
 gem "omniauth-rails_csrf_protection"
 gem "paper_trail"
 gem "pg", "~> 1.1"

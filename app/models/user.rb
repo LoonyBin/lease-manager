@@ -12,10 +12,13 @@ class User < ApplicationRecord
   enum :role, { admin: 0, normal: 1 }, default: :normal
 
   def self.from_omniauth(auth)
-    find_or_create_by(provider: auth.provider, uid: auth.uid) do |user|
-      user.email = auth.info.email
-      user.name = auth.info.name
-    end
+    user = find_or_initialize_by(provider: auth.provider, uid: auth.uid)
+    user.assign_attributes(
+      email: auth.info.email,
+      name: auth.info.name
+    )
+    user.save!
+    user
   end
 
   def initials
