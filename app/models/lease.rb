@@ -18,7 +18,7 @@ class Lease < ApplicationRecord
   scope :active_at, lambda { |date|
     where(start_date: ..date)
       .where("terminated_on IS NULL OR terminated_on >= ?", date)
-      .where("(start_date + (duration_months || ' months')::interval) > ?", date)
+      .where("(date_trunc('month', start_date + (duration_months || ' months')::interval) - interval '1 day')::date >= ?", date)
   }
 
   enum :enhancement_type, { percentage: 0, fixed: 1 }
@@ -135,12 +135,12 @@ class Lease < ApplicationRecord
   end
 
   def quantity_within_capacity
-    return unless property && quantity && start_date
+    return unless property && quantity && start_date && duration_months
 
-    # Check capacity at the start of the lease
-    available = property.available_capacity(start_date)
+    available = property.available_capacity(start_date, end_date)
     return unless quantity > available
 
-    errors.add(:quantity, "exceeds available capacity of #{available} #{property.unit.pluralize}")
+    errors.add(:quantity,
+               "exceeds available capacity of #{available} #{property.unit.pluralize} during the lease period")
   end
 end

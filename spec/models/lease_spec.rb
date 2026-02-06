@@ -37,7 +37,7 @@ RSpec.describe Lease do
       it "is invalid if quantity exceeds capacity" do
         aggregate_failures do
           expect(lease).not_to be_valid
-          expect(lease.errors[:quantity]).to include("exceeds available capacity of 10 Units")
+          expect(lease.errors[:quantity]).to include("exceeds available capacity of 10 Units during the lease period")
         end
       end
 
@@ -46,12 +46,18 @@ RSpec.describe Lease do
         expect(lease).to be_valid
       end
 
-      it "considers existing leases" do
-        create(:lease, property: property, quantity: 5, start_date: Date.current)
-        lease.quantity = 6
+      it "considers existing leases overlapping in future" do
+        # Existing lease starts in 6 months, for 6 months. Qty 5. Capacity 10.
+        create(:lease, property: property, quantity: 5, start_date: 6.months.from_now, duration_months: 6)
+
+        # New lease starts now, for 12 months. Overlaps with the future lease.
+        # Max usage during new lease term will be 0 (now) -> 5 (future). Min availability 5.
+        lease.quantity = 6 # Requesting 6, but only 5 available later.
+        lease.duration_months = 12
+
         aggregate_failures do
           expect(lease).not_to be_valid
-          expect(lease.errors[:quantity]).to include("exceeds available capacity of 5 Units")
+          expect(lease.errors[:quantity]).to include("exceeds available capacity of 5 Units during the lease period")
         end
       end
     end

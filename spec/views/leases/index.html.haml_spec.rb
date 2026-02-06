@@ -5,7 +5,7 @@ require "rails_helper"
 RSpec.describe "leases/index" do
   subject { Capybara.string(rendered) }
 
-  let(:property) { create(:property, name: "Prop 1") }
+  let(:property) { create(:property, name: "Prop 1", capacity: 10) }
   let(:tenant) { create(:tenant, name: "Tenant 1") }
 
   before do
