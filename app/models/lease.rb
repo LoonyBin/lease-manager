@@ -15,6 +15,12 @@ class Lease < ApplicationRecord
   after_create :handle_security_deposit_creation
   after_update :handle_security_deposit_termination, if: :saved_change_to_terminated_on?
 
+  scope :active_at, lambda { |date|
+    where(start_date: ..date)
+      .where("terminated_on IS NULL OR terminated_on >= ?", date)
+      .where("(start_date + (duration_months || ' months')::interval) > ?", date)
+  }
+
   enum :enhancement_type, { percentage: 0, fixed: 1 }
 
   validates :start_date, presence: true
@@ -25,8 +31,10 @@ class Lease < ApplicationRecord
   validates :enhancement_period_months, presence: true, numericality: { only_integer: true, greater_than: 0 }
   validates :enhancement_amount, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
   validates :tax_rate, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }, allow_nil: true
+  validates :quantity, presence: true, numericality: { greater_than: 0, only_integer: true }
 
   validate :termination_date_after_start_date
+  validate :quantity_within_capacity, on: :create
 
   def end_date
     return terminated_on if terminated_on.present?
@@ -117,11 +125,22 @@ class Lease < ApplicationRecord
     renewed_from.update!(terminated_on: start_date - 1.day)
   end
 
+<<<<<<< HEAD
   def handle_security_deposit_creation
     SecurityDepositInvoicer.new(self).call
   end
 
   def handle_security_deposit_termination
     SecurityDepositInvoicer.new(self).call
+  end
+
+  def quantity_within_capacity
+    return unless property && quantity && start_date
+
+    # Check capacity at the start of the lease
+    available = property.available_capacity(start_date)
+    return unless quantity > available
+
+    errors.add(:quantity, "exceeds available capacity of #{available} #{property.unit.pluralize}")
   end
 end

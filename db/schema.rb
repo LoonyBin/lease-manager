@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_05_141647) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_06_081140) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -75,6 +75,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_141647) do
     t.integer "enhancement_period_months"
     t.integer "enhancement_type", default: 0
     t.bigint "property_id", null: false
+    t.integer "quantity", default: 1, null: false
     t.bigint "renewed_from_id"
     t.decimal "rent_amount"
     t.integer "security_deposit_in_months"
@@ -127,9 +128,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_141647) do
 
   create_table "properties", force: :cascade do |t|
     t.text "address"
+    t.integer "capacity", default: 1, null: false
     t.datetime "created_at", null: false
     t.string "name"
     t.bigint "owner_id", null: false
+    t.string "unit", default: "Unit", null: false
     t.datetime "updated_at", null: false
     t.index ["owner_id"], name: "index_properties_on_owner_id"
   end
@@ -156,6 +159,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_141647) do
   create_table "users", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "email"
+    t.string "google_refresh_token"
+    t.string "google_token"
     t.string "name"
     t.string "provider", null: false
     t.integer "role", default: 1, null: false
