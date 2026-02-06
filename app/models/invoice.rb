@@ -22,6 +22,7 @@ class Invoice < ApplicationRecord
   after_save :auto_settle, if: :should_auto_settle?
 
   scope :finalized_or_later, -> { where(status: %i[finalized sent paid partially_paid]) }
+  scope :rental, -> { joins(:line_items).where(line_items: { category: "rent" }).distinct }
 
   def total_amount
     line_items.sum(:amount)

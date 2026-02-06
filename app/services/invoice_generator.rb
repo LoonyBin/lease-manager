@@ -7,7 +7,7 @@ class InvoiceGenerator
   end
 
   def call
-    existing_invoice = Invoice.find_by(lease: @lease, date: @date)
+    existing_invoice = Invoice.rental.find_by(lease: @lease, date: @date)
     return existing_invoice if existing_invoice
 
     invoice = build_invoice

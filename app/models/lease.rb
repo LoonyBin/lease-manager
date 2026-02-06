@@ -27,26 +27,6 @@ class Lease < ApplicationRecord
     (start_date + (duration_months - 1).months).end_of_month
   end
 
-  def billable_months
-    return [] unless start_date
-
-    first_month = start_date.beginning_of_month
-    last_month = [end_date || Date.current, Date.current].min.beginning_of_month
-
-    months = []
-    current = first_month
-    while current <= last_month
-      months << current
-      current = current.next_month
-    end
-    months
-  end
-
-  def missing_invoice_months
-    existing_dates = invoices.pluck(:date).map(&:beginning_of_month)
-    billable_months - existing_dates
-  end
-
   def termination_date_after_start_date
     return if terminated_on.blank? || start_date.blank?
 
