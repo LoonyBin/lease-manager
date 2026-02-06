@@ -18,8 +18,9 @@ class InvoiceNumberingService
   private
 
   def increment_sequence(owner)
-    new_sequence = owner.invoice_sequence + 1
-    owner.update!(invoice_sequence: new_sequence)
+    sequence_column = @invoice.credit_note? ? :credit_note_sequence : :invoice_sequence
+    new_sequence = owner.public_send(sequence_column) + 1
+    owner.update!(sequence_column => new_sequence)
     new_sequence
   end
 
@@ -29,8 +30,8 @@ class InvoiceNumberingService
   end
 
   def format_number(owner, sequence)
-    prefix = owner.name.gsub(/[^a-zA-Z]/, "").upcase[0..2]
-    prefix = "OWN" if prefix.blank?
-    "#{prefix}-#{sequence.to_s.rjust(3, '0')}"
+    prefix = @invoice.credit_note? ? owner.credit_note_prefix : owner.invoice_prefix
+    prefix ||= ""
+    prefix + sequence.to_s.rjust(3, "0")
   end
 end
