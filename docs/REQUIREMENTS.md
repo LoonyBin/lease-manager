@@ -110,3 +110,10 @@ A lease management application for property managers handling multiple propertie
     - For partial months (Start/End), a **Prorated Discount** credit is applied to the invoice.
 - **Duration Calculation**:
     - A "12-month" lease starting Feb 15th will expire **Jan 31st** of the following year.
+
+## Future Requirements / Backlog
+- **Security Deposit Invoicing**: Ability to generate invoices and credit notes for security deposit items on lease creation, renewal, and termination.
+- **Authentication**: Implementation of Google OIDC or OAuth for user login.
+- **Mobile Support**: Dedicated mobile interface or responsive design optimization for mobile users.
+- **Hosting**: Identification and setup of production hosting environment.
+- **Partial Leasing**: Ability to lease a part of the property. (Ex: 18000 sft of 100000 sft, 100 rooms out of 250 rooms).

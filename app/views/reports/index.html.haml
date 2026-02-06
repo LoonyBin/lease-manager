@@ -1,31 +1,85 @@
-- content_for :title, "Financial Reports"
+- content_for :title, "Financial Dashboard"
 
-.container.mx-auto.p-6
-  %h1.text-3xl.font-bold.mb-8 Financial Reports
+.container.mx-auto.p-6.space-y-8
+  .flex.justify-between.items-center
+    %h1.text-3xl.font-bold.text-base-content Financial Dashboard
+    .text-sm{class: "text-base-content/70"}= "Overview for #{Date.current.strftime('%B %Y')}"
 
-  .grid.grid-cols-1.md:grid-cols-2.lg:grid-cols-4.gap-6.mb-8
-    .card.bg-primary.text-primary-content.shadow-xl
+  -# Summary Cards
+  .grid.grid-cols-1.md:grid-cols-2.lg:grid-cols-4.gap-6
+    .card.bg-gradient-to-br.from-primary.to-primary-focus.text-primary-content.shadow-xl
+      .card-body.p-6
+        .flex.justify-between.items-start
+          %div
+            %h2.card-title.text-sm.opacity-90 Total Revenue
+            %p.text-3xl.font-bold.mt-2= number_to_currency(@total_revenue, unit: "₹")
+          - if defined?(heroicon)
+            = heroicon "currency-rupee", variant: :outline, options: { class: "w-8 h-8 opacity-50" }
+        .card-actions.justify-end.mt-4
+          = link_to revenue_reports_path, class: "btn btn-sm btn-ghost gap-2 hover:bg-white/20 text-primary-content" do
+            View Details
+            - if defined?(heroicon)
+              = heroicon "arrow-right", variant: :outline, options: { class: "w-4 h-4" }
+
+    .card.bg-gradient-to-br.from-warning.to-warning-focus.text-warning-content.shadow-xl
+      .card-body.p-6
+        .flex.justify-between.items-start
+          %div
+            %h2.card-title.text-sm.opacity-90 Outstanding
+            %p.text-3xl.font-bold.mt-2= number_to_currency(@total_outstanding, unit: "₹")
+          - if defined?(heroicon)
+            = heroicon "exclamation-circle", variant: :outline, options: { class: "w-8 h-8 opacity-50" }
+        .card-actions.justify-end.mt-4
+          = link_to outstanding_reports_path, class: "btn btn-sm btn-ghost gap-2 hover:bg-white/20 text-warning-content" do
+            View Details
+            - if defined?(heroicon)
+              = heroicon "arrow-right", variant: :outline, options: { class: "w-4 h-4" }
+
+    .card.bg-gradient-to-br.from-success.to-success-focus.text-success-content.shadow-xl
+      .card-body.p-6
+        .flex.justify-between.items-start
+          %div
+            %h2.card-title.text-sm.opacity-90 Collected
+            %p.text-3xl.font-bold.mt-2= number_to_currency(@total_collected, unit: "₹")
+          - if defined?(heroicon)
+            = heroicon "check-circle", variant: :outline, options: { class: "w-8 h-8 opacity-50" }
+        .card-actions.justify-end.mt-4
+          %button.btn.btn-sm.btn-ghost.gap-2.cursor-default.text-success-content{class: "hover:bg-white/20"}
+            Total Collected
+
+    .card.bg-gradient-to-br.from-secondary.to-secondary-focus.text-secondary-content.shadow-xl
+      .card-body.p-6
+        .flex.justify-between.items-start
+          %div
+            %h2.card-title.text-sm.opacity-90 Total Taxes
+            %p.text-3xl.font-bold.mt-2= number_to_currency(@total_taxes, unit: "₹")
+          - if defined?(heroicon)
+            = heroicon "receipt-tax", variant: :outline, options: { class: "w-8 h-8 opacity-50" }
+        .card-actions.justify-end.mt-4
+          = link_to taxes_reports_path, class: "btn btn-sm btn-ghost gap-2 hover:bg-white/20 text-secondary-content" do
+            View Details
+            - if defined?(heroicon)
+              = heroicon "arrow-right", variant: :outline, options: { class: "w-4 h-4" }
+
+  -# Charts Section
+  .grid.grid-cols-1.lg:grid-cols-3.gap-6
+    -# Main Revenue Chart
+    .lg:col-span-2.card.bg-base-100.shadow-xl.border.border-base-200
       .card-body
-        %h2.card-title Total Revenue
-        %p.text-4xl.font-bold= number_to_currency(@total_revenue, unit: "₹")
-        .card-actions.justify-end
-          = link_to "View Details", revenue_reports_path, class: "btn btn-sm btn-ghost"
+        .flex.justify-between.items-center.mb-6
+          %h2.card-title Revenue vs Collection
+          .badge.badge-outline Last 12 Months
+        = line_chart [{ name: "Billed", data: @revenue_by_month }, { name: "Collected", data: @payments_by_month }], colors: ["#661AE6", "#36D399"], thousands: ",", prefix: "₹", curve: false, loading: "Loading..."
 
-    .card.bg-warning.text-warning-content.shadow-xl
+    -# Occupancy Chart
+    .card.bg-base-100.shadow-xl.border.border-base-200
       .card-body
-        %h2.card-title Outstanding
-        %p.text-4xl.font-bold= number_to_currency(@total_outstanding, unit: "₹")
-        .card-actions.justify-end
-          = link_to "View Details", outstanding_reports_path, class: "btn btn-sm btn-ghost"
+        %h2.card-title.mb-6 Occupancy Rate
+        = pie_chart @occupancy_stats, donut: true, colors: ["#36D399", "#E5E7EB"], legend: "bottom", loading: "Loading..."
 
-    .card.bg-secondary.text-secondary-content.shadow-xl
+  -# Secondary Charts
+  .grid.grid-cols-1.lg:grid-cols-2.gap-6
+    .card.bg-base-100.shadow-xl.border.border-base-200
       .card-body
-        %h2.card-title Total Taxes
-        %p.text-4xl.font-bold= number_to_currency(@total_taxes, unit: "₹")
-        .card-actions.justify-end
-          = link_to "View Details", taxes_reports_path, class: "btn btn-sm btn-ghost"
-
-    .card.bg-success.text-success-content.shadow-xl
-      .card-body
-        %h2.card-title Collected
-        %p.text-4xl.font-bold= number_to_currency(@total_collected, unit: "₹")
+        %h2.card-title.mb-4 Invoice Status Breakdown
+        = column_chart @invoice_status_distribution, colors: ["#3ABFF8"], loading: "Loading..."

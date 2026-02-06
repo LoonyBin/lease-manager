@@ -61,3 +61,6 @@ group :test do
   gem "shoulda-matchers"
   gem "simplecov", require: false
 end
+
+gem "chartkick", "~> 5.2"
+gem "groupdate", "~> 6.7"
