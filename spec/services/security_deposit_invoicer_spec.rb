@@ -136,6 +136,13 @@ RSpec.describe SecurityDepositInvoicer do
         end
       end
 
+      it "uses terminated_on as the credit note date" do
+        termination_date = 1.week.from_now.to_date
+        lease.update!(terminated_on: termination_date)
+
+        expect(Invoice.last.date).to eq(termination_date)
+      end
+
       it "does nothing if it was renewed" do
         create(:lease, renewed_from: lease, start_date: Time.zone.today + 1.day)
 
