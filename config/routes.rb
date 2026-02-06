@@ -10,7 +10,8 @@ Rails.application.routes.draw do
   resources :users
   resources :user_associations, only: %i[create destroy]
 
-  get "/auth/:provider/callback", to: "sessions#create"
+  get "/login", to: "sessions#new", as: :login
+  match "/auth/:provider/callback", to: "sessions#create", via: %i[get post]
   delete "/logout", to: "sessions#destroy", as: :logout
 
   get "/settings", to: redirect("/properties", status: 307), as: :settings

@@ -42,15 +42,17 @@ RSpec.describe User do
     end
 
     context "when user already exists" do
-      let!(:existing_user) { create(:user, provider: "developer", uid: "test-uid") }
+      before { create(:user, provider: "developer", uid: "test-uid") }
 
       it "does not create a new user" do
         expect { described_class.from_omniauth(auth) }.not_to change(described_class, :count)
       end
 
-      it "returns the existing user" do
+      it "updates the user attributes" do
+        auth.info.name = "New Name"
+
         user = described_class.from_omniauth(auth)
-        expect(user).to eq(existing_user)
+        expect(user.reload).to have_attributes(name: "New Name")
       end
     end
   end

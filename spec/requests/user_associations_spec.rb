@@ -83,7 +83,7 @@ RSpec.describe "UserAssociations" do
       it "denies access" do
         post user_associations_path,
              params: { user_association: { user_id: user.id, associable_type: "Owner", associable_id: owner.id } }
-        expect(response).to redirect_to(root_path)
+        expect(response).to redirect_to(login_path)
       end
     end
   end
