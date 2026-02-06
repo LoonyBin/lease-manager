@@ -22,9 +22,12 @@ RSpec.describe Lease do
     it { is_expected.to validate_numericality_of(:enhancement_period_months).only_integer.is_greater_than(0) }
     it { is_expected.to validate_numericality_of(:enhancement_amount).is_greater_than_or_equal_to(0).allow_nil }
 
-    it {
-      is_expected.to validate_numericality_of(:tax_rate).is_greater_than_or_equal_to(0).is_less_than_or_equal_to(100).allow_nil
-    }
+    it do
+      expect(lease).to validate_numericality_of(:tax_rate)
+        .is_greater_than_or_equal_to(0)
+        .is_less_than_or_equal_to(100)
+        .allow_nil
+    end
 
     it { is_expected.to validate_presence_of(:quantity) }
     it { is_expected.to validate_numericality_of(:quantity).only_integer.is_greater_than(0) }
@@ -37,7 +40,8 @@ RSpec.describe Lease do
       it "is invalid if quantity exceeds capacity" do
         aggregate_failures do
           expect(lease).not_to be_valid
-          expect(lease.errors[:quantity]).to include("exceeds available capacity of 10 Units during the lease period")
+          expect(lease.errors[:quantity])
+            .to include("exceeds available capacity of 10 Units during the lease period")
         end
       end
 
@@ -46,18 +50,16 @@ RSpec.describe Lease do
         expect(lease).to be_valid
       end
 
-      it "considers existing leases overlapping in future" do
-        # Existing lease starts in 6 months, for 6 months. Qty 5. Capacity 10.
+      it "considers existing leases with overlapping future lease" do # rubocop:disable RSpec/ExampleLength
         create(:lease, property: property, quantity: 5, start_date: 6.months.from_now, duration_months: 6)
 
-        # New lease starts now, for 12 months. Overlaps with the future lease.
-        # Max usage during new lease term will be 0 (now) -> 5 (future). Min availability 5.
-        lease.quantity = 6 # Requesting 6, but only 5 available later.
+        lease.quantity = 6
         lease.duration_months = 12
 
         aggregate_failures do
           expect(lease).not_to be_valid
-          expect(lease.errors[:quantity]).to include("exceeds available capacity of 5 Units during the lease period")
+          expect(lease.errors[:quantity])
+            .to include("exceeds available capacity of 5 Units during the lease period")
         end
       end
     end

@@ -88,7 +88,7 @@
             %th Amount
             %th
         %tbody
-          - @lease.billable_months.reverse.each do |month|
+          - billable_months(@lease).reverse.each do |month|
             - invoice = @lease.invoices.find { |i| i.date.beginning_of_month == month }
             - if invoice
               %tr.hover.cursor-pointer{data: { controller: "clickable-row", clickable_row_url_value: invoice_path(invoice), action: "click->clickable-row#click" }}
