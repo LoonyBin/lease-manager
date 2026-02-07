@@ -183,6 +183,9 @@ GEM
       railties (>= 5.1)
     hashie (5.1.0)
       logger
+    heroicons (2.2.0)
+      nokogiri
+      railties (>= 5.2)
     highline (3.1.2)
       reline
     i18n (1.14.8)
@@ -624,6 +627,7 @@ DEPENDENCIES
   guard-rspec (~> 4.7)
   guard-rubocop (~> 1.5)
   haml-rails
+  heroicons
   i18n-tasks
   importmap-rails
   jbuilder
