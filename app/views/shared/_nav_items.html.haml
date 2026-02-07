@@ -11,6 +11,18 @@
   = heroicon "user-group", options: { class: "nav-icon" }
   %span.nav-label Leases
 
-= link_to invoices_path, class: "nav-item #{(controller_name == 'invoices' || controller_name == 'payments') ? 'active' : ''}" do
-  = heroicon "banknotes", options: { class: "nav-icon" }
-  %span.nav-label Finance
+-# Finance: Mobile = dropup menu, Desktop = accordion
+- finance_active = controller_name.in?(%w[invoices payments])
+
+%details.nav-accordion{data: { controller: "details-menu", details_menu_auto_open_value: finance_active }}
+  %summary.nav-item.nav-accordion-trigger{class: finance_active ? 'active' : ''}
+    = heroicon "chevron-right", options: { class: "nav-accordion-arrow" }
+    = heroicon "banknotes", options: { class: "nav-icon" }
+    %span.nav-label Finance
+  .nav-accordion-content
+    = link_to invoices_path, class: "nav-subitem #{controller_name == 'invoices' ? 'active' : ''}", data: { action: "details-menu#close" } do
+      = heroicon "document", options: { class: "nav-icon" }
+      %span.nav-label Invoices
+    = link_to payments_path, class: "nav-subitem #{controller_name == 'payments' ? 'active' : ''}", data: { action: "details-menu#close" } do
+      = heroicon "currency-rupee", options: { class: "nav-icon" }
+      %span.nav-label Payments

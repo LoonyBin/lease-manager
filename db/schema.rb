@@ -159,6 +159,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_06_081140) do
   create_table "users", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "email"
+    t.string "google_refresh_token"
+    t.string "google_token"
     t.string "name"
     t.string "provider", null: false
     t.integer "role", default: 1, null: false
