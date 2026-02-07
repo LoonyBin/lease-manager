@@ -1,66 +1,89 @@
 - content_for :page_title, "Payments"
 
-.drawer.drawer-end
-  %input#filter-drawer.drawer-toggle{type: "checkbox"}
-  .drawer-content.flex.flex-col
-    -# Page actions
-    .flex.justify-end.items-center.mb-6.gap-2
-      %label.btn.btn-ghost.btn-sm.gap-2{for: "filter-drawer"}
-        = heroicon "funnel", options: { class: "w-4 h-4" }
-        Filters
-      - if policy(@payments.new).new?
-        = link_to "Record Payment", new_payment_path, class: "btn btn-primary btn-sm lg:btn-md"
+- content_for :page_actions do
+  -# View toggle (desktop only)
+  .view-toggle-group.hidden.lg:flex
+    %input#view-toggle.view-toggle-input{type: "checkbox"}
+    %label.view-toggle-btn{for: "view-toggle", data: { view: "card" }, title: "Card view"}
+      = heroicon "squares-2x2", options: { class: "w-4 h-4" }
+    %label.view-toggle-btn{for: "view-toggle", data: { view: "table" }, title: "Table view"}
+      = heroicon "list-bullet", options: { class: "w-4 h-4" }
+  %label.btn.btn-ghost.btn-sm.btn-square{for: "sort-drawer", title: "Sort"}
+    = heroicon "bars-arrow-down", options: { class: "w-5 h-5" }
+  %label.btn.btn-ghost.btn-sm.btn-square{for: "filter-drawer", title: "Filter"}
+    = heroicon "funnel", options: { class: "w-5 h-5" }
+  - if policy(@payments.new).new?
+    = link_to new_payment_path, class: "btn btn-ghost btn-sm btn-square", title: "Record Payment" do
+      = heroicon "plus", options: { class: "w-5 h-5" }
 
-    .card.w-full.bg-base-100.shadow-xl
-      .card-body
+.drawer.drawer-end
+  %input#sort-drawer.drawer-toggle{type: "checkbox"}
+  .drawer-content
+    .drawer.drawer-end
+      %input#filter-drawer.drawer-toggle{type: "checkbox"}
+      .drawer-content.flex.flex-col
         = render_active_filters(@q)
 
-        .overflow-x-auto
-          %table.table.table-zebra.w-full
-            %thead
-              %tr
-                %th= sort_link(@q, :date, "Date")
-                %th= sort_link(@q, :lease_tenant_name, "Tenant")
-                %th Details
-                %th= sort_link(@q, :amount, "Amount")
-                %th Allocations
-            %tbody
-              - @payments.each do |payment|
-                %tr
-                  %td= payment.date.strftime("%b %d, %Y")
-                  %td
-                    %p.font-bold= payment.lease.tenant.name
-                    %p.text-xs.opacity-50= payment.lease.property.name
-                  %td
-                    %p.font-semibold= payment.mode.humanize.titleize
-                    - if payment.reference_number.present?
-                      %p.text-xs.font-mono.opacity-70= payment.reference_number
-                  %td= number_to_currency(payment.amount)
-                  %td
-                    - settlement_entries = payment.entries.settlements
-                    - if settlement_entries.any?
-                      %ul.list-disc.list-inside.text-xs
-                        - settlement_entries.each do |entry|
-                          - Entry.where(transaction_id: entry.transaction_id).where.not(id: entry.id).each do |counterpart|
-                            %li
-                              = number_to_currency(entry.amount.abs)
-                              to
-                              = counterpart.instrument_type
-                              - if counterpart.instrument_type == "Invoice" && counterpart.instrument.number.present?
-                                = link_to "##{counterpart.instrument.number}", invoice_path(counterpart.instrument), class: "link link-hover"
-                              - else
-                                = "##{counterpart.instrument_id}"
-                    - elsif payment.balance.abs.positive?
-                      %span.badge.badge-warning
-                        = number_to_currency(payment.balance.abs)
-                        unallocated
-                    - else
-                      %span.badge.badge-success Fully allocated
+        -# Single markup - CSS handles card vs table display
+        .payment-list
+          -# Table header (visible only in table view on desktop)
+          .payment-list-header
+            .payment-col-amount Amount
+            .payment-col-tenant Tenant
+            .payment-col-mode Mode
+            .payment-col-amount-table Amount
+            .payment-col-status Status
+            .payment-col-actions Actions
+
+          -# Payment items
+          - @payments.each do |payment|
+            - settlement_entries = payment.entries.settlements
+            - fully_allocated = payment.balance.abs.zero?
+
+            .payment-item
+              .payment-col-amount
+                .payment-item-amount-wrapper
+                  .payment-item-icon
+                    = heroicon "currency-rupee", options: { class: "w-5 h-5" }
+                  %span.payment-item-amount= number_to_currency(payment.amount, unit: "₹", precision: 0)
+                .payment-item-date= payment.date.strftime("%b %d, %Y")
+                .payment-item-compact
+                  %span.date= payment.date.strftime("%b %d, %Y")
+              .payment-col-tenant
+                .payment-item-tenant= payment.lease.tenant.name
+                .payment-item-property= payment.lease.property.name
+              .payment-col-mode
+                .payment-item-mode
+                  = payment.mode.humanize.titleize
+                - if payment.reference_number.present?
+                  .payment-item-reference= payment.reference_number
+              .payment-col-amount-table
+                .payment-item-compact
+                  %span.amount= number_to_currency(payment.amount, unit: "₹", precision: 0)
+              .payment-col-status
+                - if fully_allocated
+                  %span.payment-item-badge.payment-item-badge-allocated Allocated
+                - elsif settlement_entries.any?
+                  .payment-item-allocations
+                    %span.payment-item-badge.payment-item-badge-unallocated
+                      = number_to_currency(payment.balance.abs, unit: "₹", precision: 0)
+                      pending
+                - else
+                  %span.payment-item-badge.payment-item-badge-unallocated
+                    = number_to_currency(payment.balance.abs, unit: "₹", precision: 0)
+                    unallocated
+              .payment-col-actions
 
         = paginate @payments
 
+      .drawer-side
+        %label.drawer-overlay{for: "filter-drawer", aria: { label: "close sidebar" }}
+        .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
+          %h3.text-lg.font-bold.mb-4 Filter Payments
+          = render "search"
+
   .drawer-side
-    %label.drawer-overlay{for: "filter-drawer", aria: { label: "close sidebar" }}
+    %label.drawer-overlay{for: "sort-drawer", aria: { label: "close sidebar" }}
     .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
-      %h3.text-lg.font-bold.mb-4 Filter Payments
-      = render "search"
+      %h3.text-lg.font-bold.mb-4 Sort Payments
+      = render "sort"

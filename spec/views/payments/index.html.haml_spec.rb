@@ -12,8 +12,8 @@ RSpec.describe "payments/index" do
     render
   end
 
-  it { is_expected.to have_link("Record Payment") }
-  it { is_expected.to have_css("th", text: "Date") }
-  it { is_expected.to have_css("th", text: "Amount") }
-  it { is_expected.to have_css("td", text: "₹1,000.00") }
+  it { is_expected.to have_css(".payment-item", count: 1) }
+  it { is_expected.to have_css(".payment-item-amount", text: "₹1,000") }
+  it { is_expected.to have_css(".payment-item-tenant") }
+  it { is_expected.to have_css(".payment-item-mode") }
 end
