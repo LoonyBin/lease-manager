@@ -1,47 +1,83 @@
 - content_for :page_title, "Invoices"
 
 - content_for :page_actions do
-  %label.btn.btn-ghost.btn-sm.btn-square{for: "filter-drawer"}
+  -# View toggle (desktop only)
+  .view-toggle-group.hidden.lg:flex
+    %input#view-toggle.view-toggle-input{type: "checkbox"}
+    %label.view-toggle-btn{for: "view-toggle", data: { view: "card" }, title: "Card view"}
+      = heroicon "squares-2x2", options: { class: "w-4 h-4" }
+    %label.view-toggle-btn{for: "view-toggle", data: { view: "table" }, title: "Table view"}
+      = heroicon "list-bullet", options: { class: "w-4 h-4" }
+  %label.btn.btn-ghost.btn-sm.btn-square{for: "sort-drawer", title: "Sort"}
+    = heroicon "bars-arrow-down", options: { class: "w-5 h-5" }
+  %label.btn.btn-ghost.btn-sm.btn-square{for: "filter-drawer", title: "Filter"}
     = heroicon "funnel", options: { class: "w-5 h-5" }
 
 .drawer.drawer-end
-  %input#filter-drawer.drawer-toggle{type: "checkbox"}
-  .drawer-content.flex.flex-col
-    .card.w-full.bg-base-100.shadow-xl
-      .card-body
+  %input#sort-drawer.drawer-toggle{type: "checkbox"}
+  .drawer-content
+    .drawer.drawer-end
+      %input#filter-drawer.drawer-toggle{type: "checkbox"}
+      .drawer-content.flex.flex-col
         = render_active_filters(@q)
 
-        .overflow-x-auto
-          %table.table.table-zebra.w-full
-            %thead
-              %tr
-                %th= sort_link(@q, :date, "Date")
-                %th= sort_link(@q, :number, "Number")
-                %th= sort_link(@q, :lease_property_name, "Property")
-                %th= sort_link(@q, :lease_tenant_name, "Tenant")
-                %th Amount
-                %th= sort_link(@q, :status, "Status")
-            %tbody
-              - @invoices.each do |invoice|
-                %tr.hover.cursor-pointer{data: { controller: "clickable-row", clickable_row_url_value: invoice_path(invoice), action: "click->clickable-row#click" }}
-                  %td= invoice.date.strftime("%b %Y")
-                  %td
-                    = link_to invoice_path(invoice), class: "link link-hover" do
-                      - if invoice.number.present?
-                        .badge.badge-outline= invoice.number
-                      - else
-                        .badge.badge-ghost Draft
-                  %td= invoice.lease.property.name
-                  %td= invoice.lease.tenant.name
-                  %td= number_to_currency(invoice.line_items.sum(:amount))
-                  %td
-                    %span{class: "badge badge-#{invoice.draft? ? 'ghost' : 'success'}"}
-                      = invoice.status.humanize
+        -# Single markup - CSS handles card vs table display
+        .invoice-list
+          -# Table header (visible only in table view on desktop)
+          .invoice-list-header
+            .invoice-col-number Invoice
+            .invoice-col-property Property
+            .invoice-col-tenant Tenant
+            .invoice-col-amount Amount
+            .invoice-col-status Status
+            .invoice-col-actions Actions
+
+          -# Invoice items
+          - @invoices.each do |invoice|
+            .invoice-item{data: { controller: "clickable-row", clickable_row_url_value: invoice_path(invoice), action: "click->clickable-row#click" }}
+              .invoice-col-number
+                .invoice-item-number
+                  .invoice-item-icon
+                    = heroicon "document", options: { class: "w-5 h-5" }
+                  = link_to invoice_path(invoice), class: "invoice-item-number-text" do
+                    - if invoice.number.present?
+                      = "##{invoice.number}"
+                    - else
+                      Draft
+                .invoice-item-date= invoice.date.strftime("%b %Y")
+              .invoice-col-property
+                .invoice-item-property
+                  = heroicon "building-office-2", options: { class: "w-3.5 h-3.5 shrink-0 hidden-table" }
+                  %span= invoice.lease.property.name
+              .invoice-col-tenant
+                .invoice-item-tenant
+                  = heroicon "user", options: { class: "w-3.5 h-3.5 shrink-0 hidden-table" }
+                  %span= invoice.lease.tenant.name
+              .invoice-col-amount
+                .invoice-item-amount
+                  %span.invoice-item-total= number_to_currency(invoice.total_amount, unit: "₹", precision: 0)
+                  %span.invoice-item-badge{class: "invoice-item-badge-#{invoice.status}"}= invoice.status.humanize
+              .invoice-col-status
+                %span.invoice-item-badge.invoice-item-compact{class: "invoice-item-badge-#{invoice.status}"}= invoice.status.humanize
+              .invoice-col-actions
+                .invoice-item-actions
+                  - if policy(invoice).edit?
+                    = link_to edit_invoice_path(invoice), class: "btn btn-sm btn-ghost", aria: { label: "Edit invoice #{invoice.number}" } do
+                      = heroicon "pencil-square", options: { class: "w-4 h-4" }
+                = link_to invoice, class: "invoice-item-link" do
+                  View
+                  = heroicon "chevron-right", options: { class: "w-4 h-4" }
 
         = paginate @invoices
 
+      .drawer-side
+        %label.drawer-overlay{for: "filter-drawer", aria: { label: "close sidebar" }}
+        .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
+          %h3.text-lg.font-bold.mb-4 Filter Invoices
+          = render "search"
+
   .drawer-side
-    %label.drawer-overlay{for: "filter-drawer", aria: { label: "close sidebar" }}
+    %label.drawer-overlay{for: "sort-drawer", aria: { label: "close sidebar" }}
     .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
-      %h3.text-lg.font-bold.mb-4 Filter Invoices
-      = render "search"
+      %h3.text-lg.font-bold.mb-4 Sort Invoices
+      = render "sort"

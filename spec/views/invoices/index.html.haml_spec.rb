@@ -13,8 +13,9 @@ RSpec.describe "invoices/index" do
     render
   end
 
-  it { is_expected.to have_css("th", text: "Date") }
-  it { is_expected.to have_css("th", text: "Amount") }
-  it { is_expected.to have_css("td", text: "₹1,000.00") }
-  it { is_expected.to have_css("tr[data-controller='clickable-row']") }
+  it { is_expected.to have_css(".invoice-item", count: 1) }
+  it { is_expected.to have_css(".invoice-item-total", text: "₹1,000") }
+  it { is_expected.to have_css(".invoice-item[data-controller='clickable-row']") }
+  it { is_expected.to have_css(".invoice-item-property") }
+  it { is_expected.to have_css(".invoice-item-tenant") }
 end
