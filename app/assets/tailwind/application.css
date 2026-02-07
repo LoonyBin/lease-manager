@@ -588,3 +588,390 @@
 .btn-indigo:hover {
   background: #e0e7ff; /* indigo-100 */
 }
+
+/* ==========================================================================
+   View Toggle (CSS-only)
+   ========================================================================== */
+
+.view-toggle-group {
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.25rem;
+  background: #f1f5f9; /* slate-100 */
+  border-radius: 0.5rem;
+  margin-right: 0.5rem;
+}
+
+.view-toggle-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.view-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.375rem;
+  color: #64748b; /* slate-500 */
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.view-toggle-btn:hover {
+  color: #334155; /* slate-700 */
+}
+
+/* Card button active by default (unchecked state) */
+.view-toggle-btn[data-view="card"] {
+  background: white;
+  color: #4f46e5; /* indigo-600 */
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+.view-toggle-btn[data-view="table"] {
+  background: transparent;
+  color: #64748b;
+}
+
+/* When checkbox is checked, swap active states */
+.view-toggle-input:checked ~ .view-toggle-btn[data-view="card"] {
+  background: transparent;
+  color: #64748b;
+  box-shadow: none;
+}
+
+.view-toggle-input:checked ~ .view-toggle-btn[data-view="table"] {
+  background: white;
+  color: #4f46e5;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+/* View toggle container - controls view visibility */
+/* On mobile, always show card view */
+@media (max-width: 1023px) {
+  .view-toggle-container .table-view {
+    display: none !important;
+  }
+  .view-toggle-container .card-view {
+    display: grid !important;
+  }
+}
+
+/* On desktop, toggle based on checkbox state using :has() */
+@media (min-width: 1024px) {
+  /* Default: card view visible, table hidden */
+  .view-toggle-container .card-view {
+    display: grid;
+  }
+  .view-toggle-container .table-view {
+    display: none;
+  }
+
+  /* When #view-toggle is checked anywhere in the document: show table, hide cards */
+  body:has(#view-toggle:checked) .view-toggle-container .card-view {
+    display: none;
+  }
+  body:has(#view-toggle:checked) .view-toggle-container .table-view {
+    display: block;
+  }
+}
+
+/* ==========================================================================
+   Property List (Single markup for card/table views)
+   ========================================================================== */
+
+/* Base styles */
+.property-list {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .property-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1280px) {
+  .property-list {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Hide table header in card view */
+.property-list-header {
+  display: none;
+}
+
+/* Property item - Card view (default) */
+.property-item {
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  border: 1px solid #f1f5f9;
+  overflow: hidden;
+  text-decoration: none;
+  transition: box-shadow 0.2s;
+  cursor: pointer;
+}
+
+.property-item:hover {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+/* Card view column styles */
+.property-col-name {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: white;
+}
+
+.property-item-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.property-item-name {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.property-col-address {
+  padding: 1rem;
+  padding-bottom: 0;
+}
+
+.property-item-address {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.property-col-capacity {
+  padding: 1rem;
+  flex: 1;
+}
+
+.property-item-stats {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.property-item-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.property-item-stat-label {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: 0.025em;
+}
+
+.property-item-stat-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.property-item-progress {
+  margin-top: auto;
+}
+
+/* Compact capacity display (hidden in card view) */
+.property-item-capacity-compact {
+  display: none;
+}
+
+.property-col-actions {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.property-item-actions {
+  display: none;
+}
+
+.property-item-link {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #4f46e5;
+  margin-left: auto;
+  transition: gap 0.2s;
+}
+
+.property-item:hover .property-item-link {
+  gap: 0.5rem;
+}
+
+/* Hidden in table view */
+.hidden-table {
+  display: inline;
+}
+
+/* ==========================================================================
+   Property List - Table View (Desktop only, when toggled)
+   ========================================================================== */
+
+@media (min-width: 1024px) {
+  body:has(#view-toggle:checked) .property-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    background: white;
+    border-radius: 0.75rem;
+    border: 1px solid #f1f5f9;
+    overflow: hidden;
+  }
+
+  body:has(#view-toggle:checked) .property-list-header {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr 12rem 8rem;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #64748b;
+    letter-spacing: 0.05em;
+  }
+
+  body:has(#view-toggle:checked) .property-list-header > * {
+    display: flex;
+    align-items: center;
+  }
+
+  body:has(#view-toggle:checked) .property-col-actions {
+    justify-content: center;
+  }
+
+  body:has(#view-toggle:checked) .property-item {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr 12rem 8rem;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0;
+    border: none;
+    border-bottom: 1px solid #f1f5f9;
+    box-shadow: none;
+    align-items: center;
+  }
+
+  body:has(#view-toggle:checked) .property-item:last-child {
+    border-bottom: none;
+  }
+
+  body:has(#view-toggle:checked) .property-item:hover {
+    background: #f8fafc;
+    box-shadow: none;
+  }
+
+  body:has(#view-toggle:checked) .property-col-name {
+    padding: 0;
+    background: none;
+    color: inherit;
+  }
+
+  body:has(#view-toggle:checked) .property-item-icon {
+    width: 2rem;
+    height: 2rem;
+    background: #eef2ff;
+    color: #4f46e5;
+  }
+
+  body:has(#view-toggle:checked) .property-item-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #0f172a;
+  }
+
+  body:has(#view-toggle:checked) .property-col-address {
+    padding: 0;
+  }
+
+  body:has(#view-toggle:checked) .property-item-address {
+    font-size: 0.875rem;
+  }
+
+  body:has(#view-toggle:checked) .hidden-table {
+    display: none;
+  }
+
+  body:has(#view-toggle:checked) .property-col-capacity {
+    padding: 0;
+    flex: none;
+  }
+
+  body:has(#view-toggle:checked) .property-item-stats {
+    display: none;
+  }
+
+  body:has(#view-toggle:checked) .property-item-progress {
+    display: none;
+  }
+
+  body:has(#view-toggle:checked) .property-item-capacity-compact {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: #64748b;
+  }
+
+  body:has(#view-toggle:checked) .property-item-capacity .progress-bar {
+    width: 5rem;
+    display: block;
+  }
+
+  body:has(#view-toggle:checked) .property-item-capacity {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  body:has(#view-toggle:checked) .property-col-actions {
+    padding: 0;
+    border-top: none;
+    justify-content: center;
+  }
+
+  body:has(#view-toggle:checked) .property-item-actions {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  body:has(#view-toggle:checked) .property-item-link {
+    display: none;
+  }
+}

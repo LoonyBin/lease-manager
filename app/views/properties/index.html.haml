@@ -1,43 +1,89 @@
 - content_for :page_title, "Properties"
 
 - content_for :page_actions do
-  %label.btn.btn-ghost.btn-sm.btn-square{for: "filter-drawer"}
+  -# View toggle (desktop only)
+  .view-toggle-group.hidden.lg:flex
+    %input#view-toggle.view-toggle-input{type: "checkbox"}
+    %label.view-toggle-btn{for: "view-toggle", data: { view: "card" }, title: "Card view"}
+      = heroicon "squares-2x2", options: { class: "w-4 h-4" }
+    %label.view-toggle-btn{for: "view-toggle", data: { view: "table" }, title: "Table view"}
+      = heroicon "list-bullet", options: { class: "w-4 h-4" }
+  %label.btn.btn-ghost.btn-sm.btn-square{for: "sort-drawer", title: "Sort"}
+    = heroicon "bars-arrow-down", options: { class: "w-5 h-5" }
+  %label.btn.btn-ghost.btn-sm.btn-square{for: "filter-drawer", title: "Filter"}
     = heroicon "funnel", options: { class: "w-5 h-5" }
   - if policy(@properties.new).new?
     = link_to new_property_path, class: "btn btn-ghost btn-sm btn-square" do
       = heroicon "plus", options: { class: "w-5 h-5" }
 
 .drawer.drawer-end
-  %input#filter-drawer.drawer-toggle{type: "checkbox"}
-  .drawer-content.flex.flex-col
-    = render_active_filters(@q)
+  %input#sort-drawer.drawer-toggle{type: "checkbox"}
+  .drawer-content
+    .drawer.drawer-end
+      %input#filter-drawer.drawer-toggle{type: "checkbox"}
+      .drawer-content.flex.flex-col
+        = render_active_filters(@q)
 
-    .overflow-x-auto
-      %table.table.w-full
-        %thead
-          %tr
-            %th= sort_link(@q, :name, "Name")
-            %th= sort_link(@q, :address, "Address")
-            %th.text-center Actions
-        %tbody
+        -# Single markup - CSS handles card vs table display
+        .property-list
+          -# Table header (visible only in table view on desktop)
+          .property-list-header
+            .property-col-name Name
+            .property-col-address Address
+            .property-col-capacity Capacity
+            .property-col-actions Actions
+
+          -# Property items
           - @properties.each do |property|
-            %tr.hover.cursor-pointer{data: { controller: "clickable-row", clickable_row_url_value: property_path(property), action: "click->clickable-row#click" }}
-              %td.font-medium= link_to property.name, property, class: "link link-hover"
-              %td= property.address
-              %td.text-center
-                - if policy(property).edit? || policy(property).destroy?
-                  .join
-                    - if policy(property).edit?
-                      = link_to edit_property_path(property), class: "btn btn-sm btn-ghost join-item", aria: { label: "Edit #{property.name}" } do
-                        = heroicon "pencil-square", options: { class: "w-4 h-4" }
-                    - if policy(property).destroy?
-                      = link_to property, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-sm btn-ghost text-error join-item", aria: { label: "Delete #{property.name}" } do
-                        = heroicon "trash", options: { class: "w-4 h-4" }
+            - leased = property.leases.active_at(Date.current).sum(:quantity)
+            - available = property.capacity - leased
+            - occupancy = property.capacity.positive? ? (leased.to_f / property.capacity * 100).round : 0
 
-    = paginate @properties
+            .property-item{data: { controller: "clickable-row", clickable_row_url_value: property_path(property), action: "click->clickable-row#click" }}
+              .property-col-name
+                .property-item-icon
+                  = heroicon "building-office-2", options: { class: "w-5 h-5" }
+                = link_to property.name, property, class: "property-item-name"
+              .property-col-address
+                .property-item-address
+                  = heroicon "map-pin", options: { class: "w-3.5 h-3.5 shrink-0 hidden-table" }
+                  %span= property.address
+              .property-col-capacity
+                .property-item-capacity
+                  .property-item-stats
+                    .property-item-stat
+                      %span.property-item-stat-label Occupancy
+                      %span.property-item-stat-value #{occupancy}%
+                    .property-item-stat
+                      %span.property-item-stat-label Available
+                      %span.property-item-stat-value #{available} #{property.unit.pluralize(available)}
+                  .property-item-progress
+                    .progress-bar
+                      .progress-bar-fill{class: occupancy > 90 ? "progress-bar-fill-amber" : "progress-bar-fill-indigo", style: "width: #{occupancy}%"}
+                  .property-item-capacity-compact
+                    %span #{leased}/#{property.capacity}
+              .property-col-actions
+                .property-item-actions
+                  - if policy(property).edit?
+                    = link_to edit_property_path(property), class: "btn btn-sm btn-ghost", aria: { label: "Edit #{property.name}" } do
+                      = heroicon "pencil-square", options: { class: "w-4 h-4" }
+                  - if policy(property).destroy?
+                    = link_to property, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-sm btn-ghost text-error", aria: { label: "Delete #{property.name}" } do
+                      = heroicon "trash", options: { class: "w-4 h-4" }
+                = link_to property, class: "property-item-link" do
+                  View Details
+                  = heroicon "chevron-right", options: { class: "w-4 h-4" }
+
+        = paginate @properties
+
+      .drawer-side
+        %label.drawer-overlay{for: "filter-drawer", aria: { label: "close sidebar" }}
+        .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
+          %h3.text-lg.font-bold.mb-4 Filter Properties
+          = render "search"
 
   .drawer-side
-    %label.drawer-overlay{for: "filter-drawer", aria: { label: "close sidebar" }}
+    %label.drawer-overlay{for: "sort-drawer", aria: { label: "close sidebar" }}
     .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
-      %h3.text-lg.font-bold.mb-4 Filter Properties
-      = render "search"
+      %h3.text-lg.font-bold.mb-4 Sort Properties
+      = render "sort"

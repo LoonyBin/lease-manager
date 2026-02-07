@@ -15,8 +15,9 @@ RSpec.describe "properties/index" do
     render
   end
 
-  it { is_expected.to have_css("tr>td", text: "Name 1", count: 1) }
-  it { is_expected.to have_css("tr>td", text: "Address 1", count: 1) }
-  it { is_expected.to have_css("tr>td", text: "Name 2", count: 1) }
-  it { is_expected.to have_css("tr>td", text: "Address 2", count: 1) }
+  it { is_expected.to have_css(".property-item", count: 2) }
+  it { is_expected.to have_css(".property-item-name", text: "Name 1") }
+  it { is_expected.to have_css(".property-item-name", text: "Name 2") }
+  it { is_expected.to have_text("Address 1") }
+  it { is_expected.to have_text("Address 2") }
 end
