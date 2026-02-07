@@ -15,11 +15,11 @@ RSpec.describe "tenants/index" do
     render
   end
 
-  it { is_expected.to have_css(".tenant-item", count: 2) }
-  it { is_expected.to have_css(".tenant-item-name", text: "Name 1") }
-  it { is_expected.to have_css(".tenant-item-email", text: "Email 1") }
-  it { is_expected.to have_css(".tenant-item-phone", text: "Phone 1") }
-  it { is_expected.to have_css(".tenant-item-name", text: "Name 2") }
-  it { is_expected.to have_css(".tenant-item-email", text: "Email 2") }
-  it { is_expected.to have_css(".tenant-item-phone", text: "Phone 2") }
+  it { is_expected.to have_css(".resource-item.tenant-item", count: 2) }
+  it { is_expected.to have_css(".resource-item-title", text: "Name 1") }
+  it { is_expected.to have_css(".resource-item-text", text: "Email 1") }
+  it { is_expected.to have_css(".resource-item-meta", text: "Phone 1") }
+  it { is_expected.to have_css(".resource-item-title", text: "Name 2") }
+  it { is_expected.to have_css(".resource-item-text", text: "Email 2") }
+  it { is_expected.to have_css(".resource-item-meta", text: "Phone 2") }
 end

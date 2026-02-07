@@ -25,9 +25,9 @@
         = render_active_filters(@q)
 
         -# Single markup - CSS handles card vs table display
-        .user-list
+        .resource-list.user-list
           -# Table header (visible only in table view on desktop)
-          .user-list-header
+          .resource-list-header.user-list-header
             .user-col-name Name
             .user-col-email Email
             .user-col-provider Provider
@@ -36,33 +36,31 @@
 
           -# User items
           - @users.each do |user|
-            .user-item{data: { controller: "clickable-row", clickable_row_url_value: user_path(user), action: "click->clickable-row#click" }}
-              .user-col-name
-                .user-item-avatar
+            .resource-item.user-item{data: { controller: "clickable-row", clickable_row_url_value: user_path(user), action: "click->clickable-row#click" }}
+              .resource-col-header.user-col-name
+                .resource-item-avatar
                   %span= user.initials
-                = link_to user.name, user, class: "user-item-name"
-              .user-col-email
-                .user-item-email
+                = link_to user.name, user, class: "resource-item-title"
+              .resource-col.user-col-email
+                .resource-item-text
                   = heroicon "envelope", options: { class: "w-3.5 h-3.5 shrink-0 hidden-table" }
                   %span= user.email
-              .user-col-provider
-                .user-item-provider
-                  %span.user-item-badge.user-item-badge-provider= user.provider.titleize
-              .user-col-role
-                .user-item-role
-                  - if user.admin?
-                    %span.user-item-badge.user-item-badge-admin Admin
-                  - else
-                    %span.user-item-badge.user-item-badge-normal Normal
-              .user-col-actions
-                .user-item-actions
+              .resource-col.user-col-provider
+                %span.resource-badge.resource-badge-neutral= user.provider.titleize
+              .resource-col-flex.user-col-role
+                - if user.admin?
+                  %span.resource-badge.resource-badge-warning Admin
+                - else
+                  %span.resource-badge.resource-badge-success Normal
+              .resource-col-actions.user-col-actions
+                .resource-item-actions
                   - if policy(user).edit?
                     = link_to edit_user_path(user), class: "btn btn-sm btn-ghost", aria: { label: "Edit #{user.name}" } do
                       = heroicon "pencil-square", options: { class: "w-4 h-4" }
                   - if policy(user).destroy?
                     = link_to user, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-sm btn-ghost text-error", aria: { label: "Delete #{user.name}" } do
                       = heroicon "trash", options: { class: "w-4 h-4" }
-                = link_to user, class: "user-item-link" do
+                = link_to user, class: "resource-item-link" do
                   View Details
                   = heroicon "chevron-right", options: { class: "w-4 h-4" }
 

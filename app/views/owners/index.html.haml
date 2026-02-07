@@ -25,9 +25,9 @@
         = render_active_filters(@q)
 
         -# Single markup - CSS handles card vs table display
-        .owner-list
+        .resource-list.owner-list
           -# Table header (visible only in table view on desktop)
-          .owner-list-header
+          .resource-list-header.owner-list-header
             .owner-col-name Name
             .owner-col-address Address
             .owner-col-properties Properties
@@ -37,31 +37,30 @@
           - @owners.each do |owner|
             - properties_count = owner.properties.count
 
-            .owner-item{data: { controller: "clickable-row", clickable_row_url_value: owner_path(owner), action: "click->clickable-row#click" }}
-              .owner-col-name
-                .owner-item-icon
+            .resource-item.owner-item{data: { controller: "clickable-row", clickable_row_url_value: owner_path(owner), action: "click->clickable-row#click" }}
+              .resource-col-header.owner-col-name
+                .resource-item-icon
                   = heroicon "briefcase", options: { class: "w-5 h-5" }
-                = link_to owner.name, owner, class: "owner-item-name"
-              .owner-col-address
-                .owner-item-address
+                = link_to owner.name, owner, class: "resource-item-title"
+              .resource-col.owner-col-address
+                .resource-item-meta
                   = heroicon "map-pin", options: { class: "w-3.5 h-3.5 shrink-0 hidden-table" }
                   %span= owner.address
-              .owner-col-properties
-                .owner-item-properties
-                  - if properties_count > 0
-                    %span.owner-item-badge.owner-item-badge-active
-                      = pluralize(properties_count, "property", "properties")
-                  - else
-                    %span.owner-item-badge.owner-item-badge-none No properties
-              .owner-col-actions
-                .owner-item-actions
+              .resource-col-flex.owner-col-properties
+                - if properties_count > 0
+                  %span.resource-badge.resource-badge-success
+                    = pluralize(properties_count, "property", "properties")
+                - else
+                  %span.resource-badge.resource-badge-neutral No properties
+              .resource-col-actions.owner-col-actions
+                .resource-item-actions
                   - if policy(owner).edit?
                     = link_to edit_owner_path(owner), class: "btn btn-sm btn-ghost", aria: { label: "Edit #{owner.name}" } do
                       = heroicon "pencil-square", options: { class: "w-4 h-4" }
                   - if policy(owner).destroy?
                     = button_to owner_path(owner), method: :delete, data: { turbo_confirm: "Are you sure?" }, class: "btn btn-sm btn-ghost text-error", aria: { label: "Delete #{owner.name}" } do
                       = heroicon "trash", options: { class: "w-4 h-4" }
-                = link_to owner, class: "owner-item-link" do
+                = link_to owner, class: "resource-item-link" do
                   View Details
                   = heroicon "chevron-right", options: { class: "w-4 h-4" }
 

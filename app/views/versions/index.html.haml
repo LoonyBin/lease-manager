@@ -22,9 +22,9 @@
         = render_active_filters(@q)
 
         -# Single markup - CSS handles card vs table display
-        .version-list
+        .resource-list.version-list
           -# Table header (visible only in table view on desktop)
-          .version-list-header
+          .resource-list-header.version-list-header
             .version-col-date Date
             .version-col-resource Resource
             .version-col-event Event
@@ -35,43 +35,41 @@
           - @versions.each do |version|
             - user = User.find_by(id: version.whodunnit) if version.whodunnit.present?
 
-            .version-item{data: { controller: "clickable-row", clickable_row_url_value: version_path(version.id), action: "click->clickable-row#click" }}
-              .version-col-date
-                .version-item-icon
+            .resource-item.version-item{data: { controller: "clickable-row", clickable_row_url_value: version_path(version.id), action: "click->clickable-row#click" }}
+              .resource-col-header.version-col-date
+                .resource-item-icon
                   = heroicon "clock", options: { class: "w-5 h-5" }
                 .version-item-date-wrapper
                   = link_to version_path(version.id), class: "version-item-date" do
                     = version.created_at.strftime("%b %d, %Y")
                   .version-item-time= version.created_at.strftime("%H:%M")
-              .version-col-resource
+              .resource-col.version-col-resource
                 .version-item-resource
                   %span.version-item-type= version.item_type
                   %span.version-item-id= "##{version.item_id}"
-              .version-col-event
-                .version-item-event
-                  - case version.event
-                  - when "create"
-                    %span.version-item-badge.version-item-badge-create Created
-                  - when "update"
-                    %span.version-item-badge.version-item-badge-update Updated
-                  - when "destroy"
-                    %span.version-item-badge.version-item-badge-destroy Deleted
-                  - else
-                    %span.version-item-badge= version.event.humanize
-              .version-col-user
-                .version-item-user
-                  - if user
-                    = user.name
-                  - elsif version.whodunnit.present?
-                    = t(".unknown_user")
-                  - else
-                    %span.version-item-user-system= t(".system")
-              .version-col-actions
-                .version-item-actions
+              .resource-col.version-col-event
+                - case version.event
+                - when "create"
+                  %span.resource-badge.resource-badge-success Created
+                - when "update"
+                  %span.resource-badge.resource-badge-info Updated
+                - when "destroy"
+                  %span.resource-badge.resource-badge-error Deleted
+                - else
+                  %span.resource-badge.resource-badge-neutral= version.event.humanize
+              .resource-col-flex.version-col-user
+                - if user
+                  = user.name
+                - elsif version.whodunnit.present?
+                  = t(".unknown_user")
+                - else
+                  %span.version-item-user-system= t(".system")
+              .resource-col-actions.version-col-actions
+                .resource-item-actions
                   - if VersionPolicy.new(current_user, version).destroy?
                     = link_to version_path(version.id), data: { turbo_method: :delete, turbo_confirm: t(".delete_confirm") }, class: "btn btn-sm btn-ghost text-error", aria: { label: "Delete version ##{version.id}" } do
                       = heroicon "trash", options: { class: "w-4 h-4" }
-                = link_to version_path(version.id), class: "version-item-link" do
+                = link_to version_path(version.id), class: "resource-item-link" do
                   View Details
                   = heroicon "chevron-right", options: { class: "w-4 h-4" }
 

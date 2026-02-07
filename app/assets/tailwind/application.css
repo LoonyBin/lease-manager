@@ -768,66 +768,32 @@
   box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 }
 
-/* View toggle container - controls view visibility */
-/* On mobile, always show card view */
-@media (max-width: 1023px) {
-  .view-toggle-container .table-view {
-    display: none !important;
-  }
-  .view-toggle-container .card-view {
-    display: grid !important;
-  }
-}
-
-/* On desktop, toggle based on checkbox state using :has() */
-@media (min-width: 1024px) {
-  /* Default: card view visible, table hidden */
-  .view-toggle-container .card-view {
-    display: grid;
-  }
-  .view-toggle-container .table-view {
-    display: none;
-  }
-
-  /* When #view-toggle is checked anywhere in the document: show table, hide cards */
-  body:has(#view-toggle:checked) .view-toggle-container .card-view {
-    display: none;
-  }
-  body:has(#view-toggle:checked) .view-toggle-container .table-view {
-    display: block;
-  }
-}
-
 /* ==========================================================================
-   Property List (Single markup for card/table views)
+   Resource List - Shared Base Components (DRY)
    ========================================================================== */
 
-/* Base styles */
-.property-list {
+/*
+ * These base classes are shared across all resource lists:
+ * property, lease, invoice, payment, tenant, owner, user, version
+ *
+ * Resource-specific classes (e.g., .property-list) extend these for
+ * custom column layouts in table view.
+ */
+
+/* Base list container - card grid layout */
+.resource-list {
   display: grid;
-  grid-template-columns: repeat(1, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1rem;
 }
 
-@media (min-width: 768px) {
-  .property-list {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (min-width: 1280px) {
-  .property-list {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-/* Hide table header in card view */
-.property-list-header {
+/* Table header - hidden in card view */
+.resource-list-header {
   display: none;
 }
 
-/* Property item - Card view (default) */
-.property-item {
+/* Base item - card view styling */
+.resource-item {
   display: flex;
   flex-direction: column;
   background: white;
@@ -835,59 +801,368 @@
   box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   border: 1px solid #f1f5f9;
   overflow: hidden;
-  text-decoration: none;
   transition: box-shadow 0.2s;
   cursor: pointer;
 }
 
-.property-item:hover {
+.resource-item:hover {
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
 
-/* Card view column styles */
-.property-col-name {
+/* Header column - gradient background */
+.resource-col-header {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   padding: 1rem;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
   color: white;
 }
 
-.property-item-icon {
+/* Middle columns */
+.resource-col {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+/* Flex column (no border, grows) */
+.resource-col-flex {
+  padding: 0.75rem 1rem;
+  flex: 1;
+}
+
+/* Actions column - footer */
+.resource-col-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid #f1f5f9;
+  background: #f8fafc;
+}
+
+/* Icon container */
+.resource-item-icon {
   width: 2.5rem;
   height: 2.5rem;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 0.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 0.5rem;
 }
 
-.property-item-name {
-  font-size: 1.125rem;
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-.property-col-address {
-  padding: 1rem;
-  padding-bottom: 0;
-}
-
-.property-item-address {
+/* Avatar container (for users) */
+.resource-item-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
   display: flex;
   align-items: center;
-  gap: 0.375rem;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* Title link */
+.resource-item-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  text-decoration: none;
+}
+
+.resource-item-title:hover {
+  text-decoration: underline;
+}
+
+/* Header subtitle */
+.resource-item-subtitle {
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+/* Text with icon */
+.resource-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-size: 0.875rem;
   color: #64748b;
 }
 
-.property-col-capacity {
-  padding: 1rem;
-  flex: 1;
+/* Primary text color */
+.resource-item-text {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #334155;
 }
 
+/* Action buttons - hidden in card view, shown in table */
+.resource-item-actions {
+  display: none;
+}
+
+/* View details link */
+.resource-item-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #4f46e5;
+  text-decoration: none;
+  margin-left: auto;
+}
+
+.resource-item-link:hover {
+  color: #4338ca;
+}
+
+/* Badge base */
+.resource-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 9999px;
+}
+
+/* Badge colors */
+.resource-badge-success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.resource-badge-warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.resource-badge-error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.resource-badge-info {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.resource-badge-neutral {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.resource-badge-amber {
+  background: #fef9c3;
+  color: #854d0e;
+}
+
+/* Hidden in table view utility */
+.hidden-table {
+  display: inline;
+}
+
+/* ==========================================================================
+   Resource List - Table View (Desktop with toggle)
+   ========================================================================== */
+
+@media (min-width: 1024px) {
+  /* Table view wrapper */
+  body:has(#view-toggle:checked) .resource-list {
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+    border: 1px solid #f1f5f9;
+    overflow: hidden;
+  }
+
+  /* Table header styling */
+  body:has(#view-toggle:checked) .resource-list-header {
+    display: grid;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+  }
+
+  body:has(#view-toggle:checked) .resource-list-header > * {
+    display: flex;
+    align-items: center;
+  }
+
+  /* Table row styling */
+  body:has(#view-toggle:checked) .resource-item {
+    display: grid;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0;
+    border: none;
+    border-bottom: 1px solid #f1f5f9;
+    box-shadow: none;
+    align-items: center;
+  }
+
+  body:has(#view-toggle:checked) .resource-item:last-child {
+    border-bottom: none;
+  }
+
+  body:has(#view-toggle:checked) .resource-item:hover {
+    background: #f8fafc;
+    box-shadow: none;
+  }
+
+  /* Header column - reset gradient */
+  body:has(#view-toggle:checked) .resource-col-header {
+    padding: 0;
+    background: none;
+    color: inherit;
+  }
+
+  /* Icon in table view */
+  body:has(#view-toggle:checked) .resource-item-icon {
+    width: 2rem;
+    height: 2rem;
+    background: #eef2ff;
+    color: #4f46e5;
+  }
+
+  /* Avatar in table view */
+  body:has(#view-toggle:checked) .resource-item-avatar {
+    width: 2rem;
+    height: 2rem;
+    background: #eef2ff;
+    color: #4f46e5;
+    font-size: 0.75rem;
+  }
+
+  /* Title in table view */
+  body:has(#view-toggle:checked) .resource-item-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #4f46e5;
+  }
+
+  /* Middle columns - reset */
+  body:has(#view-toggle:checked) .resource-col,
+  body:has(#view-toggle:checked) .resource-col-flex {
+    padding: 0;
+    border-bottom: none;
+    flex: none;
+  }
+
+  /* Actions column - reset */
+  body:has(#view-toggle:checked) .resource-col-actions {
+    padding: 0;
+    border-top: none;
+    background: none;
+    justify-content: center;
+  }
+
+  /* Show action buttons in table view */
+  body:has(#view-toggle:checked) .resource-item-actions {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  /* Hide view details link in table view */
+  body:has(#view-toggle:checked) .resource-item-link {
+    display: none;
+  }
+
+  /* Hide icons in table view */
+  body:has(#view-toggle:checked) .hidden-table {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   Resource-Specific Column Layouts (Table View)
+   ========================================================================== */
+
+/* Property: Name | Address | Capacity | Actions */
+.property-list { --cols: 1fr 1.5fr 12rem 8rem; }
+
+/* Lease: Property | Tenant | Dates | Details | Status | Actions */
+.lease-list { --cols: 1.5fr 1fr 1fr 1fr 0.75fr 6rem; }
+
+/* Invoice: Number | Tenant | Amount | Status | Actions */
+.invoice-list { --cols: 1.5fr 1fr 1.5fr 1fr 0.75fr 6rem; }
+
+/* Payment: Amount | Tenant | Mode | Amount | Status | Actions */
+.payment-list { --cols: 1fr 1fr 1fr 1fr 1fr 6rem; }
+
+/* Tenant: Name | Email | Phone | Leases | Actions */
+.tenant-list { --cols: 1.5fr 1.5fr 1fr 1fr 6rem; }
+
+/* Owner: Name | Address | Properties | Actions */
+.owner-list { --cols: 1.5fr 2fr 1fr 6rem; }
+
+/* User: Name | Email | Provider | Role | Actions */
+.user-list { --cols: 1.5fr 2fr 1fr 0.75fr 6rem; }
+
+/* Version: Date | Resource | Event | User | Actions */
+.version-list { --cols: 1.5fr 1.5fr 1fr 1fr 6rem; }
+
+@media (min-width: 1024px) {
+  body:has(#view-toggle:checked) .property-list-header,
+  body:has(#view-toggle:checked) .property-item {
+    grid-template-columns: var(--cols, 1fr 1.5fr 12rem 8rem);
+  }
+
+  body:has(#view-toggle:checked) .lease-list-header,
+  body:has(#view-toggle:checked) .lease-item {
+    grid-template-columns: var(--cols, 1.5fr 1fr 1fr 1fr 0.75fr 6rem);
+  }
+
+  body:has(#view-toggle:checked) .invoice-list-header,
+  body:has(#view-toggle:checked) .invoice-item {
+    grid-template-columns: var(--cols, 1.5fr 1fr 1.5fr 1fr 0.75fr 6rem);
+  }
+
+  body:has(#view-toggle:checked) .payment-list-header,
+  body:has(#view-toggle:checked) .payment-item {
+    grid-template-columns: var(--cols, 1fr 1fr 1fr 1fr 1fr 6rem);
+  }
+
+  body:has(#view-toggle:checked) .tenant-list-header,
+  body:has(#view-toggle:checked) .tenant-item {
+    grid-template-columns: var(--cols, 1.5fr 1.5fr 1fr 1fr 6rem);
+  }
+
+  body:has(#view-toggle:checked) .owner-list-header,
+  body:has(#view-toggle:checked) .owner-item {
+    grid-template-columns: var(--cols, 1.5fr 2fr 1fr 6rem);
+  }
+
+  body:has(#view-toggle:checked) .user-list-header,
+  body:has(#view-toggle:checked) .user-item {
+    grid-template-columns: var(--cols, 1.5fr 2fr 1fr 0.75fr 6rem);
+  }
+
+  body:has(#view-toggle:checked) .version-list-header,
+  body:has(#view-toggle:checked) .version-item {
+    grid-template-columns: var(--cols, 1.5fr 1.5fr 1fr 1fr 6rem);
+  }
+}
+
+/* ==========================================================================
+   Resource-Specific Styles (Only what differs from base)
+   ========================================================================== */
+
+/* Property - larger capacity stats in card view */
 .property-item-stats {
   display: flex;
   gap: 1.5rem;
@@ -918,142 +1193,12 @@
   margin-top: auto;
 }
 
-/* Compact capacity display (hidden in card view) */
 .property-item-capacity-compact {
   display: none;
 }
 
-.property-col-actions {
-  padding: 0.75rem 1rem;
-  border-top: 1px solid #f1f5f9;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.property-item-actions {
-  display: none;
-}
-
-.property-item-link {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #4f46e5;
-  margin-left: auto;
-  transition: gap 0.2s;
-}
-
-.property-item:hover .property-item-link {
-  gap: 0.5rem;
-}
-
-/* Hidden in table view */
-.hidden-table {
-  display: inline;
-}
-
-/* ==========================================================================
-   Property List - Table View (Desktop only, when toggled)
-   ========================================================================== */
-
 @media (min-width: 1024px) {
-  body:has(#view-toggle:checked) .property-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    background: white;
-    border-radius: 0.75rem;
-    border: 1px solid #f1f5f9;
-    overflow: hidden;
-  }
-
-  body:has(#view-toggle:checked) .property-list-header {
-    display: grid;
-    grid-template-columns: 1fr 1.5fr 12rem 8rem;
-    gap: 1rem;
-    padding: 0.75rem 1rem;
-    background: #f8fafc;
-    border-bottom: 1px solid #e2e8f0;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    color: #64748b;
-    letter-spacing: 0.05em;
-  }
-
-  body:has(#view-toggle:checked) .property-list-header > * {
-    display: flex;
-    align-items: center;
-  }
-
-  body:has(#view-toggle:checked) .property-col-actions {
-    justify-content: center;
-  }
-
-  body:has(#view-toggle:checked) .property-item {
-    display: grid;
-    grid-template-columns: 1fr 1.5fr 12rem 8rem;
-    gap: 1rem;
-    padding: 0.75rem 1rem;
-    border-radius: 0;
-    border: none;
-    border-bottom: 1px solid #f1f5f9;
-    box-shadow: none;
-    align-items: center;
-  }
-
-  body:has(#view-toggle:checked) .property-item:last-child {
-    border-bottom: none;
-  }
-
-  body:has(#view-toggle:checked) .property-item:hover {
-    background: #f8fafc;
-    box-shadow: none;
-  }
-
-  body:has(#view-toggle:checked) .property-col-name {
-    padding: 0;
-    background: none;
-    color: inherit;
-  }
-
-  body:has(#view-toggle:checked) .property-item-icon {
-    width: 2rem;
-    height: 2rem;
-    background: #eef2ff;
-    color: #4f46e5;
-  }
-
-  body:has(#view-toggle:checked) .property-item-name {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #0f172a;
-  }
-
-  body:has(#view-toggle:checked) .property-col-address {
-    padding: 0;
-  }
-
-  body:has(#view-toggle:checked) .property-item-address {
-    font-size: 0.875rem;
-  }
-
-  body:has(#view-toggle:checked) .hidden-table {
-    display: none;
-  }
-
-  body:has(#view-toggle:checked) .property-col-capacity {
-    padding: 0;
-    flex: none;
-  }
-
-  body:has(#view-toggle:checked) .property-item-stats {
-    display: none;
-  }
-
+  body:has(#view-toggle:checked) .property-item-stats,
   body:has(#view-toggle:checked) .property-item-progress {
     display: none;
   }
@@ -1076,103 +1221,9 @@
     align-items: center;
     gap: 0.75rem;
   }
-
-  body:has(#view-toggle:checked) .property-col-actions {
-    padding: 0;
-    border-top: none;
-    justify-content: center;
-  }
-
-  body:has(#view-toggle:checked) .property-item-actions {
-    display: flex;
-    gap: 0.25rem;
-  }
-
-  body:has(#view-toggle:checked) .property-item-link {
-    display: none;
-  }
 }
 
-/* ==========================================================================
-   Lease List - Card/Table responsive layout
-   ========================================================================== */
-
-.lease-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 1rem;
-}
-
-.lease-list-header {
-  display: none;
-}
-
-/* Lease item - Card view (default) */
-.lease-item {
-  display: flex;
-  flex-direction: column;
-  background: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  border: 1px solid #f1f5f9;
-  overflow: hidden;
-  transition: box-shadow 0.2s;
-  cursor: pointer;
-}
-
-.lease-item:hover {
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-}
-
-/* Card view column styles */
-.lease-col-property {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1rem;
-  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
-  color: white;
-}
-
-.lease-item-icon {
-  width: 2.5rem;
-  height: 2.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 0.5rem;
-}
-
-.lease-item-property {
-  font-size: 1rem;
-  font-weight: 600;
-  color: white;
-  text-decoration: none;
-}
-
-.lease-item-property:hover {
-  text-decoration: underline;
-}
-
-.lease-col-tenant {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.lease-item-tenant {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  color: #334155;
-}
-
-.lease-col-dates {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #f1f5f9;
-}
-
+/* Lease - dates and stats */
 .lease-item-dates {
   display: flex;
   flex-wrap: wrap;
@@ -1186,35 +1237,6 @@
   display: flex;
   align-items: center;
   gap: 0.25rem;
-}
-
-.lease-item-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.125rem 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border-radius: 9999px;
-}
-
-.lease-item-badge-active {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.lease-item-badge-terminated {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.lease-item-badge-expired {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.lease-col-details {
-  padding: 0.75rem 1rem;
-  flex: 1;
 }
 
 .lease-item-stats {
@@ -1241,147 +1263,15 @@
   color: #0f172a;
 }
 
-.lease-col-status {
-  padding: 0.75rem 1rem;
-  display: flex;
-  align-items: center;
-}
-
-.lease-col-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 1rem;
-  border-top: 1px solid #f1f5f9;
-  background: #f8fafc;
-}
-
-.lease-item-actions {
-  display: flex;
-  gap: 0.25rem;
-}
-
-.lease-item-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #4f46e5;
-  text-decoration: none;
-}
-
-.lease-item-link:hover {
-  color: #4338ca;
-}
-
-/* Hide compact view in card mode */
 .lease-item-details-compact {
   display: none;
 }
 
-/* Desktop table view toggle */
 @media (min-width: 1024px) {
-  body:has(#view-toggle:checked) .lease-list {
-    display: flex;
-    flex-direction: column;
-    background: white;
-    border-radius: 0.75rem;
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-    border: 1px solid #f1f5f9;
-    overflow: hidden;
-  }
-
-  body:has(#view-toggle:checked) .lease-list-header {
-    display: grid;
-    grid-template-columns: 1.5fr 1fr 1fr 1fr 0.75fr 6rem;
-    gap: 1rem;
-    padding: 0.75rem 1rem;
-    background: #f8fafc;
-    border-bottom: 1px solid #e2e8f0;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #64748b;
-  }
-
-  body:has(#view-toggle:checked) .lease-list-header > * {
-    display: flex;
-    align-items: center;
-  }
-
-  body:has(#view-toggle:checked) .lease-col-actions {
-    justify-content: center;
-  }
-
-  body:has(#view-toggle:checked) .lease-item {
-    display: grid;
-    grid-template-columns: 1.5fr 1fr 1fr 1fr 0.75fr 6rem;
-    gap: 1rem;
-    padding: 0.75rem 1rem;
-    border-radius: 0;
-    border: none;
-    border-bottom: 1px solid #f1f5f9;
-    box-shadow: none;
-    align-items: center;
-  }
-
-  body:has(#view-toggle:checked) .lease-item:last-child {
-    border-bottom: none;
-  }
-
-  body:has(#view-toggle:checked) .lease-item:hover {
-    background: #f8fafc;
-    box-shadow: none;
-  }
-
-  body:has(#view-toggle:checked) .lease-col-property {
-    padding: 0;
-    background: none;
-    color: inherit;
-  }
-
-  body:has(#view-toggle:checked) .lease-item-icon {
-    width: 2rem;
-    height: 2rem;
-    background: #eef2ff;
-    color: #4f46e5;
-  }
-
-  body:has(#view-toggle:checked) .lease-item-property {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #4f46e5;
-  }
-
-  body:has(#view-toggle:checked) .lease-col-tenant {
-    padding: 0;
-    border-bottom: none;
-  }
-
-  body:has(#view-toggle:checked) .lease-item-tenant {
-    font-size: 0.875rem;
-  }
-
-  body:has(#view-toggle:checked) .hidden-table {
-    display: none;
-  }
-
-  body:has(#view-toggle:checked) .lease-col-dates {
-    padding: 0;
-    border-bottom: none;
-  }
-
   body:has(#view-toggle:checked) .lease-item-dates {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.125rem;
-  }
-
-  body:has(#view-toggle:checked) .lease-col-details {
-    padding: 0;
-    flex: none;
   }
 
   body:has(#view-toggle:checked) .lease-item-stats {
@@ -1404,133 +1294,9 @@
     font-size: 0.75rem;
     color: #64748b;
   }
-
-  body:has(#view-toggle:checked) .lease-col-status {
-    padding: 0;
-  }
-
-  body:has(#view-toggle:checked) .lease-col-actions {
-    padding: 0;
-    border-top: none;
-    background: none;
-    justify-content: center;
-  }
-
-  body:has(#view-toggle:checked) .lease-item-actions {
-    display: flex;
-    gap: 0.25rem;
-  }
-
-  body:has(#view-toggle:checked) .lease-item-link {
-    display: none;
-  }
 }
 
-/* ==========================================================================
-   Invoice List - Card/Table responsive layout
-   ========================================================================== */
-
-.invoice-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1rem;
-}
-
-.invoice-list-header {
-  display: none;
-}
-
-/* Invoice item - Card view (default) */
-.invoice-item {
-  display: flex;
-  flex-direction: column;
-  background: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  border: 1px solid #f1f5f9;
-  overflow: hidden;
-  transition: box-shadow 0.2s;
-  cursor: pointer;
-}
-
-.invoice-item:hover {
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-}
-
-/* Card header with invoice number */
-.invoice-col-number {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem;
-  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
-  color: white;
-}
-
-.invoice-item-number {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.invoice-item-icon {
-  width: 2.5rem;
-  height: 2.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 0.5rem;
-}
-
-.invoice-item-number-text {
-  font-size: 1rem;
-  font-weight: 600;
-  color: white;
-  text-decoration: none;
-}
-
-.invoice-item-number-text:hover {
-  text-decoration: underline;
-}
-
-.invoice-item-date {
-  font-size: 0.875rem;
-  opacity: 0.9;
-}
-
-.invoice-col-property {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.invoice-item-property {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #334155;
-}
-
-.invoice-col-tenant {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.invoice-item-tenant {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  color: #64748b;
-}
-
-.invoice-col-amount {
-  padding: 0.75rem 1rem;
-  flex: 1;
-}
-
+/* Invoice - amount display */
 .invoice-item-amount {
   display: flex;
   justify-content: space-between;
@@ -1543,287 +1309,42 @@
   color: #0f172a;
 }
 
-.invoice-item-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border-radius: 9999px;
-}
-
-.invoice-item-badge-draft {
-  background: #f1f5f9;
-  color: #64748b;
-}
-
-.invoice-item-badge-finalized {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-.invoice-item-badge-sent {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.invoice-item-badge-paid {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.invoice-item-badge-partially_paid {
-  background: #fef9c3;
-  color: #854d0e;
-}
-
-.invoice-item-badge-cancelled {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.invoice-col-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 1rem;
-  border-top: 1px solid #f1f5f9;
-  background: #f8fafc;
-}
-
-.invoice-item-actions {
-  display: flex;
-  gap: 0.25rem;
-}
-
-.invoice-item-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #4f46e5;
-  text-decoration: none;
-}
-
-.invoice-item-link:hover {
-  color: #4338ca;
-}
-
-/* Hide compact view in card mode */
-.invoice-item-compact {
+.invoice-item-amount-compact {
   display: none;
 }
 
-/* Desktop table view toggle */
 @media (min-width: 1024px) {
-  body:has(#view-toggle:checked) .invoice-list {
+  body:has(#view-toggle:checked) .invoice-item-total {
+    display: none;
+  }
+
+  body:has(#view-toggle:checked) .invoice-item-amount-compact {
     display: flex;
     flex-direction: column;
-    background: white;
-    border-radius: 0.75rem;
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-    border: 1px solid #f1f5f9;
-    overflow: hidden;
-  }
-
-  body:has(#view-toggle:checked) .invoice-list-header {
-    display: grid;
-    grid-template-columns: 7rem 1fr 1fr 8rem 6rem 6rem;
-    gap: 1rem;
-    padding: 0.75rem 1rem;
-    background: #f8fafc;
-    border-bottom: 1px solid #e2e8f0;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #64748b;
-  }
-
-  body:has(#view-toggle:checked) .invoice-list-header > * {
-    display: flex;
-    align-items: center;
-  }
-
-  body:has(#view-toggle:checked) .invoice-item {
-    display: grid;
-    grid-template-columns: 7rem 1fr 1fr 8rem 6rem 6rem;
-    gap: 1rem;
-    padding: 0.75rem 1rem;
-    border-radius: 0;
-    border: none;
-    border-bottom: 1px solid #f1f5f9;
-    box-shadow: none;
-    align-items: center;
-  }
-
-  body:has(#view-toggle:checked) .invoice-item:last-child {
-    border-bottom: none;
-  }
-
-  body:has(#view-toggle:checked) .invoice-item:hover {
-    background: #f8fafc;
-    box-shadow: none;
-  }
-
-  body:has(#view-toggle:checked) .invoice-col-number {
-    padding: 0;
-    background: none;
-    color: inherit;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: center;
     gap: 0.125rem;
   }
 
-  body:has(#view-toggle:checked) .invoice-item-number {
-    gap: 0.5rem;
-  }
-
-  body:has(#view-toggle:checked) .invoice-item-icon {
-    display: none;
-  }
-
-  body:has(#view-toggle:checked) .invoice-item-number-text {
-    font-size: 0.875rem;
+  body:has(#view-toggle:checked) .invoice-item-amount-compact .amount {
     font-weight: 600;
-    color: #4f46e5;
+    color: #0f172a;
   }
 
-  body:has(#view-toggle:checked) .invoice-item-date {
+  body:has(#view-toggle:checked) .invoice-item-amount-compact .balance {
     font-size: 0.75rem;
     color: #64748b;
-    opacity: 1;
-  }
-
-  body:has(#view-toggle:checked) .invoice-col-property {
-    padding: 0;
-    border-bottom: none;
-  }
-
-  body:has(#view-toggle:checked) .invoice-item-property {
-    font-size: 0.875rem;
-  }
-
-  body:has(#view-toggle:checked) .hidden-table {
-    display: none;
-  }
-
-  body:has(#view-toggle:checked) .invoice-col-tenant {
-    padding: 0;
-    border-bottom: none;
-  }
-
-  body:has(#view-toggle:checked) .invoice-item-tenant {
-    font-size: 0.875rem;
-  }
-
-  body:has(#view-toggle:checked) .invoice-col-amount {
-    padding: 0;
-    flex: none;
-  }
-
-  body:has(#view-toggle:checked) .invoice-item-amount {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0;
-  }
-
-  body:has(#view-toggle:checked) .invoice-item-total {
-    font-size: 0.875rem;
-    font-weight: 600;
-  }
-
-  body:has(#view-toggle:checked) .invoice-item-badge {
-    display: none;
-  }
-
-  body:has(#view-toggle:checked) .invoice-item-compact {
-    display: flex;
-  }
-
-  body:has(#view-toggle:checked) .invoice-col-status {
-    padding: 0;
-  }
-
-  body:has(#view-toggle:checked) .invoice-col-actions {
-    padding: 0;
-    border-top: none;
-    background: none;
-    justify-content: center;
-  }
-
-  body:has(#view-toggle:checked) .invoice-item-actions {
-    display: flex;
-    gap: 0.25rem;
-  }
-
-  body:has(#view-toggle:checked) .invoice-item-link {
-    display: none;
   }
 }
 
-/* ==========================================================================
-   Payment List - Card/Table responsive layout
-   ========================================================================== */
-
-.payment-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1rem;
-}
-
-.payment-list-header {
-  display: none;
-}
-
-/* Payment item - Card view (default) */
-.payment-item {
-  display: flex;
-  flex-direction: column;
-  background: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  border: 1px solid #f1f5f9;
-  overflow: hidden;
-  transition: box-shadow 0.2s;
-}
-
-.payment-item:hover {
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-}
-
-/* Card header with amount */
-.payment-col-amount {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem;
-  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-  color: white;
-}
-
+/* Payment - amount wrapper */
 .payment-item-amount-wrapper {
   display: flex;
   align-items: center;
   gap: 0.75rem;
 }
 
-.payment-item-icon {
-  width: 2.5rem;
-  height: 2.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 0.5rem;
-}
-
 .payment-item-amount {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: white;
+  font-size: 1.125rem;
+  font-weight: 600;
 }
 
 .payment-item-date {
@@ -1831,155 +1352,22 @@
   opacity: 0.9;
 }
 
-.payment-col-tenant {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.payment-item-tenant {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #334155;
-}
-
-.payment-item-property {
-  font-size: 0.75rem;
-  color: #64748b;
-  margin-top: 0.125rem;
-}
-
-.payment-col-mode {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.payment-item-mode {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  color: #334155;
-}
-
-.payment-item-reference {
-  font-size: 0.75rem;
-  font-family: ui-monospace, monospace;
-  color: #64748b;
-  margin-top: 0.125rem;
-}
-
-.payment-col-status {
-  padding: 0.75rem 1rem;
-  flex: 1;
-}
-
-.payment-item-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border-radius: 9999px;
-}
-
-.payment-item-badge-allocated {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.payment-item-badge-unallocated {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.payment-item-allocations {
-  font-size: 0.75rem;
-  color: #64748b;
-}
-
-.payment-item-allocations ul {
-  list-style: disc;
-  list-style-position: inside;
-  margin-top: 0.25rem;
-}
-
-.payment-col-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding: 0.75rem 1rem;
-  border-top: 1px solid #f1f5f9;
-  background: #f8fafc;
-}
-
-/* Hide compact view in card mode */
 .payment-item-compact {
   display: none;
 }
 
-/* Desktop table view toggle */
+.payment-item-allocations {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
 @media (min-width: 1024px) {
-  body:has(#view-toggle:checked) .payment-list {
-    display: flex;
-    flex-direction: column;
-    background: white;
-    border-radius: 0.75rem;
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-    border: 1px solid #f1f5f9;
-    overflow: hidden;
-  }
-
-  body:has(#view-toggle:checked) .payment-list-header {
-    display: grid;
-    grid-template-columns: 7rem 1.5fr 1fr 7rem 1fr 5rem;
-    gap: 1rem;
-    padding: 0.75rem 1rem;
-    background: #f8fafc;
-    border-bottom: 1px solid #e2e8f0;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #64748b;
-  }
-
-  body:has(#view-toggle:checked) .payment-list-header > * {
-    display: flex;
-    align-items: center;
-  }
-
-  body:has(#view-toggle:checked) .payment-item {
-    display: grid;
-    grid-template-columns: 7rem 1.5fr 1fr 7rem 1fr 5rem;
-    gap: 1rem;
-    padding: 0.75rem 1rem;
-    border-radius: 0;
-    border: none;
-    border-bottom: 1px solid #f1f5f9;
-    box-shadow: none;
-    align-items: center;
-  }
-
-  body:has(#view-toggle:checked) .payment-item:last-child {
-    border-bottom: none;
-  }
-
-  body:has(#view-toggle:checked) .payment-item:hover {
-    background: #f8fafc;
-    box-shadow: none;
-  }
-
-  body:has(#view-toggle:checked) .payment-col-amount {
-    padding: 0;
-    background: none;
-    color: inherit;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: center;
-    gap: 0;
-  }
-
   body:has(#view-toggle:checked) .payment-item-amount-wrapper {
+    display: none;
+  }
+
+  body:has(#view-toggle:checked) .payment-item-date {
     display: none;
   }
 
@@ -1989,37 +1377,15 @@
     gap: 0.125rem;
   }
 
-  body:has(#view-toggle:checked) .payment-item-compact .amount {
+  body:has(#view-toggle:checked) .payment-item-compact .date {
     font-size: 0.875rem;
     font-weight: 600;
-    color: #059669;
+    color: #4f46e5;
   }
 
-  body:has(#view-toggle:checked) .payment-item-compact .date {
-    font-size: 0.75rem;
-    color: #64748b;
-  }
-
-  body:has(#view-toggle:checked) .payment-item-date {
-    display: none;
-  }
-
-  body:has(#view-toggle:checked) .payment-col-tenant {
-    padding: 0;
-    border-bottom: none;
-  }
-
-  body:has(#view-toggle:checked) .payment-item-tenant {
-    font-size: 0.875rem;
-  }
-
-  body:has(#view-toggle:checked) .payment-item-property {
-    font-size: 0.75rem;
-  }
-
-  body:has(#view-toggle:checked) .payment-col-mode {
-    padding: 0;
-    border-bottom: none;
+  body:has(#view-toggle:checked) .payment-item-compact .amount {
+    font-weight: 600;
+    color: #0f172a;
   }
 
   body:has(#view-toggle:checked) .payment-item-mode {
@@ -2029,834 +1395,9 @@
   body:has(#view-toggle:checked) .payment-item-reference {
     font-size: 0.75rem;
   }
-
-  body:has(#view-toggle:checked) .payment-col-status {
-    padding: 0;
-    flex: none;
-  }
-
-  body:has(#view-toggle:checked) .payment-col-actions {
-    padding: 0;
-    border-top: none;
-    background: none;
-    justify-content: center;
-  }
-}
-
-/* ==========================================================================
-   Tenant List - Card/Table responsive layout
-   ========================================================================== */
-
-.tenant-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1rem;
-}
-
-.tenant-list-header {
-  display: none;
-}
-
-/* Tenant item - Card view (default) */
-.tenant-item {
-  display: flex;
-  flex-direction: column;
-  background: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  border: 1px solid #f1f5f9;
-  overflow: hidden;
-  transition: box-shadow 0.2s;
-  cursor: pointer;
-}
-
-.tenant-item:hover {
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-}
-
-/* Card view column styles */
-.tenant-col-name {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1rem;
-  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
-  color: white;
-}
-
-.tenant-item-icon {
-  width: 2.5rem;
-  height: 2.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 0.5rem;
-}
-
-.tenant-item-name {
-  font-size: 1rem;
-  font-weight: 600;
-  color: white;
-  text-decoration: none;
-}
-
-.tenant-item-name:hover {
-  text-decoration: underline;
-}
-
-.tenant-col-email {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.tenant-item-email {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  color: #334155;
-}
-
-.tenant-col-phone {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.tenant-item-phone {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  color: #64748b;
-}
-
-.tenant-col-leases {
-  padding: 0.75rem 1rem;
-  flex: 1;
-}
-
-.tenant-item-leases {
-  display: flex;
-  align-items: center;
-}
-
-.tenant-item-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border-radius: 9999px;
-}
-
-.tenant-item-badge-active {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.tenant-item-badge-none {
-  background: #f1f5f9;
-  color: #64748b;
-}
-
-.tenant-col-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 1rem;
-  border-top: 1px solid #f1f5f9;
-  background: #f8fafc;
-}
-
-.tenant-item-actions {
-  display: none;
-}
-
-.tenant-item-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #4f46e5;
-  text-decoration: none;
-  margin-left: auto;
-}
-
-.tenant-item-link:hover {
-  color: #4338ca;
-}
-
-/* Desktop table view toggle */
-@media (min-width: 1024px) {
-  body:has(#view-toggle:checked) .tenant-list {
-    display: flex;
-    flex-direction: column;
-    background: white;
-    border-radius: 0.75rem;
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-    border: 1px solid #f1f5f9;
-    overflow: hidden;
-  }
-
-  body:has(#view-toggle:checked) .tenant-list-header {
-    display: grid;
-    grid-template-columns: 1.5fr 1.5fr 1fr 1fr 6rem;
-    gap: 1rem;
-    padding: 0.75rem 1rem;
-    background: #f8fafc;
-    border-bottom: 1px solid #e2e8f0;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #64748b;
-  }
-
-  body:has(#view-toggle:checked) .tenant-list-header > * {
-    display: flex;
-    align-items: center;
-  }
-
-  body:has(#view-toggle:checked) .tenant-col-actions {
-    justify-content: center;
-  }
-
-  body:has(#view-toggle:checked) .tenant-item {
-    display: grid;
-    grid-template-columns: 1.5fr 1.5fr 1fr 1fr 6rem;
-    gap: 1rem;
-    padding: 0.75rem 1rem;
-    border-radius: 0;
-    border: none;
-    border-bottom: 1px solid #f1f5f9;
-    box-shadow: none;
-    align-items: center;
-  }
-
-  body:has(#view-toggle:checked) .tenant-item:last-child {
-    border-bottom: none;
-  }
-
-  body:has(#view-toggle:checked) .tenant-item:hover {
-    background: #f8fafc;
-    box-shadow: none;
-  }
-
-  body:has(#view-toggle:checked) .tenant-col-name {
-    padding: 0;
-    background: none;
-    color: inherit;
-  }
-
-  body:has(#view-toggle:checked) .tenant-item-icon {
-    width: 2rem;
-    height: 2rem;
-    background: #eef2ff;
-    color: #4f46e5;
-  }
-
-  body:has(#view-toggle:checked) .tenant-item-name {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #4f46e5;
-  }
-
-  body:has(#view-toggle:checked) .tenant-col-email {
-    padding: 0;
-    border-bottom: none;
-  }
-
-  body:has(#view-toggle:checked) .tenant-item-email {
-    font-size: 0.875rem;
-  }
-
-  body:has(#view-toggle:checked) .hidden-table {
-    display: none;
-  }
-
-  body:has(#view-toggle:checked) .tenant-col-phone {
-    padding: 0;
-    border-bottom: none;
-  }
-
-  body:has(#view-toggle:checked) .tenant-item-phone {
-    font-size: 0.875rem;
-  }
-
-  body:has(#view-toggle:checked) .tenant-col-leases {
-    padding: 0;
-    flex: none;
-  }
-
-  body:has(#view-toggle:checked) .tenant-col-actions {
-    padding: 0;
-    border-top: none;
-    background: none;
-    justify-content: center;
-  }
-
-  body:has(#view-toggle:checked) .tenant-item-actions {
-    display: flex;
-    gap: 0.25rem;
-  }
-
-  body:has(#view-toggle:checked) .tenant-item-link {
-    display: none;
-  }
-}
-
-/* ==========================================================================
-   Owner List - Card/Table responsive layout
-   ========================================================================== */
-
-.owner-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1rem;
-}
-
-.owner-list-header {
-  display: none;
-}
-
-/* Owner item - Card view (default) */
-.owner-item {
-  display: flex;
-  flex-direction: column;
-  background: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  border: 1px solid #f1f5f9;
-  overflow: hidden;
-  transition: box-shadow 0.2s;
-  cursor: pointer;
-}
-
-.owner-item:hover {
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-}
-
-/* Card view column styles */
-.owner-col-name {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1rem;
-  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
-  color: white;
-}
-
-.owner-item-icon {
-  width: 2.5rem;
-  height: 2.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 0.5rem;
-}
-
-.owner-item-name {
-  font-size: 1rem;
-  font-weight: 600;
-  color: white;
-  text-decoration: none;
-}
-
-.owner-item-name:hover {
-  text-decoration: underline;
-}
-
-.owner-col-address {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.owner-item-address {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  color: #64748b;
-}
-
-.owner-col-properties {
-  padding: 0.75rem 1rem;
-  flex: 1;
-}
-
-.owner-item-properties {
-  display: flex;
-  align-items: center;
-}
-
-.owner-item-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border-radius: 9999px;
-}
-
-.owner-item-badge-active {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.owner-item-badge-none {
-  background: #f1f5f9;
-  color: #64748b;
-}
-
-.owner-col-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 1rem;
-  border-top: 1px solid #f1f5f9;
-  background: #f8fafc;
-}
-
-.owner-item-actions {
-  display: none;
-}
-
-.owner-item-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #4f46e5;
-  text-decoration: none;
-  margin-left: auto;
-}
-
-.owner-item-link:hover {
-  color: #4338ca;
-}
-
-/* Desktop table view toggle */
-@media (min-width: 1024px) {
-  body:has(#view-toggle:checked) .owner-list {
-    display: flex;
-    flex-direction: column;
-    background: white;
-    border-radius: 0.75rem;
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-    border: 1px solid #f1f5f9;
-    overflow: hidden;
-  }
-
-  body:has(#view-toggle:checked) .owner-list-header {
-    display: grid;
-    grid-template-columns: 1.5fr 2fr 1fr 6rem;
-    gap: 1rem;
-    padding: 0.75rem 1rem;
-    background: #f8fafc;
-    border-bottom: 1px solid #e2e8f0;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #64748b;
-  }
-
-  body:has(#view-toggle:checked) .owner-list-header > * {
-    display: flex;
-    align-items: center;
-  }
-
-  body:has(#view-toggle:checked) .owner-col-actions {
-    justify-content: center;
-  }
-
-  body:has(#view-toggle:checked) .owner-item {
-    display: grid;
-    grid-template-columns: 1.5fr 2fr 1fr 6rem;
-    gap: 1rem;
-    padding: 0.75rem 1rem;
-    border-radius: 0;
-    border: none;
-    border-bottom: 1px solid #f1f5f9;
-    box-shadow: none;
-    align-items: center;
-  }
-
-  body:has(#view-toggle:checked) .owner-item:last-child {
-    border-bottom: none;
-  }
-
-  body:has(#view-toggle:checked) .owner-item:hover {
-    background: #f8fafc;
-    box-shadow: none;
-  }
-
-  body:has(#view-toggle:checked) .owner-col-name {
-    padding: 0;
-    background: none;
-    color: inherit;
-  }
-
-  body:has(#view-toggle:checked) .owner-item-icon {
-    width: 2rem;
-    height: 2rem;
-    background: #eef2ff;
-    color: #4f46e5;
-  }
-
-  body:has(#view-toggle:checked) .owner-item-name {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #4f46e5;
-  }
-
-  body:has(#view-toggle:checked) .owner-col-address {
-    padding: 0;
-    border-bottom: none;
-  }
-
-  body:has(#view-toggle:checked) .owner-item-address {
-    font-size: 0.875rem;
-  }
-
-  body:has(#view-toggle:checked) .owner-col-properties {
-    padding: 0;
-    flex: none;
-  }
-
-  body:has(#view-toggle:checked) .owner-col-actions {
-    padding: 0;
-    border-top: none;
-    background: none;
-    justify-content: center;
-  }
-
-  body:has(#view-toggle:checked) .owner-item-actions {
-    display: flex;
-    gap: 0.25rem;
-  }
-
-  body:has(#view-toggle:checked) .owner-item-link {
-    display: none;
-  }
-}
-
-/* ==========================================================================
-   User List - Card/Table responsive layout
-   ========================================================================== */
-
-.user-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1rem;
-}
-
-.user-list-header {
-  display: none;
-}
-
-/* User item - Card view (default) */
-.user-item {
-  display: flex;
-  flex-direction: column;
-  background: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  border: 1px solid #f1f5f9;
-  overflow: hidden;
-  transition: box-shadow 0.2s;
-  cursor: pointer;
-}
-
-.user-item:hover {
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-}
-
-/* Card view column styles */
-.user-col-name {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1rem;
-  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
-  color: white;
-}
-
-.user-item-avatar {
-  width: 2.5rem;
-  height: 2.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 9999px;
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-.user-item-name {
-  font-size: 1rem;
-  font-weight: 600;
-  color: white;
-  text-decoration: none;
-}
-
-.user-item-name:hover {
-  text-decoration: underline;
-}
-
-.user-col-email {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.user-item-email {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  color: #334155;
-}
-
-.user-col-provider {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.user-item-provider {
-  display: flex;
-  align-items: center;
-}
-
-.user-col-role {
-  padding: 0.75rem 1rem;
-  flex: 1;
-}
-
-.user-item-role {
-  display: flex;
-  align-items: center;
-}
-
-.user-item-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border-radius: 9999px;
-}
-
-.user-item-badge-provider {
-  background: #f1f5f9;
-  color: #64748b;
-}
-
-.user-item-badge-admin {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.user-item-badge-normal {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.user-col-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 1rem;
-  border-top: 1px solid #f1f5f9;
-  background: #f8fafc;
-}
-
-.user-item-actions {
-  display: none;
-}
-
-.user-item-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #4f46e5;
-  text-decoration: none;
-  margin-left: auto;
-}
-
-.user-item-link:hover {
-  color: #4338ca;
-}
-
-/* Desktop table view toggle */
-@media (min-width: 1024px) {
-  body:has(#view-toggle:checked) .user-list {
-    display: flex;
-    flex-direction: column;
-    background: white;
-    border-radius: 0.75rem;
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-    border: 1px solid #f1f5f9;
-    overflow: hidden;
-  }
-
-  body:has(#view-toggle:checked) .user-list-header {
-    display: grid;
-    grid-template-columns: 1.5fr 2fr 1fr 0.75fr 6rem;
-    gap: 1rem;
-    padding: 0.75rem 1rem;
-    background: #f8fafc;
-    border-bottom: 1px solid #e2e8f0;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #64748b;
-  }
-
-  body:has(#view-toggle:checked) .user-list-header > * {
-    display: flex;
-    align-items: center;
-  }
-
-  body:has(#view-toggle:checked) .user-col-actions {
-    justify-content: center;
-  }
-
-  body:has(#view-toggle:checked) .user-item {
-    display: grid;
-    grid-template-columns: 1.5fr 2fr 1fr 0.75fr 6rem;
-    gap: 1rem;
-    padding: 0.75rem 1rem;
-    border-radius: 0;
-    border: none;
-    border-bottom: 1px solid #f1f5f9;
-    box-shadow: none;
-    align-items: center;
-  }
-
-  body:has(#view-toggle:checked) .user-item:last-child {
-    border-bottom: none;
-  }
-
-  body:has(#view-toggle:checked) .user-item:hover {
-    background: #f8fafc;
-    box-shadow: none;
-  }
-
-  body:has(#view-toggle:checked) .user-col-name {
-    padding: 0;
-    background: none;
-    color: inherit;
-  }
-
-  body:has(#view-toggle:checked) .user-item-avatar {
-    width: 2rem;
-    height: 2rem;
-    background: #eef2ff;
-    color: #4f46e5;
-    font-size: 0.75rem;
-  }
-
-  body:has(#view-toggle:checked) .user-item-name {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #4f46e5;
-  }
-
-  body:has(#view-toggle:checked) .user-col-email {
-    padding: 0;
-    border-bottom: none;
-  }
-
-  body:has(#view-toggle:checked) .user-item-email {
-    font-size: 0.875rem;
-  }
-
-  body:has(#view-toggle:checked) .user-col-provider {
-    padding: 0;
-    border-bottom: none;
-  }
-
-  body:has(#view-toggle:checked) .user-col-role {
-    padding: 0;
-    flex: none;
-  }
-
-  body:has(#view-toggle:checked) .user-col-actions {
-    padding: 0;
-    border-top: none;
-    background: none;
-    justify-content: center;
-  }
-
-  body:has(#view-toggle:checked) .user-item-actions {
-    display: flex;
-    gap: 0.25rem;
-  }
-
-  body:has(#view-toggle:checked) .user-item-link {
-    display: none;
-  }
-}
-
-/* ==========================================================================
-   Version List - Card/Table responsive layout (Audit Trail)
-   ========================================================================== */
-
-.version-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1rem;
-}
-
-.version-list-header {
-  display: none;
-}
-
-/* Version item - Card view (default) */
-.version-item {
-  display: flex;
-  flex-direction: column;
-  background: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  border: 1px solid #f1f5f9;
-  overflow: hidden;
-  transition: box-shadow 0.2s;
-  cursor: pointer;
-}
-
-.version-item:hover {
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-}
-
-/* Card view column styles */
-.version-col-date {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1rem;
-  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
-  color: white;
-}
-
-.version-item-icon {
-  width: 2.5rem;
-  height: 2.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 0.5rem;
 }
 
+/* Version - date wrapper */
 .version-item-date-wrapper {
   display: flex;
   flex-direction: column;
@@ -2876,11 +1417,6 @@
 .version-item-time {
   font-size: 0.75rem;
   opacity: 0.8;
-}
-
-.version-col-resource {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #f1f5f9;
 }
 
 .version-item-resource {
@@ -2903,152 +1439,12 @@
   border-radius: 0.25rem;
 }
 
-.version-col-event {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.version-item-event {
-  display: flex;
-  align-items: center;
-}
-
-.version-item-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border-radius: 9999px;
-}
-
-.version-item-badge-create {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.version-item-badge-update {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-.version-item-badge-destroy {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.version-col-user {
-  padding: 0.75rem 1rem;
-  flex: 1;
-}
-
-.version-item-user {
-  font-size: 0.875rem;
-  color: #334155;
-}
-
 .version-item-user-system {
   color: #94a3b8;
   font-style: italic;
 }
 
-.version-col-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 1rem;
-  border-top: 1px solid #f1f5f9;
-  background: #f8fafc;
-}
-
-.version-item-actions {
-  display: none;
-}
-
-.version-item-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #4f46e5;
-  text-decoration: none;
-  margin-left: auto;
-}
-
-.version-item-link:hover {
-  color: #4338ca;
-}
-
-/* Desktop table view toggle */
 @media (min-width: 1024px) {
-  body:has(#view-toggle:checked) .version-list {
-    display: flex;
-    flex-direction: column;
-    background: white;
-    border-radius: 0.75rem;
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-    border: 1px solid #f1f5f9;
-    overflow: hidden;
-  }
-
-  body:has(#view-toggle:checked) .version-list-header {
-    display: grid;
-    grid-template-columns: 1.5fr 1.5fr 1fr 1fr 6rem;
-    gap: 1rem;
-    padding: 0.75rem 1rem;
-    background: #f8fafc;
-    border-bottom: 1px solid #e2e8f0;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #64748b;
-  }
-
-  body:has(#view-toggle:checked) .version-list-header > * {
-    display: flex;
-    align-items: center;
-  }
-
-  body:has(#view-toggle:checked) .version-col-actions {
-    justify-content: center;
-  }
-
-  body:has(#view-toggle:checked) .version-item {
-    display: grid;
-    grid-template-columns: 1.5fr 1.5fr 1fr 1fr 6rem;
-    gap: 1rem;
-    padding: 0.75rem 1rem;
-    border-radius: 0;
-    border: none;
-    border-bottom: 1px solid #f1f5f9;
-    box-shadow: none;
-    align-items: center;
-  }
-
-  body:has(#view-toggle:checked) .version-item:last-child {
-    border-bottom: none;
-  }
-
-  body:has(#view-toggle:checked) .version-item:hover {
-    background: #f8fafc;
-    box-shadow: none;
-  }
-
-  body:has(#view-toggle:checked) .version-col-date {
-    padding: 0;
-    background: none;
-    color: inherit;
-  }
-
-  body:has(#view-toggle:checked) .version-item-icon {
-    width: 2rem;
-    height: 2rem;
-    background: #eef2ff;
-    color: #4f46e5;
-  }
-
   body:has(#view-toggle:checked) .version-item-date {
     font-size: 0.875rem;
     font-weight: 600;
@@ -3057,36 +1453,5 @@
 
   body:has(#view-toggle:checked) .version-item-time {
     color: #64748b;
-  }
-
-  body:has(#view-toggle:checked) .version-col-resource {
-    padding: 0;
-    border-bottom: none;
-  }
-
-  body:has(#view-toggle:checked) .version-col-event {
-    padding: 0;
-    border-bottom: none;
-  }
-
-  body:has(#view-toggle:checked) .version-col-user {
-    padding: 0;
-    flex: none;
-  }
-
-  body:has(#view-toggle:checked) .version-col-actions {
-    padding: 0;
-    border-top: none;
-    background: none;
-    justify-content: center;
-  }
-
-  body:has(#view-toggle:checked) .version-item-actions {
-    display: flex;
-    gap: 0.25rem;
-  }
-
-  body:has(#view-toggle:checked) .version-item-link {
-    display: none;
   }
 }
