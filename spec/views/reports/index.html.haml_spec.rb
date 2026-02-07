@@ -17,11 +17,10 @@ RSpec.describe "reports/index" do
     render
   end
 
-  # Page title is now set via content_for :page_title in the layout
-  it { is_expected.to have_css(".card", minimum: 4) }
-  it { is_expected.to have_css("h2", text: "Total Revenue") }
-  it { is_expected.to have_css("p", text: "₹50,000.00") }
-  it { is_expected.to have_css("h2", text: "Outstanding") }
-  it { is_expected.to have_css("p", text: "₹10,000.00") }
-  it { is_expected.to have_link("View Details", count: 3) }
+  it { is_expected.to have_css(".stat-card", count: 4) }
+  it { is_expected.to have_css(".stat-label", text: "Revenue (MTD)") }
+  it { is_expected.to have_css(".stat-value", text: "₹50,000.00") }
+  it { is_expected.to have_css(".stat-label", text: "Outstanding") }
+  it { is_expected.to have_css(".stat-value", text: "₹10,000.00") }
+  it { is_expected.to have_css(".dashboard-card", minimum: 3) }
 end
