@@ -8,8 +8,8 @@
       %header.app-logo
         .flex.items-center.gap-2.lg:gap-3
           .w-8.h-8.lg:w-9.lg:h-9.rounded-lg.bg-indigo-600.flex.items-center.justify-center.shadow-sm.shadow-indigo-200
-            %span.text-white.font-bold.lg:text-lg L
-          %span.font-bold.text-slate-800.lg:text-xl.tracking-tight LeaseMngr
+            %span.text-white.font-bold.lg:text-lg= Rails.application.name.first
+          %span.font-bold.text-slate-800.lg:text-xl.tracking-tight= Rails.application.name.titleize
 
       -# User profile
       .app-user
