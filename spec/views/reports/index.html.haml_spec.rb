@@ -17,7 +17,8 @@ RSpec.describe "reports/index" do
     render
   end
 
-  it { is_expected.to have_css("h1", text: "Financial Dashboard") }
+  # Page title is now set via content_for :page_title in the layout
+  it { is_expected.to have_css(".card", minimum: 4) }
   it { is_expected.to have_css("h2", text: "Total Revenue") }
   it { is_expected.to have_css("p", text: "₹50,000.00") }
   it { is_expected.to have_css("h2", text: "Outstanding") }

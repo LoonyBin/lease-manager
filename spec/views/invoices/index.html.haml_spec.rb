@@ -13,7 +13,6 @@ RSpec.describe "invoices/index" do
     render
   end
 
-  it { is_expected.to have_css("h2", text: "Invoices") }
   it { is_expected.to have_css("th", text: "Date") }
   it { is_expected.to have_css("th", text: "Amount") }
   it { is_expected.to have_css("td", text: "₹1,000.00") }

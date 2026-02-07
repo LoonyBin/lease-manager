@@ -1,18 +1,18 @@
+- content_for :page_title, "Payments"
+
 .drawer.drawer-end
   %input#filter-drawer.drawer-toggle{type: "checkbox"}
   .drawer-content.flex.flex-col
+    -# Page actions
+    .flex.justify-end.items-center.mb-6.gap-2
+      %label.btn.btn-ghost.btn-sm.gap-2{for: "filter-drawer"}
+        = heroicon "funnel", options: { class: "w-4 h-4" }
+        Filters
+      - if policy(@payments.new).new?
+        = link_to "Record Payment", new_payment_path, class: "btn btn-primary btn-sm lg:btn-md"
+
     .card.w-full.bg-base-100.shadow-xl
       .card-body
-        .flex.justify-between.items-center.mb-4
-          %h2.card-title Payments
-
-          .flex.gap-2
-            %label.btn.btn-ghost.btn-sm.gap-2{for: "filter-drawer"}
-              = heroicon "funnel", options: { class: "w-4 h-4" }
-              Filters
-            - if policy(@payments.new).new?
-              = link_to "Record Payment", new_payment_path, class: "btn btn-primary"
-
         = render_active_filters(@q)
 
         .overflow-x-auto

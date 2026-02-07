@@ -1,15 +1,15 @@
+- content_for :page_title, "Tenants"
+
+- content_for :page_actions do
+  %label.btn.btn-ghost.btn-sm.btn-square{for: "filter-drawer"}
+    = heroicon "funnel", options: { class: "w-5 h-5" }
+  - if policy(@tenants.new).new?
+    = link_to new_tenant_path, class: "btn btn-ghost btn-sm btn-square" do
+      = heroicon "plus", options: { class: "w-5 h-5" }
+
 .drawer.drawer-end
   %input#filter-drawer.drawer-toggle{type: "checkbox"}
   .drawer-content.flex.flex-col
-    .flex.justify-between.items-center.mb-6
-      %h1.text-2xl.font-bold Tenants
-      .flex.gap-2
-        %label.btn.btn-ghost.btn-sm.gap-2{for: "filter-drawer"}
-          = heroicon "funnel", options: { class: "w-4 h-4" }
-          Filters
-        - if policy(@tenants.new).new?
-          = link_to 'New Tenant', new_tenant_path, class: "btn btn-primary"
-
     = render_active_filters(@q)
 
     .overflow-x-auto
@@ -42,4 +42,5 @@
     %label.drawer-overlay{for: "filter-drawer", aria: { label: "close sidebar" }}
     .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
       %h3.text-lg.font-bold.mb-4 Filter Tenants
+      = render "search"
       = render "search"

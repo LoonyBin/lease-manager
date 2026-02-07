@@ -1,35 +1,36 @@
 - content_for :title, "Outstanding Report"
+- content_for :page_title, "Outstanding"
 
-.container.mx-auto.p-6
-  .flex.justify-between.items-center.mb-6
-    %h1.text-3xl.font-bold Outstanding Report
-    = link_to "← Back to Reports", reports_path, class: "btn btn-ghost"
+.flex.justify-end.mb-6
+  = link_to reports_path, class: "btn btn-ghost btn-sm gap-2" do
+    = heroicon "arrow-left", options: { class: "w-4 h-4" }
+    Back to Overview
 
-  .card.bg-base-100.shadow-xl
-    .card-body
-      .flex.justify-between.items-center.mb-4
-        %h2.card-title Outstanding Invoices
-        .badge.badge-warning.badge-lg= number_to_currency(@total_outstanding, unit: "₹")
+.card.bg-base-100.shadow-xl
+  .card-body
+    .flex.justify-between.items-center.mb-4
+      %h2.card-title Outstanding Invoices
+      .badge.badge-warning.badge-lg= number_to_currency(@total_outstanding, unit: "₹")
 
-      .overflow-x-auto
-        %table.table.table-zebra
-          %thead
+    .overflow-x-auto
+      %table.table.table-zebra
+        %thead
+          %tr
+            %th Date
+            %th Property
+            %th Tenant
+            %th.text-right Total
+            %th.text-right Paid
+            %th.text-right Outstanding
+            %th Actions
+        %tbody
+          - @outstanding_invoices.each do |invoice|
             %tr
-              %th Date
-              %th Property
-              %th Tenant
-              %th.text-right Total
-              %th.text-right Paid
-              %th.text-right Outstanding
-              %th Actions
-          %tbody
-            - @outstanding_invoices.each do |invoice|
-              %tr
-                %td= invoice.date.strftime("%b %Y")
-                %td= invoice.lease.property.name
-                %td= invoice.lease.tenant.name
-                %td.text-right= number_to_currency(invoice.total_amount, unit: "₹")
-                %td.text-right= number_to_currency(invoice.paid_amount, unit: "₹")
-                %td.text-right.font-bold.text-warning= number_to_currency(invoice.outstanding_amount, unit: "₹")
-                %td
-                  = link_to "View", invoice_path(invoice), class: "btn btn-xs btn-primary"
+              %td= invoice.date.strftime("%b %Y")
+              %td= invoice.lease.property.name
+              %td= invoice.lease.tenant.name
+              %td.text-right= number_to_currency(invoice.total_amount, unit: "₹")
+              %td.text-right= number_to_currency(invoice.paid_amount, unit: "₹")
+              %td.text-right.font-bold.text-warning= number_to_currency(invoice.outstanding_amount, unit: "₹")
+              %td
+                = link_to "View", invoice_path(invoice), class: "btn btn-xs btn-primary"

@@ -2,15 +2,39 @@
 %html
   %head
     = render 'layouts/head'
-  %body.bg-base-200.font-sans.min-h-screen
-    = render 'shared/navbar'
+  %body.bg-slate-50.font-sans.min-h-screen.text-slate-900.antialiased
+    .app-shell
+      -# Logo
+      %header.app-logo
+        .flex.items-center.gap-2.lg:gap-3
+          .w-8.h-8.lg:w-9.lg:h-9.rounded-lg.bg-indigo-600.flex.items-center.justify-center.shadow-sm.shadow-indigo-200
+            %span.text-white.font-bold.lg:text-lg L
+          %span.font-bold.text-slate-800.lg:text-xl.tracking-tight LeaseMngr
 
-    %main.container.mx-auto.px-4.pb-12
-      - if notice
-        .alert.alert-success.mb-4
-          %span= notice
-      - if alert
-        .alert.alert-error.mb-4
-          %span= alert
+      -# User profile
+      .app-user
+        = render 'shared/user_profile'
 
-      = content_for?(:nested_layout_content) ? yield(:nested_layout_content) : yield
+      -# Navigation
+      %nav.app-nav
+        = render 'shared/nav_items'
+
+      -# Main content
+      %main.app-main
+        -# Page header
+        .page-header
+          %h1.page-title= yield(:page_title).presence || "Home"
+          .page-actions
+            = yield(:page_actions)
+
+        -# Flash messages
+        - if notice
+          .alert.alert-success.mb-4
+            %span= notice
+        - if alert
+          .alert.alert-error.mb-4
+            %span= alert
+
+        -# Page content
+        .page-content
+          = content_for?(:nested_layout_content) ? yield(:nested_layout_content) : yield

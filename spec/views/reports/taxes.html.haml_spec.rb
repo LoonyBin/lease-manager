@@ -11,10 +11,9 @@ RSpec.describe "reports/taxes" do
     render
   end
 
-  it { is_expected.to have_css("h1", text: "Tax Report") }
   it { is_expected.to have_css("h2", text: "Taxes by Month") }
   it { is_expected.to have_css("td", text: "January 2025") }
   it { is_expected.to have_css("td", text: "₹1,800.00") }
   it { is_expected.to have_css(".badge", text: "₹3,960.00") }
-  it { is_expected.to have_link("← Back to Reports") }
+  it { is_expected.to have_link("Back to Overview") }
 end

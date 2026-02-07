@@ -1,9 +1,7 @@
 - content_for :title, "Financial Dashboard"
+- content_for :page_title, "Overview"
 
-.container.mx-auto.p-6.space-y-8
-  .flex.justify-between.items-center
-    %h1.text-3xl.font-bold.text-base-content Financial Dashboard
-    .text-sm{class: "text-base-content/70"}= "Overview for #{Date.current.strftime('%B %Y')}"
+.space-y-6
 
   -# Summary Cards
   .grid.grid-cols-1.md:grid-cols-2.lg:grid-cols-4.gap-6

@@ -1,0 +1,16 @@
+-# Navigation items - CSS handles mobile (horizontal tabbar) vs desktop (vertical sidebar)
+= link_to root_path, class: "nav-item #{current_page?(root_path) ? 'active' : ''}" do
+  = heroicon "squares-2x2", options: { class: "nav-icon" }
+  %span.nav-label Home
+
+= link_to properties_path, class: "nav-item #{controller_name == 'properties' ? 'active' : ''}" do
+  = heroicon "building-office-2", options: { class: "nav-icon" }
+  %span.nav-label Properties
+
+= link_to leases_path, class: "nav-item #{controller_name == 'leases' ? 'active' : ''}" do
+  = heroicon "user-group", options: { class: "nav-icon" }
+  %span.nav-label Leases
+
+= link_to invoices_path, class: "nav-item #{(controller_name == 'invoices' || controller_name == 'payments') ? 'active' : ''}" do
+  = heroicon "banknotes", options: { class: "nav-icon" }
+  %span.nav-label Finance

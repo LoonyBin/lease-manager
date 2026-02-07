@@ -1,2 +1,370 @@
 @import "tailwindcss";
 @plugin "daisyui";
+
+/* Mobile layout: top bar, main content, bottom nav */
+.app-shell {
+  display: grid;
+  min-height: 100vh;
+  grid-template-areas:
+    "logo user"
+    "main main"
+    "nav nav";
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto 1fr auto;
+}
+
+.app-logo {
+  grid-area: logo;
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: white;
+  border-bottom: 1px solid #e2e8f0; /* slate-200 */
+}
+
+.app-user {
+  grid-area: user;
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: white;
+  border-bottom: 1px solid #e2e8f0; /* slate-200 */
+}
+
+.app-nav {
+  grid-area: nav;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-around;
+  padding: 0.5rem 0;
+  background: white;
+  border-top: 1px solid #e2e8f0; /* slate-200 */
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 40;
+}
+
+.app-main {
+  grid-area: main;
+  padding: 1rem;
+  padding-bottom: 5rem;
+  background: #f8fafc; /* slate-50 */
+}
+
+/* Nav items */
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 1rem;
+  color: #94a3b8; /* slate-400 */
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.nav-item:hover {
+  color: #64748b; /* slate-500 */
+}
+
+.nav-item.active {
+  color: #4f46e5; /* indigo-600 */
+}
+
+.nav-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.nav-label {
+  font-size: 0.625rem;
+  font-weight: 500;
+}
+
+/* User profile */
+.user-profile {
+  display: flex;
+  align-items: center;
+}
+
+.user-profile-btn {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  border-radius: 9999px;
+  padding: 0.25rem;
+}
+
+.user-avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #cbd5e1, #94a3b8); /* slate gradient */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #475569; /* slate-600 */
+  flex-shrink: 0;
+}
+
+.user-details {
+  display: none;
+}
+
+.user-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #0f172a; /* slate-900 */
+  line-height: 1.25;
+}
+
+.user-role {
+  font-size: 0.75rem;
+  color: #64748b; /* slate-500 */
+  line-height: 1.25;
+}
+
+.user-menu {
+  position: absolute;
+  right: 0;
+  margin-top: 0.75rem;
+  padding: 0.5rem;
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  border: 1px solid #e2e8f0; /* slate-200 */
+  width: 13rem;
+  z-index: 50;
+  display: none;
+}
+
+.user-menu li {
+  list-style: none;
+}
+
+.user-menu li a,
+.user-menu li button,
+.user-menu li input[type="submit"] {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  font-size: 0.875rem;
+  color: #334155; /* slate-700 */
+  border-radius: 0.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.user-menu li a:hover,
+.user-menu li button:hover,
+.user-menu li input[type="submit"]:hover {
+  background: #f1f5f9; /* slate-100 */
+}
+
+.user-menu .menu-title {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #94a3b8; /* slate-400 */
+  text-transform: uppercase;
+}
+
+.dropdown:focus-within .user-menu,
+.dropdown .user-profile-btn:focus + .user-menu {
+  display: block;
+}
+
+/* Drawer overlay should cover fixed sidebar elements */
+.drawer-side {
+  z-index: 60;
+}
+
+.drawer-side > .drawer-overlay {
+  z-index: 60;
+}
+
+.drawer-side > *:not(.drawer-overlay) {
+  z-index: 61;
+}
+
+/* Page header */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  margin: -1rem -1rem 1rem -1rem;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid #e2e8f0; /* slate-200 */
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+.page-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1e293b; /* slate-800 */
+  margin: 0;
+}
+
+.page-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.page-actions:empty {
+  display: none;
+}
+
+/* Desktop: fixed sidebar on left, scrollable main on right */
+@media (min-width: 1024px) {
+  .app-shell {
+    display: flex;
+  }
+
+  /* Sidebar: fixed position, full height, flex column */
+  .app-logo,
+  .app-user,
+  .app-nav {
+    position: fixed;
+    left: 0;
+    width: 16rem;
+    background: white;
+    border-right: 1px solid #e2e8f0; /* slate-200 */
+    border-bottom: none;
+    border-top: none;
+  }
+
+  .app-logo {
+    top: 0;
+    padding: 1.5rem 1.5rem;
+    border-bottom: 1px solid #f1f5f9; /* slate-100 */
+  }
+
+  .app-nav {
+    top: 4.5rem; /* Below logo */
+    bottom: 5rem; /* Above user */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding: 1rem;
+    overflow-y: auto;
+    gap: 0.25rem;
+  }
+
+  .app-user {
+    bottom: 0;
+    padding: 1rem;
+    border-top: 1px solid #f1f5f9; /* slate-100 */
+    overflow: visible;
+    z-index: 50;
+  }
+
+  .app-main {
+    margin-left: 16rem;
+    width: calc(100% - 16rem);
+    padding: 2rem;
+    padding-bottom: 2rem;
+    min-height: 100vh;
+  }
+
+  /* Nav items desktop */
+  .nav-item {
+    flex-direction: row;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    width: 100%;
+    color: #64748b; /* slate-500 */
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+
+  .nav-item:hover {
+    background: #f8fafc; /* slate-50 */
+    color: #334155; /* slate-700 */
+  }
+
+  .nav-item.active {
+    background: #eef2ff; /* indigo-50 */
+    color: #4338ca; /* indigo-700 */
+    font-weight: 600;
+  }
+
+  .nav-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  .nav-label {
+    font-size: 0.875rem;
+  }
+
+  /* Page header desktop */
+  .page-header {
+    margin: -2rem -2rem 1.5rem -2rem;
+    padding: 0 2rem;
+    height: 4rem;
+    display: flex;
+    align-items: center;
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+  }
+
+  /* User profile desktop */
+  .user-profile-btn {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    background: #f8fafc; /* slate-50 */
+    border: 1px solid #f1f5f9; /* slate-100 */
+    gap: 0.75rem;
+  }
+
+  .user-profile-btn:hover {
+    background: #f1f5f9; /* slate-100 */
+  }
+
+  .user-avatar {
+    width: 2rem;
+    height: 2rem;
+    border: 2px solid white;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  }
+
+  .user-details {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .user-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .user-role {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .user-menu {
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+    bottom: 100%;
+    width: 100%;
+  }
+}

@@ -1,15 +1,14 @@
+- content_for :page_title, "Finance"
+
+- content_for :page_actions do
+  %label.btn.btn-ghost.btn-sm.btn-square{for: "filter-drawer"}
+    = heroicon "funnel", options: { class: "w-5 h-5" }
+
 .drawer.drawer-end
   %input#filter-drawer.drawer-toggle{type: "checkbox"}
   .drawer-content.flex.flex-col
     .card.w-full.bg-base-100.shadow-xl
       .card-body
-        .flex.justify-between.items-center.mb-4
-          %h2.card-title Invoices
-
-          %label.btn.btn-ghost.btn-sm.gap-2{for: "filter-drawer"}
-            = heroicon "funnel", options: { class: "w-4 h-4" }
-            Filters
-
         = render_active_filters(@q)
 
         .overflow-x-auto
