@@ -975,3 +975,336 @@
     display: none;
   }
 }
+
+/* ==========================================================================
+   Lease List - Card/Table responsive layout
+   ========================================================================== */
+
+.lease-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1rem;
+}
+
+.lease-list-header {
+  display: none;
+}
+
+/* Lease item - Card view (default) */
+.lease-item {
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  border: 1px solid #f1f5f9;
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+  cursor: pointer;
+}
+
+.lease-item:hover {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+/* Card view column styles */
+.lease-col-property {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  color: white;
+}
+
+.lease-item-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 0.5rem;
+}
+
+.lease-item-property {
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  text-decoration: none;
+}
+
+.lease-item-property:hover {
+  text-decoration: underline;
+}
+
+.lease-col-tenant {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.lease-item-tenant {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #334155;
+}
+
+.lease-col-dates {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.lease-item-dates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.lease-item-date-range {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.lease-item-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 9999px;
+}
+
+.lease-item-badge-active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.lease-item-badge-terminated {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.lease-item-badge-expired {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.lease-col-details {
+  padding: 0.75rem 1rem;
+  flex: 1;
+}
+
+.lease-item-stats {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.lease-item-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.lease-item-stat-label {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.lease-item-stat-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.lease-col-status {
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+}
+
+.lease-col-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid #f1f5f9;
+  background: #f8fafc;
+}
+
+.lease-item-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.lease-item-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #4f46e5;
+  text-decoration: none;
+}
+
+.lease-item-link:hover {
+  color: #4338ca;
+}
+
+/* Hide compact view in card mode */
+.lease-item-details-compact {
+  display: none;
+}
+
+/* Desktop table view toggle */
+@media (min-width: 1024px) {
+  body:has(#view-toggle:checked) .lease-list {
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+    border: 1px solid #f1f5f9;
+    overflow: hidden;
+  }
+
+  body:has(#view-toggle:checked) .lease-list-header {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 1fr 0.75fr 6rem;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+  }
+
+  body:has(#view-toggle:checked) .lease-list-header > * {
+    display: flex;
+    align-items: center;
+  }
+
+  body:has(#view-toggle:checked) .lease-col-actions {
+    justify-content: center;
+  }
+
+  body:has(#view-toggle:checked) .lease-item {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 1fr 0.75fr 6rem;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0;
+    border: none;
+    border-bottom: 1px solid #f1f5f9;
+    box-shadow: none;
+    align-items: center;
+  }
+
+  body:has(#view-toggle:checked) .lease-item:last-child {
+    border-bottom: none;
+  }
+
+  body:has(#view-toggle:checked) .lease-item:hover {
+    background: #f8fafc;
+    box-shadow: none;
+  }
+
+  body:has(#view-toggle:checked) .lease-col-property {
+    padding: 0;
+    background: none;
+    color: inherit;
+  }
+
+  body:has(#view-toggle:checked) .lease-item-icon {
+    width: 2rem;
+    height: 2rem;
+    background: #eef2ff;
+    color: #4f46e5;
+  }
+
+  body:has(#view-toggle:checked) .lease-item-property {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #4f46e5;
+  }
+
+  body:has(#view-toggle:checked) .lease-col-tenant {
+    padding: 0;
+    border-bottom: none;
+  }
+
+  body:has(#view-toggle:checked) .lease-item-tenant {
+    font-size: 0.875rem;
+  }
+
+  body:has(#view-toggle:checked) .hidden-table {
+    display: none;
+  }
+
+  body:has(#view-toggle:checked) .lease-col-dates {
+    padding: 0;
+    border-bottom: none;
+  }
+
+  body:has(#view-toggle:checked) .lease-item-dates {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.125rem;
+  }
+
+  body:has(#view-toggle:checked) .lease-col-details {
+    padding: 0;
+    flex: none;
+  }
+
+  body:has(#view-toggle:checked) .lease-item-stats {
+    display: none;
+  }
+
+  body:has(#view-toggle:checked) .lease-item-details-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    font-size: 0.875rem;
+  }
+
+  body:has(#view-toggle:checked) .lease-item-details-compact .rent {
+    font-weight: 600;
+    color: #0f172a;
+  }
+
+  body:has(#view-toggle:checked) .lease-item-details-compact .duration {
+    font-size: 0.75rem;
+    color: #64748b;
+  }
+
+  body:has(#view-toggle:checked) .lease-col-status {
+    padding: 0;
+  }
+
+  body:has(#view-toggle:checked) .lease-col-actions {
+    padding: 0;
+    border-top: none;
+    background: none;
+    justify-content: center;
+  }
+
+  body:has(#view-toggle:checked) .lease-item-actions {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  body:has(#view-toggle:checked) .lease-item-link {
+    display: none;
+  }
+}

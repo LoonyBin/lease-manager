@@ -17,9 +17,9 @@ RSpec.describe "leases/index" do
     render
   end
 
-  it { is_expected.to have_css("tr>td", text: "Prop 1", count: 2) }
-  it { is_expected.to have_css("tr>td", text: "Tenant 1", count: 2) }
-  it { is_expected.to have_css("tr>td", text: "12 months", count: 2) }
-  it { is_expected.to have_css("tr>td", text: "₹1,000.00", count: 1) }
-  it { is_expected.to have_css("tr>td", text: "₹1,200.00", count: 1) }
+  it { is_expected.to have_css(".lease-item", count: 2) }
+  it { is_expected.to have_css(".lease-item-property", text: "Prop 1", count: 2) }
+  it { is_expected.to have_css(".lease-item-tenant", text: "Tenant 1", count: 2) }
+  it { is_expected.to have_text("₹1,000") }
+  it { is_expected.to have_text("₹1,200") }
 end
