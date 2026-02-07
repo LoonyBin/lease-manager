@@ -20,4 +20,4 @@ production:
   <<: *default
   database: <%= Rails.application.name.underscore %>_production
   username: <%= Rails.application.name.underscore %>
-  password: <%= ENV["<%= Rails.application.name.underscore.upcase %>_DATABASE_PASSWORD"] %>
+  password: <%= ENV["#{Rails.application.name.underscore.upcase}_DATABASE_PASSWORD"] %>

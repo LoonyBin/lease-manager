@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 class OwnersController < ApplicationController
-  layout "settings"
-
   def index
     @q = policy_scope(Owner).ransack(params[:q])
     @q.sorts = "name asc" if @q.sorts.empty?

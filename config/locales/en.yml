@@ -72,12 +72,6 @@ en:
     index:
       delete_confirm: Are you sure you want to delete this audit record?
       system: System
-      table:
-        actions: Actions
-        date: Date
-        event: Event
-        resource: Resource
-        user: User
       title: Audit Trail
       unknown_user: Unknown User
     show:

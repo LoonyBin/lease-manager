@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 class TenantsController < ApplicationController
-  layout "settings"
-
   def index
     @q = policy_scope(Tenant).ransack(params[:q])
     @tenants = @q.result.page(params[:page]).per(20)

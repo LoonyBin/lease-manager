@@ -13,10 +13,10 @@ RSpec.describe "owners/index" do
     render
   end
 
-  it { is_expected.to have_link("New Owner") }
-  it { is_expected.to have_css("th", text: "Name") }
-  it { is_expected.to have_css("th", text: "Address") }
+  it { is_expected.to have_css(".owner-item", count: 1) }
+  it { is_expected.to have_css(".owner-list-header .owner-col-name", text: "Name") }
+  it { is_expected.to have_css(".owner-list-header .owner-col-address", text: "Address") }
   it { is_expected.to have_link("John Smith") }
-  it { is_expected.to have_css("td", text: "123 Main St") }
+  it { is_expected.to have_css(".owner-item-address", text: "123 Main St") }
   it { is_expected.to have_css("a[aria-label='Edit John Smith']") }
 end

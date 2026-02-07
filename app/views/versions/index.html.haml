@@ -1,48 +1,90 @@
 - content_for :page_title, t(".title")
 
+- content_for :page_actions do
+  -# View toggle (desktop only)
+  .view-toggle-group.hidden.lg:flex
+    %input#view-toggle.view-toggle-input{type: "checkbox"}
+    %label.view-toggle-btn{for: "view-toggle", data: { view: "card" }, title: "Card view"}
+      = heroicon "squares-2x2", options: { class: "w-4 h-4" }
+    %label.view-toggle-btn{for: "view-toggle", data: { view: "table" }, title: "Table view"}
+      = heroicon "list-bullet", options: { class: "w-4 h-4" }
+  %label.btn.btn-ghost.btn-sm.btn-square{for: "sort-drawer", title: "Sort"}
+    = heroicon "bars-arrow-down", options: { class: "w-5 h-5" }
+  %label.btn.btn-ghost.btn-sm.btn-square{for: "filter-drawer", title: "Filter"}
+    = heroicon "funnel", options: { class: "w-5 h-5" }
+
 .drawer.drawer-end
-  %input#filter-drawer.drawer-toggle{type: "checkbox"}
-  .drawer-content.flex.flex-col
-    -# Page actions
-    .flex.justify-end.items-center.mb-6.gap-2
-      %label.btn.btn-ghost.btn-sm.gap-2{for: "filter-drawer"}
-        = heroicon "funnel", options: { class: "w-4 h-4" }
-        Filters
+  %input#sort-drawer.drawer-toggle{type: "checkbox"}
+  .drawer-content
+    .drawer.drawer-end
+      %input#filter-drawer.drawer-toggle{type: "checkbox"}
+      .drawer-content.flex.flex-col
+        = render_active_filters(@q)
 
-    = render_active_filters(@q)
+        -# Single markup - CSS handles card vs table display
+        .version-list
+          -# Table header (visible only in table view on desktop)
+          .version-list-header
+            .version-col-date Date
+            .version-col-resource Resource
+            .version-col-event Event
+            .version-col-user User
+            .version-col-actions Actions
 
-    .overflow-x-auto
-      %table.table.w-full
-        %thead
-          %tr
-            %th= sort_link(@q, :created_at, t(".table.date"))
-            %th= sort_link(@q, :item_type, t(".table.resource"))
-            %th= sort_link(@q, :event, t(".table.event"))
-            %th= t(".table.user")
-            %th.text-center= t(".table.actions")
-        %tbody
+          -# Version items
           - @versions.each do |version|
-            %tr.hover.cursor-pointer{data: { controller: "clickable-row", clickable_row_url_value: version_path(version.id), action: "click->clickable-row#click" }}
-              %td= link_to version.created_at.strftime("%Y-%m-%d %H:%M"), version_path(version.id), class: "link link-hover font-medium"
-              %td
-                = version.item_type
-                %span.badge.badge-ghost.badge-sm= "##{version.item_id}"
-              %td= event_badge(version.event)
-              %td
-                - if version.whodunnit.present?
-                  - user = User.find_by(id: version.whodunnit)
-                  = user&.name || t(".unknown_user")
-                - else
-                  %span.opacity-50= t(".system")
-              %td.text-center
-                - if VersionPolicy.new(current_user, version).destroy?
-                  = link_to version_path(version.id), data: { turbo_method: :delete, turbo_confirm: t(".delete_confirm") }, class: "btn btn-sm btn-ghost text-error", aria: { label: "Delete version ##{version.id}" } do
-                    = heroicon "trash", options: { class: "w-4 h-4" }
+            - user = User.find_by(id: version.whodunnit) if version.whodunnit.present?
 
-    = paginate @versions
+            .version-item{data: { controller: "clickable-row", clickable_row_url_value: version_path(version.id), action: "click->clickable-row#click" }}
+              .version-col-date
+                .version-item-icon
+                  = heroicon "clock", options: { class: "w-5 h-5" }
+                .version-item-date-wrapper
+                  = link_to version_path(version.id), class: "version-item-date" do
+                    = version.created_at.strftime("%b %d, %Y")
+                  .version-item-time= version.created_at.strftime("%H:%M")
+              .version-col-resource
+                .version-item-resource
+                  %span.version-item-type= version.item_type
+                  %span.version-item-id= "##{version.item_id}"
+              .version-col-event
+                .version-item-event
+                  - case version.event
+                  - when "create"
+                    %span.version-item-badge.version-item-badge-create Created
+                  - when "update"
+                    %span.version-item-badge.version-item-badge-update Updated
+                  - when "destroy"
+                    %span.version-item-badge.version-item-badge-destroy Deleted
+                  - else
+                    %span.version-item-badge= version.event.humanize
+              .version-col-user
+                .version-item-user
+                  - if user
+                    = user.name
+                  - elsif version.whodunnit.present?
+                    = t(".unknown_user")
+                  - else
+                    %span.version-item-user-system= t(".system")
+              .version-col-actions
+                .version-item-actions
+                  - if VersionPolicy.new(current_user, version).destroy?
+                    = link_to version_path(version.id), data: { turbo_method: :delete, turbo_confirm: t(".delete_confirm") }, class: "btn btn-sm btn-ghost text-error", aria: { label: "Delete version ##{version.id}" } do
+                      = heroicon "trash", options: { class: "w-4 h-4" }
+                = link_to version_path(version.id), class: "version-item-link" do
+                  View Details
+                  = heroicon "chevron-right", options: { class: "w-4 h-4" }
+
+        = paginate @versions
+
+      .drawer-side
+        %label.drawer-overlay{for: "filter-drawer", aria: { label: "close sidebar" }}
+        .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
+          %h3.text-lg.font-bold.mb-4 Filter Versions
+          = render "search"
 
   .drawer-side
-    %label.drawer-overlay{for: "filter-drawer", aria: { label: "close sidebar" }}
+    %label.drawer-overlay{for: "sort-drawer", aria: { label: "close sidebar" }}
     .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
-      %h3.text-lg.font-bold.mb-4 Filter Versions
-      = render "search"
+      %h3.text-lg.font-bold.mb-4 Sort Versions
+      = render "sort"

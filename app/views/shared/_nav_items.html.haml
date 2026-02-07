@@ -26,3 +26,25 @@
     = link_to payments_path, class: "nav-subitem #{controller_name == 'payments' ? 'active' : ''}", data: { action: "details-menu#close" } do
       = heroicon "currency-rupee", options: { class: "nav-icon" }
       %span.nav-label Payments
+
+-# Settings: Mobile = dropup menu, Desktop = accordion
+- settings_active = controller_name.in?(%w[tenants owners users versions])
+
+%details.nav-accordion{data: { controller: "details-menu", details_menu_auto_open_value: settings_active }}
+  %summary.nav-item.nav-accordion-trigger{class: settings_active ? 'active' : ''}
+    = heroicon "chevron-right", options: { class: "nav-accordion-arrow" }
+    = heroicon "cog-6-tooth", options: { class: "nav-icon" }
+    %span.nav-label Settings
+  .nav-accordion-content
+    = link_to tenants_path, class: "nav-subitem #{controller_name == 'tenants' ? 'active' : ''}", data: { action: "details-menu#close" } do
+      = heroicon "user", options: { class: "nav-icon" }
+      %span.nav-label Tenants
+    = link_to owners_path, class: "nav-subitem #{controller_name == 'owners' ? 'active' : ''}", data: { action: "details-menu#close" } do
+      = heroicon "briefcase", options: { class: "nav-icon" }
+      %span.nav-label Owners
+    = link_to users_path, class: "nav-subitem #{controller_name == 'users' ? 'active' : ''}", data: { action: "details-menu#close" } do
+      = heroicon "users", options: { class: "nav-icon" }
+      %span.nav-label Users
+    = link_to versions_path, class: "nav-subitem #{controller_name == 'versions' ? 'active' : ''}", data: { action: "details-menu#close" } do
+      = heroicon "clock", options: { class: "nav-icon" }
+      %span.nav-label Audit Trail
