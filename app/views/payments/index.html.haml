@@ -45,7 +45,7 @@
                 .resource-item-icon
                   = heroicon "currency-rupee", options: { class: "w-5 h-5" }
                 .payment-item-header
-                  %span.resource-item-title= number_to_currency(payment.amount, unit: "₹", precision: 0)
+                  %span.resource-item-title= "##{payment.id}"
                   .resource-item-subtitle= payment.date.strftime("%b %d, %Y")
               .resource-col.payment-col-tenant
                 .resource-item-text= payment.lease.tenant.name

@@ -95,7 +95,11 @@
                   - counterparts.each do |counterpart|
                     %tr
                       %td= counterpart.instrument.date.strftime("%B %d, %Y")
-                      %td= "#{counterpart.instrument_type} ##{counterpart.instrument_id}"
+                      %td
+                        - if counterpart.instrument_type == "Payment"
+                          = link_to "Payment ##{counterpart.instrument_id}", payment_path(counterpart.instrument_id), class: "link link-primary"
+                        - else
+                          = "#{counterpart.instrument_type} ##{counterpart.instrument_id}"
                       %td.text-right= number_to_currency(entry.amount.abs, unit: "₹", precision: 0)
               %tfoot
                 %tr
