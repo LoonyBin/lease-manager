@@ -33,7 +33,6 @@
             .payment-col-mode Mode
             .payment-col-amount-table Amount
             .payment-col-status Status
-            .payment-col-actions Actions
 
           -# Payment items
           - @payments.each do |payment|
@@ -68,7 +67,6 @@
                   %span.resource-badge.resource-badge-amber
                     = number_to_currency(payment.balance.abs, unit: "₹", precision: 0)
                     unallocated
-              .resource-col-actions.payment-col-actions
 
         = paginate @payments
 
