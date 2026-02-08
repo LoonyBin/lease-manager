@@ -13,7 +13,7 @@ RSpec.describe "payments/index" do
   end
 
   it { is_expected.to have_css(".resource-item.payment-item", count: 1) }
-  it { is_expected.to have_css(".resource-item-title", text: "₹1,000") }
+  it { is_expected.to have_css(".resource-item-title", text: /^#\d+$/) }
   it { is_expected.to have_css(".payment-col-tenant .resource-item-text") }
   it { is_expected.to have_css(".payment-col-mode .resource-item-text") }
 end

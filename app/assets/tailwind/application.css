@@ -791,25 +791,10 @@ body.versions [data-nav="versions"] {
   color: #334155;
 }
 
-/* Action buttons - hidden in card view, shown in table */
+/* Action buttons - shown in both card and table view */
 .resource-item-actions {
-  display: none;
-}
-
-/* View details link */
-.resource-item-link {
-  display: inline-flex;
-  align-items: center;
+  display: flex;
   gap: 0.25rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #4f46e5;
-  text-decoration: none;
-  margin-left: auto;
-}
-
-.resource-item-link:hover {
-  color: #4338ca;
 }
 
 /* Badge base */
@@ -962,16 +947,6 @@ body.versions [data-nav="versions"] {
   }
 
   /* Show action buttons in table view */
-  body:has(#view-toggle:checked) .resource-item-actions {
-    display: flex;
-    gap: 0.25rem;
-  }
-
-  /* Hide view details link in table view */
-  body:has(#view-toggle:checked) .resource-item-link {
-    display: none;
-  }
-
   /* Hide icons in table view */
   body:has(#view-toggle:checked) .hidden-table {
     display: none;
@@ -1071,17 +1046,6 @@ body.versions [data-nav="versions"] {
   justify-content: center;
 }
 
-/* Show action buttons */
-.resource-list.table-only .resource-item-actions {
-  display: flex;
-  gap: 0.25rem;
-}
-
-/* Hide view details link */
-.resource-list.table-only .resource-item-link {
-  display: none;
-}
-
 /* Hide card-only icons */
 .resource-list.table-only .hidden-table {
   display: none;
@@ -1107,7 +1071,7 @@ body.versions [data-nav="versions"] {
 .invoice-list { --cols: 1.5fr 1fr 1.5fr 1fr 0.75fr 6rem; }
 
 /* Payment: Amount | Tenant | Mode | Amount | Status | Actions */
-.payment-list { --cols: 1fr 1fr 1fr 1fr 1fr 6rem; }
+.payment-list { --cols: 1fr 1fr 1fr 1fr 1fr; }
 
 /* Tenant: Name | Email | Phone | Leases | Actions */
 .tenant-list { --cols: 1.5fr 1.5fr 1fr 1fr 6rem; }

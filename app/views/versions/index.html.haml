@@ -62,9 +62,6 @@
                   - if VersionPolicy.new(current_user, version).destroy?
                     = link_to version_path(version.id), data: { turbo_method: :delete, turbo_confirm: t(".delete_confirm") }, class: "btn btn-sm btn-ghost text-error", aria: { label: "Delete version ##{version.id}" } do
                       = heroicon "trash", options: { class: "w-4 h-4" }
-                = link_to version_path(version.id), class: "resource-item-link" do
-                  View Details
-                  = heroicon "chevron-right", options: { class: "w-4 h-4" }
 
         = paginate @versions
 

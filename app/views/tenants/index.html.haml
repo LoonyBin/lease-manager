@@ -65,9 +65,6 @@
                   - if policy(tenant).destroy?
                     = link_to tenant, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-sm btn-ghost text-error", aria: { label: "Delete #{tenant.name}" } do
                       = heroicon "trash", options: { class: "w-4 h-4" }
-                = link_to tenant, class: "resource-item-link" do
-                  View Details
-                  = heroicon "chevron-right", options: { class: "w-4 h-4" }
 
         = paginate @tenants
 

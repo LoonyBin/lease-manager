@@ -71,9 +71,6 @@
                   - if policy(invoice).edit?
                     = link_to edit_invoice_path(invoice), class: "btn btn-sm btn-ghost", aria: { label: "Edit invoice #{invoice.number}" } do
                       = heroicon "pencil-square", options: { class: "w-4 h-4" }
-                = link_to invoice, class: "resource-item-link" do
-                  View
-                  = heroicon "chevron-right", options: { class: "w-4 h-4" }
 
         = paginate @invoices
 
