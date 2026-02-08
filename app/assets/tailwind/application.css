@@ -73,6 +73,27 @@
   color: #4f46e5; /* indigo-600 */
 }
 
+/* Active nav items based on body class (controller name) */
+body.dashboard [data-nav="dashboard"],
+body.properties [data-nav="properties"],
+body.leases [data-nav="leases"] {
+  color: #4f46e5; /* indigo-600 */
+}
+
+/* Finance accordion trigger active when on invoices/payments */
+body.invoices .nav-accordion-finance > .nav-accordion-trigger,
+body.payments .nav-accordion-finance > .nav-accordion-trigger {
+  color: #4f46e5;
+}
+
+/* Settings accordion trigger active when on settings pages */
+body.tenants .nav-accordion-settings > .nav-accordion-trigger,
+body.owners .nav-accordion-settings > .nav-accordion-trigger,
+body.users .nav-accordion-settings > .nav-accordion-trigger,
+body.versions .nav-accordion-settings > .nav-accordion-trigger {
+  color: #4f46e5;
+}
+
 .nav-icon {
   width: 1.5rem;
   height: 1.5rem;
@@ -140,6 +161,18 @@
 }
 
 .nav-subitem.active {
+  background: #eef2ff;
+  color: #4338ca;
+  font-weight: 600;
+}
+
+/* Active subitems based on body class */
+body.invoices [data-nav="invoices"],
+body.payments [data-nav="payments"],
+body.tenants [data-nav="tenants"],
+body.owners [data-nav="owners"],
+body.users [data-nav="users"],
+body.versions [data-nav="versions"] {
   background: #eef2ff;
   color: #4338ca;
   font-weight: 600;

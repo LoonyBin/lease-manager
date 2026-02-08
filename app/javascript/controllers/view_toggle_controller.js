@@ -1,12 +1,8 @@
 import { Controller } from "@hotwired/stimulus"
 
 // Persists view toggle preference (card/table) per resource type in localStorage
+// Resource type is read from body class (controller name)
 export default class extends Controller {
-  static values = {
-    resource: String,
-    default: { type: String, default: "card" }
-  }
-
   connect() {
     this.restorePreference()
     this.element.addEventListener("change", this.savePreference.bind(this))
@@ -18,8 +14,9 @@ export default class extends Controller {
 
   restorePreference() {
     const saved = localStorage.getItem(this.storageKey)
-    const preference = saved !== null ? saved : this.defaultValue
-    this.element.checked = preference === "table"
+    if (saved !== null) {
+      this.element.checked = saved === "table"
+    }
   }
 
   savePreference() {
@@ -28,6 +25,12 @@ export default class extends Controller {
   }
 
   get storageKey() {
-    return `view_preference_${this.resourceValue}`
+    return `view_preference_${this.resourceName}`
+  }
+
+  get resourceName() {
+    // Read controller name from body class (first class that's a resource)
+    const bodyClasses = document.body.className.split(" ")
+    return bodyClasses[0] || "default"
   }
 }

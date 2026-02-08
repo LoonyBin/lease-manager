@@ -3,7 +3,7 @@
 - content_for :page_actions do
   -# View toggle (desktop only)
   .view-toggle-group.hidden.lg:flex
-    %input#view-toggle.view-toggle-input{type: "checkbox", data: { controller: "view-toggle", view_toggle_resource_value: "properties" }}
+    %input#view-toggle.view-toggle-input{type: "checkbox", data: { controller: "view-toggle" }}
     %label.view-toggle-btn{for: "view-toggle", data: { view: "card" }, title: "Card view"}
       = heroicon "squares-2x2", options: { class: "w-4 h-4" }
     %label.view-toggle-btn{for: "view-toggle", data: { view: "table" }, title: "Table view"}
