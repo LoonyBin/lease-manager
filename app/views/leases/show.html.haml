@@ -2,15 +2,21 @@
   = "#{@lease.property.name} → #{@lease.tenant.name}"
 
 - content_for :page_actions do
+  -# Special actions first
+  - if policy(@lease).new? && !@lease.terminated_on
+    = link_to new_lease_path(renewed_from_id: @lease.id), class: "btn btn-ghost btn-sm btn-square text-success", title: "Renew" do
+      = heroicon "arrow-path", options: { class: "w-5 h-5" }
+  -# Generic actions
   - if policy(@lease).edit?
     = link_to edit_lease_path(@lease), class: "btn btn-ghost btn-sm btn-square", title: "Edit" do
       = heroicon "pencil-square", options: { class: "w-5 h-5" }
   - if policy(@lease).update? && !@lease.terminated_on
-    %label.btn.btn-ghost.btn-sm.btn-square.text-warning{for: "terminate-modal", title: "Terminate"}
+    %label.btn.btn-ghost.btn-sm.btn-square.text-error{for: "terminate-modal", title: "Terminate"}
       = heroicon "x-circle", options: { class: "w-5 h-5" }
-  - if policy(@lease).new? && !@lease.terminated_on
-    = link_to new_lease_path(renewed_from_id: @lease.id), class: "btn btn-ghost btn-sm btn-square text-success", title: "Renew" do
-      = heroicon "arrow-path", options: { class: "w-5 h-5" }
+  - if policy(@lease).destroy?
+    = button_to lease_path(@lease), method: :delete, class: "btn btn-ghost btn-sm btn-square text-error", data: { turbo_confirm: "Are you sure you want to delete this lease?" }, title: "Delete" do
+      = heroicon "trash", options: { class: "w-5 h-5" }
+  -# Info actions last
   %label.btn.btn-ghost.btn-sm.btn-square{for: "history-drawer", title: "History"}
     = heroicon "clock", options: { class: "w-5 h-5" }
 

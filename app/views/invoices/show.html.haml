@@ -6,12 +6,15 @@
     %span.resource-badge.resource-badge-neutral.ml-2 Draft
 
 - content_for :page_actions do
-  - if policy(@invoice).edit?
-    = link_to edit_invoice_path(@invoice), class: "btn btn-ghost btn-sm btn-square", title: "Edit" do
-      = heroicon "pencil-square", options: { class: "w-5 h-5" }
+  -# Special actions first
   - if policy(@invoice).update? && @invoice.draft?
     = button_to invoice_path(@invoice), method: :patch, params: { invoice: { status: 'finalized' } }, class: "btn btn-ghost btn-sm btn-square text-success", data: { turbo_confirm: "Finalize this invoice? This will assign an invoice number and cannot be undone." }, title: "Finalize" do
       = heroicon "check-circle", options: { class: "w-5 h-5" }
+  -# Generic actions
+  - if policy(@invoice).edit?
+    = link_to edit_invoice_path(@invoice), class: "btn btn-ghost btn-sm btn-square", title: "Edit" do
+      = heroicon "pencil-square", options: { class: "w-5 h-5" }
+  -# Info actions last
   %label.btn.btn-ghost.btn-sm.btn-square{for: "history-drawer", title: "History"}
     = heroicon "clock", options: { class: "w-5 h-5" }
 

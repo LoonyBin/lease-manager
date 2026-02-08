@@ -4,6 +4,9 @@
   - if policy(@owner).edit?
     = link_to edit_owner_path(@owner), class: "btn btn-ghost btn-sm btn-square", title: "Edit" do
       = heroicon "pencil-square", options: { class: "w-5 h-5" }
+  - if policy(@owner).destroy?
+    = button_to owner_path(@owner), method: :delete, class: "btn btn-ghost btn-sm btn-square text-error", data: { turbo_confirm: "Are you sure you want to delete this owner?" }, title: "Delete" do
+      = heroicon "trash", options: { class: "w-5 h-5" }
   %label.btn.btn-ghost.btn-sm.btn-square{for: "history-drawer", title: "History"}
     = heroicon "clock", options: { class: "w-5 h-5" }
 
