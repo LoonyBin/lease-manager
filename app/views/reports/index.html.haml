@@ -11,7 +11,7 @@
         .stat-icon.stat-icon-green
           = heroicon "arrow-right", options: { class: "w-4 h-4 rotate-[-45deg]" }
       .stat-value= number_to_currency(@total_revenue, unit: "₹")
-      .stat-subtext.text-emerald-600
+      .stat-subtext.text-success
         = link_to "View details →", revenue_reports_path
 
     .stat-card
@@ -29,7 +29,7 @@
         .stat-icon.stat-icon-blue
           = heroicon "check-circle", options: { class: "w-4 h-4" }
       .stat-value= number_to_currency(@total_collected, unit: "₹")
-      .stat-subtext.text-slate-400 Total payments received
+      .stat-subtext Total payments received
 
     .stat-card
       .stat-card-header

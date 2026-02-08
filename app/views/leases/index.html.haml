@@ -53,7 +53,7 @@
                   .lease-item-date-range
                     = heroicon "calendar", options: { class: "w-3.5 h-3.5 shrink-0 hidden-table" }
                     %span= lease.start_date.strftime("%b %Y")
-                    %span.text-slate-400 →
+                    %span.opacity-50 →
                     %span= lease.end_date&.strftime("%b %Y") || "Ongoing"
               .resource-col.lease-col-details
                 .lease-item-stats
