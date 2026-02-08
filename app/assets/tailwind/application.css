@@ -1603,3 +1603,251 @@ body.versions [data-nav="versions"] {
     color: #64748b;
   }
 }
+
+/* ==========================================================================
+   Show Page Components
+   ========================================================================== */
+
+.show-card {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  border: 1px solid #f1f5f9;
+  overflow: hidden;
+}
+
+.show-section {
+  padding: 1.25rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.show-section:last-child {
+  border-bottom: none;
+}
+
+.show-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.show-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 1rem;
+}
+
+.show-section-header .show-section-title {
+  margin-bottom: 0;
+}
+
+.show-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.show-field {
+  margin-bottom: 0.75rem;
+}
+
+.show-field:last-child {
+  margin-bottom: 0;
+}
+
+.show-field-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  color: #64748b;
+  margin-bottom: 0.25rem;
+}
+
+.show-field-value {
+  font-size: 0.9375rem;
+  color: #1e293b;
+}
+
+/* Stats */
+.show-stats {
+  display: flex;
+  gap: 2rem;
+}
+
+.show-stat {
+  text-align: center;
+}
+
+.show-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #4f46e5;
+}
+
+.show-stat-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  color: #64748b;
+}
+
+/* List within show page */
+.show-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.show-list-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: #f8fafc;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.show-list-item:hover {
+  background: #f1f5f9;
+}
+
+.show-list-item-title {
+  font-weight: 500;
+  flex: 1;
+}
+
+.show-list-item-meta {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.show-list-item-badge {
+  flex-shrink: 0;
+}
+
+/* Tags */
+.show-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.show-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  background: #f1f5f9;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  color: #475569;
+}
+
+.show-tag-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.show-tag-remove:hover {
+  color: #ef4444;
+}
+
+/* Inline form */
+.show-inline-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Empty state */
+.show-empty {
+  padding: 1rem;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.875rem;
+}
+
+/* Documents */
+.show-documents {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 0.75rem;
+}
+
+.show-document {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: #f8fafc;
+  border-radius: 0.5rem;
+}
+
+.show-document-icon {
+  color: #4f46e5;
+}
+
+.show-document-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.show-document-name {
+  font-weight: 500;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.show-document-size {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+/* Invoice specific */
+.show-invoice-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.show-invoice-from {
+  flex: 1;
+}
+
+.show-invoice-meta {
+  text-align: right;
+}
+
+.show-invoice-meta .show-field {
+  text-align: right;
+}
+
+@media (max-width: 640px) {
+  .show-invoice-header {
+    flex-direction: column;
+  }
+
+  .show-invoice-meta {
+    text-align: left;
+  }
+
+  .show-invoice-meta .show-field {
+    text-align: left;
+  }
+}

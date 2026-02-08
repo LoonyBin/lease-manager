@@ -1,30 +1,68 @@
+- content_for :page_title, @property.name
+
+- content_for :page_actions do
+  - if policy(@property).edit?
+    = link_to edit_property_path(@property), class: "btn btn-ghost btn-sm btn-square", title: "Edit" do
+      = heroicon "pencil-square", options: { class: "w-5 h-5" }
+  %label.btn.btn-ghost.btn-sm.btn-square{for: "history-drawer", title: "History"}
+    = heroicon "clock", options: { class: "w-5 h-5" }
+
 .drawer.drawer-end
   %input#history-drawer.drawer-toggle{type: "checkbox"}
   .drawer-content
-    .max-w-lg.mx-auto
-      .flex.justify-between.items-start.mb-6
-        %h1.text-2xl.font-bold Property Details
-        .flex.gap-2
-          - if policy(@property).edit?
-            = link_to edit_property_path(@property), class: "btn btn-sm btn-ghost", aria: { label: "Edit" } do
-              = heroicon "pencil-square", options: { class: "w-4 h-4" }
-          %label.btn.btn-ghost.btn-sm.btn-circle{for: "history-drawer"}
-            = heroicon "clock", options: { class: "w-4 h-4" }
-            %span.sr-only History
+    .show-card
+      .show-section
+        .show-field
+          .show-field-label Owner
+          .show-field-value= link_to @property.owner.name, @property.owner, class: "link link-primary"
+        .show-field
+          .show-field-label Address
+          .show-field-value= @property.address
+        .show-field
+          .show-field-label Capacity
+          .show-field-value
+            = @property.capacity
+            = @property.unit.pluralize(@property.capacity)
 
-      .space-y-4
-        %div
-          %h3.font-bold.text-sm.opacity-70 Owner
-          %p= @property.owner.name
-        %div
-          %h3.font-bold.text-sm.opacity-70 Name
-          %p= @property.name
-        %div
-          %h3.font-bold.text-sm.opacity-70 Address
-          %p= @property.address
+      - leased = @property.leases.active_at(Date.current).sum(:quantity)
+      - available = @property.capacity - leased
+      - occupancy = @property.capacity.positive? ? (leased.to_f / @property.capacity * 100).round : 0
+
+      .show-section
+        %h3.show-section-title Occupancy
+        .show-stats
+          .show-stat
+            .show-stat-value #{occupancy}%
+            .show-stat-label Occupied
+          .show-stat
+            .show-stat-value= leased
+            .show-stat-label Leased
+          .show-stat
+            .show-stat-value= available
+            .show-stat-label Available
+
+      .show-section
+        .show-section-header
+          %h3.show-section-title Leases
+          = link_to leases_path(q: { property_id_eq: @property.id }), class: "btn btn-ghost btn-xs", title: "View all" do
+            = heroicon "arrows-pointing-out", options: { class: "w-4 h-4" }
+
+        - active_leases = @property.leases.active_at(Date.current).includes(:tenant)
+        - if active_leases.any?
+          .show-list
+            - active_leases.each do |lease|
+              .show-list-item
+                .show-list-item-title= link_to lease.tenant.name, lease, class: "link link-primary"
+                .show-list-item-meta
+                  = lease.start_date.strftime("%b %Y")
+                  →
+                  = lease.end_date&.strftime("%b %Y") || "Ongoing"
+                .show-list-item-badge
+                  %span.resource-badge.resource-badge-success Active
+        - else
+          .show-empty No active leases
 
   .drawer-side
     %label.drawer-overlay{for: "history-drawer", aria: { label: "close sidebar" }}
     .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
       = render "shared/history_sidebar", item: @property
-

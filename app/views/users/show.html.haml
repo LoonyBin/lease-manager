@@ -1,79 +1,78 @@
+- content_for :page_title, @user.name
+
+- content_for :page_actions do
+  - if policy(@user).edit?
+    = link_to edit_user_path(@user), class: "btn btn-ghost btn-sm btn-square", title: "Edit" do
+      = heroicon "pencil-square", options: { class: "w-5 h-5" }
+  %label.btn.btn-ghost.btn-sm.btn-square{for: "history-drawer", title: "History"}
+    = heroicon "clock", options: { class: "w-5 h-5" }
+
 .drawer.drawer-end
   %input#history-drawer.drawer-toggle{type: "checkbox"}
   .drawer-content
-    .max-w-2xl.mx-auto
-      .flex.justify-between.items-start.mb-6
-        %h1.text-2xl.font-bold User Details
-        .flex.gap-2
-          - if policy(@user).edit?
-            = link_to edit_user_path(@user), class: "btn btn-sm btn-ghost", aria: { label: "Edit" } do
-              = heroicon "pencil-square", options: { class: "w-4 h-4" }
-          %label.btn.btn-ghost.btn-sm.btn-circle{for: "history-drawer"}
-            = heroicon "clock", options: { class: "w-4 h-4" }
-            %span.sr-only History
+    .show-card
+      .show-section
+        .show-field
+          .show-field-label Email
+          .show-field-value= mail_to @user.email, class: "link link-primary"
+        .show-field
+          .show-field-label Role
+          .show-field-value
+            - if @user.admin?
+              %span.resource-badge.resource-badge-warning Admin
+            - else
+              %span.resource-badge.resource-badge-success Normal
+        .show-field
+          .show-field-label Provider
+          .show-field-value
+            %span.resource-badge.resource-badge-neutral= @user.provider.titleize
+        .show-field
+          .show-field-label UID
+          .show-field-value.font-mono.text-sm= @user.uid
 
-      .grid.grid-cols-1.md:grid-cols-2.gap-4.mb-6
-        %div
-          %h3.font-bold.text-sm.opacity-70 Name
-          %p= @user.name
-        %div
-          %h3.font-bold.text-sm.opacity-70 Email
-          %p= @user.email
-        %div
-          %h3.font-bold.text-sm.opacity-70 Role
-          %span{class: "badge badge-#{@user.admin? ? 'primary' : 'ghost'}"}
-            = @user.role.humanize
-        %div
-          %h3.font-bold.text-sm.opacity-70 Provider
-          %p= @user.provider
-        %div
-          %h3.font-bold.text-sm.opacity-70 UID
-          %p= @user.uid
+      .show-section
+        %h3.show-section-title Associated Owners
 
-      .divider
+        - if @user.owners.any?
+          .show-tags
+            - @user.user_associations.includes(:associable).where(associable_type: "Owner").each do |assoc|
+              .show-tag
+                = link_to assoc.associable.name, assoc.associable, class: "link link-hover"
+                - if policy(assoc).destroy?
+                  = button_to user_association_path(assoc), method: :delete, class: "show-tag-remove", data: { turbo_confirm: "Remove this association?" }, aria: { label: "Remove #{assoc.associable.name}" } do
+                    = heroicon "x-mark", options: { class: "w-3 h-3" }
+        - else
+          .show-empty.mb-4 No owners associated
 
-      %h3.text-lg.font-bold.mb-4 Associated Owners
-      - if @user.owners.any?
-        .flex.flex-wrap.gap-2.mb-4
-          - @user.user_associations.includes(:associable).where(associable_type: "Owner").each do |assoc|
-            .badge.badge-outline.gap-2
-              = assoc.associable.name
-              - if policy(assoc).destroy?
-                = button_to user_association_path(assoc), method: :delete, class: "btn btn-ghost btn-xs p-0", data: { turbo_confirm: "Remove this association?" }, aria: { label: "Remove #{assoc.associable.name}" } do
-                  = heroicon "x-mark", options: { class: "w-4 h-4" }
-      - else
-        %p.text-base-content.opacity-50.mb-4 No owners associated.
+        - if policy(UserAssociation).create?
+          = form_with model: UserAssociation.new, class: "show-inline-form" do |f|
+            = f.hidden_field :user_id, value: @user.id
+            = f.hidden_field :associable_type, value: "Owner"
+            = f.collection_select :associable_id, Owner.where.not(id: @user.owner_ids).order(:name), :id, :name, { prompt: "Select owner..." }, class: "select select-bordered select-sm flex-1"
+            = f.submit "Add", class: "btn btn-sm btn-primary"
 
-      - if policy(UserAssociation).create?
-        = form_with model: UserAssociation.new, class: "flex gap-2 mb-6" do |f|
-          = f.hidden_field :user_id, value: @user.id
-          = f.hidden_field :associable_type, value: "Owner"
-          = f.collection_select :associable_id, Owner.where.not(id: @user.owner_ids).order(:name), :id, :name, { prompt: "Select owner to add..." }, class: "select select-bordered select-sm flex-1"
-          = f.submit "Add", class: "btn btn-sm btn-primary"
+      .show-section
+        %h3.show-section-title Associated Tenants
 
-      .divider
+        - if @user.tenants.any?
+          .show-tags
+            - @user.user_associations.includes(:associable).where(associable_type: "Tenant").each do |assoc|
+              .show-tag
+                = link_to assoc.associable.name, assoc.associable, class: "link link-hover"
+                - if policy(assoc).destroy?
+                  = button_to user_association_path(assoc), method: :delete, class: "show-tag-remove", data: { turbo_confirm: "Remove this association?" }, aria: { label: "Remove #{assoc.associable.name}" } do
+                    = heroicon "x-mark", options: { class: "w-3 h-3" }
+        - else
+          .show-empty.mb-4 No tenants associated
 
-      %h3.text-lg.font-bold.mb-4 Associated Tenants
-      - if @user.tenants.any?
-        .flex.flex-wrap.gap-2.mb-4
-          - @user.user_associations.includes(:associable).where(associable_type: "Tenant").each do |assoc|
-            .badge.badge-outline.gap-2
-              = assoc.associable.name
-              - if policy(assoc).destroy?
-                = button_to user_association_path(assoc), method: :delete, class: "btn btn-ghost btn-xs p-0", data: { turbo_confirm: "Remove this association?" }, aria: { label: "Remove #{assoc.associable.name}" } do
-                  = heroicon "x-mark", options: { class: "w-4 h-4" }
-      - else
-        %p.text-base-content.opacity-50.mb-4 No tenants associated.
-
-      - if policy(UserAssociation).create?
-        = form_with model: UserAssociation.new, class: "flex gap-2" do |f|
-          = f.hidden_field :user_id, value: @user.id
-          = f.hidden_field :associable_type, value: "Tenant"
-          = f.collection_select :associable_id, Tenant.where.not(id: @user.tenant_ids).order(:name), :id, :name, { prompt: "Select tenant to add..." }, class: "select select-bordered select-sm flex-1"
-          = f.submit "Add", class: "btn btn-sm btn-primary"
+        - if policy(UserAssociation).create?
+          = form_with model: UserAssociation.new, class: "show-inline-form" do |f|
+            = f.hidden_field :user_id, value: @user.id
+            = f.hidden_field :associable_type, value: "Tenant"
+            = f.collection_select :associable_id, Tenant.where.not(id: @user.tenant_ids).order(:name), :id, :name, { prompt: "Select tenant..." }, class: "select select-bordered select-sm flex-1"
+            = f.submit "Add", class: "btn btn-sm btn-primary"
 
   .drawer-side
     %label.drawer-overlay{for: "history-drawer", aria: { label: "close sidebar" }}
     .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
       = render "shared/history_sidebar", item: @user
-

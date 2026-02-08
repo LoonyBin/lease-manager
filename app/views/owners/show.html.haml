@@ -1,70 +1,64 @@
+- content_for :page_title, @owner.name
+
+- content_for :page_actions do
+  - if policy(@owner).edit?
+    = link_to edit_owner_path(@owner), class: "btn btn-ghost btn-sm btn-square", title: "Edit" do
+      = heroicon "pencil-square", options: { class: "w-5 h-5" }
+  %label.btn.btn-ghost.btn-sm.btn-square{for: "history-drawer", title: "History"}
+    = heroicon "clock", options: { class: "w-5 h-5" }
+
 .drawer.drawer-end
   %input#history-drawer.drawer-toggle{type: "checkbox"}
   .drawer-content
-    .flex.justify-between.items-start.mb-6
-      %h1.text-2xl.font-bold= @owner.name
-      .flex.gap-2
-        - if policy(@owner).edit?
-          = link_to edit_owner_path(@owner), class: "btn btn-sm btn-ghost", aria: { label: "Edit" } do
-            = heroicon "pencil-square", options: { class: "w-4 h-4" }
-        %label.btn.btn-ghost.btn-sm.btn-circle{for: "history-drawer"}
-          = heroicon "clock", options: { class: "w-4 h-4" }
-          %span.sr-only History
+    .show-card
+      .show-section
+        .show-field
+          .show-field-label Address
+          .show-field-value.whitespace-pre-wrap= @owner.address
+        .show-field
+          .show-field-label Invoice Sequence
+          .show-field-value= @owner.invoice_sequence
 
-    .grid.grid-cols-1.md:grid-cols-2.gap-6.mb-6
-      %div
-        %h3.font-bold.text-sm.opacity-70 Address
-        %p.whitespace-pre-wrap= @owner.address
+      .show-section
+        .show-section-header
+          %h3.show-section-title Properties
+          = link_to properties_path(q: { owner_id_eq: @owner.id }), class: "btn btn-ghost btn-xs", title: "View all" do
+            = heroicon "arrows-pointing-out", options: { class: "w-4 h-4" }
 
-      %div
-        %h3.font-bold.text-sm.opacity-70 Invoice Sequence
-        %p= @owner.invoice_sequence
-
-    .divider
-
-    .flex.items-center.gap-2.mb-4
-      %h3.text-lg.font-bold Properties
-      = link_to properties_path(q: { owner_id_eq: @owner.id }), class: "btn btn-ghost btn-xs", aria: { label: "View all properties" } do
-        = heroicon "arrows-pointing-out", options: { class: "w-4 h-4" }
-    - if @properties.any?
-      .overflow-x-auto
-        %table.table
-          %thead
-            %tr
-              %th Name
-              %th Leases
-          %tbody
+        - if @properties.any?
+          .show-list
             - @properties.each do |property|
-              %tr.hover.cursor-pointer{data: { controller: "clickable-row", clickable_row_url_value: property_path(property), action: "click->clickable-row#click" }}
-                %td.font-medium= link_to property.name, property, class: "link link-hover"
-                %td= property.leases.count
-    - else
-      %p.text-base-content.opacity-60 No properties assigned.
+              .show-list-item{data: { controller: "clickable-row", clickable_row_url_value: property_path(property), action: "click->clickable-row#click" }}
+                .show-list-item-title= link_to property.name, property, class: "link link-primary"
+                .show-list-item-meta= property.address.truncate(40)
+                .show-list-item-badge
+                  %span.resource-badge.resource-badge-neutral
+                    = pluralize(property.leases.count, "lease")
+        - else
+          .show-empty No properties
 
-    .divider
+      .show-section
+        %h3.show-section-title Associated Users
 
-    %h3.text-lg.font-bold.mb-4 Associated Users
+        - if @owner.users.any?
+          .show-tags
+            - @owner.user_associations.includes(:user).each do |assoc|
+              .show-tag
+                = assoc.user.name
+                - if policy(assoc).destroy?
+                  = button_to user_association_path(assoc), method: :delete, class: "show-tag-remove", data: { turbo_confirm: "Remove this association?" }, aria: { label: "Remove #{assoc.user.name}" } do
+                    = heroicon "x-mark", options: { class: "w-3 h-3" }
+        - else
+          .show-empty.mb-4 No users associated
 
-    - if @owner.users.any?
-      .flex.flex-wrap.gap-2.mb-4
-        - @owner.user_associations.includes(:user).each do |assoc|
-          .badge.badge-outline.gap-2
-            = assoc.user.name
-            - if policy(assoc).destroy?
-              = button_to user_association_path(assoc), method: :delete, class: "btn btn-ghost btn-xs p-0", data: { turbo_confirm: "Remove this association?" }, aria: { label: "Remove #{assoc.user.name}" } do
-                = heroicon "x-mark", options: { class: "w-4 h-4" }
-    - else
-      %p.text-base-content.opacity-50.mb-4 No users associated.
-
-    - if policy(UserAssociation).create?
-      = form_with model: UserAssociation.new, class: "flex gap-2" do |f|
-        = f.hidden_field :associable_type, value: "Owner"
-        = f.hidden_field :associable_id, value: @owner.id
-        = f.collection_select :user_id, User.where.not(id: @owner.user_ids).order(:name), :id, :name, { prompt: "Select user to add..." }, class: "select select-bordered select-sm flex-1"
-        = f.submit "Add", class: "btn btn-sm btn-primary"
+        - if policy(UserAssociation).create?
+          = form_with model: UserAssociation.new, class: "show-inline-form" do |f|
+            = f.hidden_field :associable_type, value: "Owner"
+            = f.hidden_field :associable_id, value: @owner.id
+            = f.collection_select :user_id, User.where.not(id: @owner.user_ids).order(:name), :id, :name, { prompt: "Select user..." }, class: "select select-bordered select-sm flex-1"
+            = f.submit "Add", class: "btn btn-sm btn-primary"
 
   .drawer-side
     %label.drawer-overlay{for: "history-drawer", aria: { label: "close sidebar" }}
     .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
       = render "shared/history_sidebar", item: @owner
-
