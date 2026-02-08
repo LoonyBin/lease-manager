@@ -1,13 +1,7 @@
 - content_for :page_title, t(".title")
 
 - content_for :page_actions do
-  -# View toggle (desktop only)
-  .view-toggle-group.hidden.lg:flex
-    %input#view-toggle.view-toggle-input{type: "checkbox"}
-    %label.view-toggle-btn{for: "view-toggle", data: { view: "card" }, title: "Card view"}
-      = heroicon "squares-2x2", options: { class: "w-4 h-4" }
-    %label.view-toggle-btn{for: "view-toggle", data: { view: "table" }, title: "Table view"}
-      = heroicon "list-bullet", options: { class: "w-4 h-4" }
+  -# No view toggle - audit trail is table-only
   %label.btn.btn-ghost.btn-sm.btn-square{for: "sort-drawer", title: "Sort"}
     = heroicon "bars-arrow-down", options: { class: "w-5 h-5" }
   %label.btn.btn-ghost.btn-sm.btn-square{for: "filter-drawer", title: "Filter"}
@@ -21,9 +15,8 @@
       .drawer-content.flex.flex-col
         = render_active_filters(@q)
 
-        -# Single markup - CSS handles card vs table display
-        .resource-list.version-list
-          -# Table header (visible only in table view on desktop)
+        -# Table-only layout for audit trail
+        .resource-list.version-list.table-only
           .resource-list-header.version-list-header
             .version-col-date Date
             .version-col-resource Resource
