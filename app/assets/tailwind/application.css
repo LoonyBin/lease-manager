@@ -1107,7 +1107,7 @@ body.versions [data-nav="versions"] {
 .invoice-list { --cols: 1.5fr 1fr 1.5fr 1fr 0.75fr 6rem; }
 
 /* Payment: Amount | Tenant | Mode | Amount | Status | Actions */
-.payment-list { --cols: 1fr 1fr 1fr 1fr 1fr; }
+.payment-list { --cols: 1fr 1fr 1fr 1fr 1fr 6rem; }
 
 /* Tenant: Name | Email | Phone | Leases | Actions */
 .tenant-list { --cols: 1.5fr 1.5fr 1fr 1fr 6rem; }

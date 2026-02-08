@@ -33,13 +33,14 @@
             .payment-col-mode Mode
             .payment-col-amount-table Amount
             .payment-col-status Status
+            .payment-col-actions Actions
 
           -# Payment items
           - @payments.each do |payment|
             - settlement_entries = payment.entries.settlements
             - fully_allocated = payment.balance.abs.zero?
 
-            .resource-item.payment-item
+            .resource-item.payment-item{data: { controller: "clickable-row", clickable_row_url_value: payment_path(payment), action: "click->clickable-row#click" }}
               .resource-col-header.payment-col-amount
                 .resource-item-icon
                   = heroicon "currency-rupee", options: { class: "w-5 h-5" }
@@ -67,6 +68,10 @@
                   %span.resource-badge.resource-badge-amber
                     = number_to_currency(payment.balance.abs, unit: "₹", precision: 0)
                     unallocated
+              .resource-col-actions.payment-col-actions
+                = link_to payment, class: "resource-item-link" do
+                  View
+                  = heroicon "chevron-right", options: { class: "w-4 h-4" }
 
         = paginate @payments
 

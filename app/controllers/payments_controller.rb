@@ -7,6 +7,11 @@ class PaymentsController < ApplicationController
     @payments = @q.result.includes(:lease).page(params[:page]).per(20)
   end
 
+  def show
+    @payment = Payment.find(params[:id])
+    authorize @payment
+  end
+
   def new
     @payment = Payment.new
     authorize @payment
