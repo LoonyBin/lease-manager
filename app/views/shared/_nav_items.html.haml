@@ -46,3 +46,7 @@
     = link_to versions_path, class: "nav-subitem", data: { nav: "versions", action: "details-menu#close" } do
       = heroicon "clock", options: { class: "nav-icon" }
       %span.nav-label Audit Trail
+    .nav-subitem-divider
+    = button_to logout_path, method: :delete, class: "nav-subitem nav-subitem-danger", data: { action: "details-menu#close" } do
+      = heroicon "arrow-right-on-rectangle", options: { class: "nav-icon" }
+      %span.nav-label Logout

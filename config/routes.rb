@@ -14,8 +14,6 @@ Rails.application.routes.draw do
   match "/auth/:provider/callback", to: "sessions#create", via: %i[get post]
   delete "/logout", to: "sessions#destroy", as: :logout
 
-  get "/settings", to: redirect("/properties", status: 307), as: :settings
-
   resources :versions, only: %i[index show destroy]
   resources :reports, only: [:index] do
     collection do

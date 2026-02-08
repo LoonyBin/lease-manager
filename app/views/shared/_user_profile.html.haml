@@ -1,18 +1,10 @@
--# User profile - CSS handles mobile (compact dropdown) vs desktop (full profile)
+-# User profile - simple link to user's profile page
 - if logged_in?
-  .user-profile.lg:w-full
-    .dropdown.dropdown-end.lg:dropdown-top.lg:dropdown-start.lg:w-full
-      %label.user-profile-btn{tabindex: "0"}
-        .user-avatar
-          %span= current_user.initials
-        .user-details
-          .user-name= current_user.name
-          .user-role= current_user.role.titleize
-      %ul.user-menu{tabindex: "0"}
-        %li.menu-title.lg:hidden
-          %span Signed in as #{current_user.name}
-        %li= link_to 'Settings', settings_path
-        %li
-          = button_to 'Logout', logout_path, method: :delete, class: ""
+  = link_to user_path(current_user), class: "user-profile-link" do
+    .user-avatar
+      %span= current_user.initials
+    .user-details
+      .user-name= current_user.name
+      .user-role= current_user.role.titleize
 - else
   = button_to 'Login', '/auth/developer', method: :post, class: "btn btn-sm btn-primary", data: { turbo: false }

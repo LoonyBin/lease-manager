@@ -183,18 +183,38 @@ body.versions [data-nav="versions"] {
   height: 1.25rem;
 }
 
-/* User profile */
-.user-profile {
-  display: flex;
-  align-items: center;
+.nav-subitem-divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 0.5rem 0;
 }
 
-.user-profile-btn {
+.nav-subitem-danger {
+  color: #dc2626;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+
+.nav-subitem-danger:hover {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+/* User profile */
+.user-profile-link {
   display: flex;
   align-items: center;
-  cursor: pointer;
-  border-radius: 9999px;
+  gap: 0.5rem;
   padding: 0.25rem;
+  border-radius: 0.5rem;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.user-profile-link:hover {
+  background: #f1f5f9;
 }
 
 .user-avatar {
@@ -226,58 +246,6 @@ body.versions [data-nav="versions"] {
   font-size: 0.75rem;
   color: #64748b; /* slate-500 */
   line-height: 1.25;
-}
-
-.user-menu {
-  position: absolute;
-  right: 0;
-  margin-top: 0.75rem;
-  padding: 0.5rem;
-  background: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  border: 1px solid #e2e8f0; /* slate-200 */
-  width: 13rem;
-  z-index: 50;
-  display: none;
-}
-
-.user-menu li {
-  list-style: none;
-}
-
-.user-menu li a,
-.user-menu li button,
-.user-menu li input[type="submit"] {
-  display: block;
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  text-align: left;
-  font-size: 0.875rem;
-  color: #334155; /* slate-700 */
-  border-radius: 0.5rem;
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-
-.user-menu li a:hover,
-.user-menu li button:hover,
-.user-menu li input[type="submit"]:hover {
-  background: #f1f5f9; /* slate-100 */
-}
-
-.user-menu .menu-title {
-  padding: 0.5rem 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #94a3b8; /* slate-400 */
-  text-transform: uppercase;
-}
-
-.dropdown:focus-within .user-menu,
-.dropdown .user-profile-btn:focus + .user-menu {
-  display: block;
 }
 
 /* Drawer overlay should cover fixed sidebar elements */
