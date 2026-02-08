@@ -1318,11 +1318,18 @@ body.versions [data-nav="versions"] {
   display: none;
 }
 
+/* Status column hidden in card view */
+.invoice-col-status {
+  display: none;
+}
+
 @media (min-width: 1024px) {
-  body:has(#view-toggle:checked) .invoice-item-total {
+  /* Table view: hide card-specific elements */
+  body:has(#view-toggle:checked) .invoice-item-amount {
     display: none;
   }
 
+  /* Table view: show compact amount */
   body:has(#view-toggle:checked) .invoice-item-amount-compact {
     display: flex;
     flex-direction: column;
@@ -1337,6 +1344,12 @@ body.versions [data-nav="versions"] {
   body:has(#view-toggle:checked) .invoice-item-amount-compact .balance {
     font-size: 0.75rem;
     color: #64748b;
+  }
+
+  /* Table view: show status column */
+  body:has(#view-toggle:checked) .invoice-col-status {
+    display: flex;
+    align-items: center;
   }
 }
 

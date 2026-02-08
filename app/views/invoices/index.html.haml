@@ -54,10 +54,17 @@
                   = heroicon "user", options: { class: "w-3.5 h-3.5 shrink-0 hidden-table" }
                   %span= invoice.lease.tenant.name
               .resource-col.invoice-col-amount
+                -# Card view: total with status badge
                 .invoice-item-amount
                   %span.invoice-item-total= number_to_currency(invoice.total_amount, unit: "₹", precision: 0)
-                  %span.resource-badge{class: "resource-badge-#{invoice.status == 'paid' ? 'success' : invoice.status == 'sent' ? 'info' : invoice.status == 'overdue' ? 'error' : 'neutral'}"}= invoice.status.humanize
+                  %span.invoice-item-status.resource-badge{class: "resource-badge-#{invoice.status == 'paid' ? 'success' : invoice.status == 'sent' ? 'info' : invoice.status == 'overdue' ? 'error' : 'neutral'}"}= invoice.status.humanize
+                -# Table view: compact amount
+                .invoice-item-amount-compact
+                  %span.amount= number_to_currency(invoice.total_amount, unit: "₹", precision: 0)
+                  - if invoice.outstanding_amount > 0
+                    %span.balance= "#{number_to_currency(invoice.outstanding_amount, unit: '₹', precision: 0)} due"
               .resource-col-flex.invoice-col-status
+                -# Table view only: status badge
                 %span.resource-badge{class: "resource-badge-#{invoice.status == 'paid' ? 'success' : invoice.status == 'sent' ? 'info' : invoice.status == 'overdue' ? 'error' : 'neutral'}"}= invoice.status.humanize
               .resource-col-actions.invoice-col-actions
                 .resource-item-actions
