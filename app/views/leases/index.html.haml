@@ -25,9 +25,9 @@
         = render_active_filters(@q)
 
         -# Single markup - CSS handles card vs table display
-        .lease-list
+        .resource-list.lease-list
           -# Table header (visible only in table view on desktop)
-          .lease-list-header
+          .resource-list-header.lease-list-header
             .lease-col-property Property
             .lease-col-tenant Tenant
             .lease-col-dates Dates
@@ -39,23 +39,23 @@
           - @leases.each do |lease|
             - status = lease_status(lease)
 
-            .lease-item{data: { controller: "clickable-row", clickable_row_url_value: lease_path(lease), action: "click->clickable-row#click" }}
-              .lease-col-property
-                .lease-item-icon
+            .resource-item.lease-item{data: { controller: "clickable-row", clickable_row_url_value: lease_path(lease), action: "click->clickable-row#click" }}
+              .resource-col-header.lease-col-property
+                .resource-item-icon
                   = heroicon "building-office-2", options: { class: "w-5 h-5" }
-                = link_to lease.property.name, lease, class: "lease-item-property"
-              .lease-col-tenant
-                .lease-item-tenant
+                = link_to lease.property.name, lease, class: "resource-item-title"
+              .resource-col.lease-col-tenant
+                .resource-item-meta
                   = heroicon "user", options: { class: "w-3.5 h-3.5 shrink-0 hidden-table" }
                   %span= lease.tenant.name
-              .lease-col-dates
+              .resource-col.lease-col-dates
                 .lease-item-dates
                   .lease-item-date-range
                     = heroicon "calendar", options: { class: "w-3.5 h-3.5 shrink-0 hidden-table" }
                     %span= lease.start_date.strftime("%b %Y")
                     %span.text-slate-400 →
                     %span= lease.end_date&.strftime("%b %Y") || "Ongoing"
-              .lease-col-details
+              .resource-col.lease-col-details
                 .lease-item-stats
                   .lease-item-stat
                     %span.lease-item-stat-label Rent
@@ -66,17 +66,17 @@
                 .lease-item-details-compact
                   %span.rent= number_to_currency(lease.rent_amount, unit: "₹", precision: 0)
                   %span.duration #{lease.duration_months} months
-              .lease-col-status
-                %span.lease-item-badge{class: "lease-item-badge-#{status}"}= status.capitalize
-              .lease-col-actions
-                .lease-item-actions
+              .resource-col-flex.lease-col-status
+                %span.resource-badge{class: "resource-badge-#{status == 'active' ? 'success' : status == 'upcoming' ? 'info' : 'neutral'}"}= status.capitalize
+              .resource-col-actions.lease-col-actions
+                .resource-item-actions
                   - if policy(lease).edit?
                     = link_to edit_lease_path(lease), class: "btn btn-sm btn-ghost", aria: { label: "Edit lease for #{lease.property.name}" } do
                       = heroicon "pencil-square", options: { class: "w-4 h-4" }
                   - if policy(lease).destroy?
                     = link_to lease, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-sm btn-ghost text-error", aria: { label: "Delete lease for #{lease.property.name}" } do
                       = heroicon "trash", options: { class: "w-4 h-4" }
-                = link_to lease, class: "lease-item-link" do
+                = link_to lease, class: "resource-item-link" do
                   View Details
                   = heroicon "chevron-right", options: { class: "w-4 h-4" }
 

@@ -12,8 +12,8 @@ RSpec.describe "payments/index" do
     render
   end
 
-  it { is_expected.to have_css(".payment-item", count: 1) }
-  it { is_expected.to have_css(".payment-item-amount", text: "₹1,000") }
-  it { is_expected.to have_css(".payment-item-tenant") }
-  it { is_expected.to have_css(".payment-item-mode") }
+  it { is_expected.to have_css(".resource-item.payment-item", count: 1) }
+  it { is_expected.to have_css(".resource-item-title", text: "₹1,000") }
+  it { is_expected.to have_css(".payment-col-tenant .resource-item-text") }
+  it { is_expected.to have_css(".payment-col-mode .resource-item-text") }
 end

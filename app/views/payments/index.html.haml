@@ -25,9 +25,9 @@
         = render_active_filters(@q)
 
         -# Single markup - CSS handles card vs table display
-        .payment-list
+        .resource-list.payment-list
           -# Table header (visible only in table view on desktop)
-          .payment-list-header
+          .resource-list-header.payment-list-header
             .payment-col-amount Amount
             .payment-col-tenant Tenant
             .payment-col-mode Mode
@@ -40,39 +40,35 @@
             - settlement_entries = payment.entries.settlements
             - fully_allocated = payment.balance.abs.zero?
 
-            .payment-item
-              .payment-col-amount
-                .payment-item-amount-wrapper
-                  .payment-item-icon
-                    = heroicon "currency-rupee", options: { class: "w-5 h-5" }
-                  %span.payment-item-amount= number_to_currency(payment.amount, unit: "₹", precision: 0)
-                .payment-item-date= payment.date.strftime("%b %d, %Y")
-                .payment-item-compact
-                  %span.date= payment.date.strftime("%b %d, %Y")
-              .payment-col-tenant
-                .payment-item-tenant= payment.lease.tenant.name
-                .payment-item-property= payment.lease.property.name
-              .payment-col-mode
-                .payment-item-mode
+            .resource-item.payment-item
+              .resource-col-header.payment-col-amount
+                .resource-item-icon
+                  = heroicon "currency-rupee", options: { class: "w-5 h-5" }
+                .payment-item-header
+                  %span.resource-item-title= number_to_currency(payment.amount, unit: "₹", precision: 0)
+                  .resource-item-subtitle= payment.date.strftime("%b %d, %Y")
+              .resource-col.payment-col-tenant
+                .resource-item-text= payment.lease.tenant.name
+                .resource-item-meta= payment.lease.property.name
+              .resource-col.payment-col-mode
+                .resource-item-text
                   = payment.mode.humanize.titleize
                 - if payment.reference_number.present?
-                  .payment-item-reference= payment.reference_number
-              .payment-col-amount-table
-                .payment-item-compact
-                  %span.amount= number_to_currency(payment.amount, unit: "₹", precision: 0)
-              .payment-col-status
+                  .resource-item-meta= payment.reference_number
+              .resource-col.payment-col-amount-table
+                .resource-item-text= number_to_currency(payment.amount, unit: "₹", precision: 0)
+              .resource-col-flex.payment-col-status
                 - if fully_allocated
-                  %span.payment-item-badge.payment-item-badge-allocated Allocated
+                  %span.resource-badge.resource-badge-success Allocated
                 - elsif settlement_entries.any?
-                  .payment-item-allocations
-                    %span.payment-item-badge.payment-item-badge-unallocated
-                      = number_to_currency(payment.balance.abs, unit: "₹", precision: 0)
-                      pending
+                  %span.resource-badge.resource-badge-warning
+                    = number_to_currency(payment.balance.abs, unit: "₹", precision: 0)
+                    pending
                 - else
-                  %span.payment-item-badge.payment-item-badge-unallocated
+                  %span.resource-badge.resource-badge-amber
                     = number_to_currency(payment.balance.abs, unit: "₹", precision: 0)
                     unallocated
-              .payment-col-actions
+              .resource-col-actions.payment-col-actions
 
         = paginate @payments
 

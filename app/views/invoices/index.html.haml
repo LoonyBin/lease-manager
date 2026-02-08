@@ -22,9 +22,9 @@
         = render_active_filters(@q)
 
         -# Single markup - CSS handles card vs table display
-        .invoice-list
+        .resource-list.invoice-list
           -# Table header (visible only in table view on desktop)
-          .invoice-list-header
+          .resource-list-header.invoice-list-header
             .invoice-col-number Invoice
             .invoice-col-property Property
             .invoice-col-tenant Tenant
@@ -34,37 +34,37 @@
 
           -# Invoice items
           - @invoices.each do |invoice|
-            .invoice-item{data: { controller: "clickable-row", clickable_row_url_value: invoice_path(invoice), action: "click->clickable-row#click" }}
-              .invoice-col-number
-                .invoice-item-number
-                  .invoice-item-icon
-                    = heroicon "document", options: { class: "w-5 h-5" }
-                  = link_to invoice_path(invoice), class: "invoice-item-number-text" do
+            .resource-item.invoice-item{data: { controller: "clickable-row", clickable_row_url_value: invoice_path(invoice), action: "click->clickable-row#click" }}
+              .resource-col-header.invoice-col-number
+                .resource-item-icon
+                  = heroicon "document", options: { class: "w-5 h-5" }
+                .invoice-item-header
+                  = link_to invoice_path(invoice), class: "resource-item-title" do
                     - if invoice.number.present?
                       = "##{invoice.number}"
                     - else
                       Draft
-                .invoice-item-date= invoice.date.strftime("%b %Y")
-              .invoice-col-property
-                .invoice-item-property
+                  .resource-item-subtitle= invoice.date.strftime("%b %Y")
+              .resource-col.invoice-col-property
+                .resource-item-meta
                   = heroicon "building-office-2", options: { class: "w-3.5 h-3.5 shrink-0 hidden-table" }
                   %span= invoice.lease.property.name
-              .invoice-col-tenant
-                .invoice-item-tenant
+              .resource-col.invoice-col-tenant
+                .resource-item-meta
                   = heroicon "user", options: { class: "w-3.5 h-3.5 shrink-0 hidden-table" }
                   %span= invoice.lease.tenant.name
-              .invoice-col-amount
+              .resource-col.invoice-col-amount
                 .invoice-item-amount
                   %span.invoice-item-total= number_to_currency(invoice.total_amount, unit: "₹", precision: 0)
-                  %span.invoice-item-badge{class: "invoice-item-badge-#{invoice.status}"}= invoice.status.humanize
-              .invoice-col-status
-                %span.invoice-item-badge.invoice-item-compact{class: "invoice-item-badge-#{invoice.status}"}= invoice.status.humanize
-              .invoice-col-actions
-                .invoice-item-actions
+                  %span.resource-badge{class: "resource-badge-#{invoice.status == 'paid' ? 'success' : invoice.status == 'sent' ? 'info' : invoice.status == 'overdue' ? 'error' : 'neutral'}"}= invoice.status.humanize
+              .resource-col-flex.invoice-col-status
+                %span.resource-badge{class: "resource-badge-#{invoice.status == 'paid' ? 'success' : invoice.status == 'sent' ? 'info' : invoice.status == 'overdue' ? 'error' : 'neutral'}"}= invoice.status.humanize
+              .resource-col-actions.invoice-col-actions
+                .resource-item-actions
                   - if policy(invoice).edit?
                     = link_to edit_invoice_path(invoice), class: "btn btn-sm btn-ghost", aria: { label: "Edit invoice #{invoice.number}" } do
                       = heroicon "pencil-square", options: { class: "w-4 h-4" }
-                = link_to invoice, class: "invoice-item-link" do
+                = link_to invoice, class: "resource-item-link" do
                   View
                   = heroicon "chevron-right", options: { class: "w-4 h-4" }
 
