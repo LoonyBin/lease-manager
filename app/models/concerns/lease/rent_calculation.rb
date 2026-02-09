@@ -10,7 +10,7 @@ class Lease
       validates :rent_amount, presence: true, numericality: { greater_than: 0 }
       validates :enhancement_period_months, presence: true, numericality: { only_integer: true, greater_than: 0 }
       validates :security_deposit_in_months, presence: true,
-                                             numericality: { only_integer: true, greater_than_or_equal_to: 0 }
+                                             numericality: { greater_than_or_equal_to: 0 }
       validates :enhancement_amount, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
       validates :tax_rate, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }, allow_nil: true
     end
