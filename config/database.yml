@@ -17,10 +17,5 @@ test:
   database: <%= Rails.application.name.underscore %>_test
 
 production:
-  primary:
-    <<: *default
-    url: <%= ENV["DATABASE_URL"] %>
-  queue:
-    <<: *default
-    url: <%= ENV["DATABASE_URL"] %>
-    migrations_paths: db/queue_migrate
+  <<: *default
+  url: <%= ENV["DATABASE_URL"] %>
