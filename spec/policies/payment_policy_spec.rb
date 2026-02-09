@@ -28,8 +28,8 @@ RSpec.describe PaymentPolicy do
       create(:user_association, user: user, associable: lease.tenant)
     end
 
-    it { is_expected.to permit_actions(%i[index show]) }
-    it { is_expected.to forbid_actions(%i[create new update edit destroy]) }
+    it { is_expected.to permit_actions(%i[index show create new]) }
+    it { is_expected.to forbid_actions(%i[update edit destroy]) }
   end
 
   context "when user is unrelated" do

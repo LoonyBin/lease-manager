@@ -2,7 +2,7 @@
 
 Rails.application.routes.draw do
   resources :leases
-  resources :payments, only: %i[index show new create]
+  resources :payments, only: %i[index show new create update]
   resources :properties
   resources :tenants
   resources :owners

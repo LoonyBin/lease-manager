@@ -19,8 +19,7 @@ class PaymentsController < ApplicationController
   end
 
   def create
-    @lease = Lease.find(payment_params[:lease_id])
-    @payment = @lease.payments.build(payment_params.except(:lease_id))
+    @payment = build_payment
     authorize @payment
 
     if @payment.save
@@ -31,9 +30,42 @@ class PaymentsController < ApplicationController
     end
   end
 
+  def update
+    @payment = Payment.find(params[:id])
+    authorize @payment
+
+    if @payment.update(update_params)
+      redirect_to @payment, notice: t(".success")
+    else
+      render :show, status: :unprocessable_content
+    end
+  end
+
   private
 
   def payment_params
-    params.expect(payment: %i[lease_id date amount mode reference_number])
+    params.expect(payment: %i[lease_id date amount mode reference_number attachment])
+  end
+
+  def update_params
+    params.expect(payment: %i[status])
+  end
+
+  def build_payment
+    @lease = Lease.find(payment_params[:lease_id])
+    payment = @lease.payments.build(payment_params.except(:lease_id))
+    payment.status = payment_status_for_user
+    payment
+  end
+
+  def payment_status_for_user
+    return :confirmed if current_user.admin?
+    return :confirmed if owner_of_lease?
+
+    :draft
+  end
+
+  def owner_of_lease?
+    current_user.owners.exists?(id: @lease.property.owner_id)
   end
 end
