@@ -6,6 +6,4 @@ class Tenant < ApplicationRecord
   has_many :users, through: :user_associations
 
   validates :name, presence: true
-  validates :email, presence: true
-  validates :phone_number, presence: true
 end

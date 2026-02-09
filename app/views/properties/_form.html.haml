@@ -10,7 +10,9 @@
     .col-span-1.md:col-span-2
       = f.input :address, as: :text, input_html: { rows: 3 }
 
-    = f.input :capacity, hint: "Total capacity available for leasing"
-    = f.input :unit, hint: "Unit of capacity (e.g., Rooms, Desks, Seats)"
+    .col-span-1
+      = f.input :capacity, hint: "Total capacity available for leasing"
+    .col-span-1
+      = f.input :unit, hint: "Unit of capacity (e.g., Rooms, Desks, Seats)"
 
   = f.form_actions
