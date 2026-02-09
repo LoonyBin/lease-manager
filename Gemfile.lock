@@ -202,6 +202,9 @@ GEM
       rainbow (>= 2.2.2, < 4.0)
       ruby-progressbar (~> 1.8, >= 1.8.1)
       terminal-table (>= 1.5.1)
+    image_processing (1.14.0)
+      mini_magick (>= 4.9.5, < 6)
+      ruby-vips (>= 2.0.17, < 3)
     importmap-rails (2.2.3)
       actionpack (>= 6.0.0)
       activesupport (>= 6.0.0)
@@ -260,6 +263,8 @@ GEM
     marcel (1.1.0)
     matrix (0.4.3)
     method_source (1.1.0)
+    mini_magick (5.3.1)
+      logger
     mini_mime (1.1.5)
     minitest (6.0.1)
       prism (~> 1.5)
@@ -494,6 +499,9 @@ GEM
       rubocop (~> 1.72, >= 1.72.1)
       rubocop-rspec (~> 3.5)
     ruby-progressbar (1.13.0)
+    ruby-vips (2.3.0)
+      ffi (~> 1.12)
+      logger
     sass-embedded (1.97.3-aarch64-linux-gnu)
       google-protobuf (~> 4.31)
     sass-embedded (1.97.3-aarch64-linux-musl)
@@ -629,6 +637,7 @@ DEPENDENCIES
   haml-rails
   heroicons
   i18n-tasks
+  image_processing (~> 1.2)
   importmap-rails
   jbuilder
   kamal

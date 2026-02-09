@@ -92,8 +92,8 @@ RSpec.describe Lease do
     end
 
     it "handles property without address" do
-      property.update_column(:address, nil)
-      lease = create(:lease, property: property)
+      no_address_property = create(:property, name: "Sunset Villa", address: nil)
+      lease = create(:lease, property: no_address_property)
       expect(lease.property_schedule).to eq("Sunset Villa")
     end
   end
