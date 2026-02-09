@@ -1,34 +1,51 @@
 # Testing Strategy
 
 ## Core Principles
-1. **Red-Green-Refactor**: All code must be driven by tests.
-    - Write a failing test first.
-    - Write minimal code to pass.
-    - Refactor.
-2. **Full Coverage**: Test all layers.
-    - **Unit Tests**: Models, Services.
-    - **View Tests**: HAML rendering.
-    - **Request Tests**: Controllers/API endpoints.
-    - **Acceptance/System Tests**: End-to-End user flows.
+1. **Red-Green-Refactor**: ALL code changes must be driven by tests.
+2. **Behavior Driven**: Use RSpec `describe` and `context` blocks to document behavior clearly.
+3. **Full Stack Coverage**:
+    - **Models**: Validations, Scopes, Business Logic.
+    - **Requests**: Controller authorization and response formats.
+    - **System/Integration**: End-to-end flows (using Capybara).
+    - **Policies**: Pundit permission checks.
 
-## Tools
+## Tooling
 - **Framework**: RSpec
-- **Factories**: FactoryBot (StandardRails convention)
-- **Coverage**: SimpleCov (to verify coverage)
+- **Browsers**: Chrome (Headless/Headed) via Selenium/Cuprite.
+- **Fixture Replacement**: FactoryBot
+- **Coverage**: SimpleCov (Run `open coverage/index.html` after tests).
+- **Security**: Brakeman (Static analysis).
+- **Style**: RuboCop.
 
-## Commit Policy
-- Each feature must be a separate commit.
-- Commits must follow the Red-Green-Refactor cycle.
+## Running Tests
 
-## Manual Testing / Browser Automation
+### Automated Suite
+```bash
+# Run all specs
+bin/rspec
 
-### Login Instructions
-If you need to log in during manual testing or browser automation:
-1. Navigate to `/auth/developer` (or trigger it via Sign In).
-2. **Name**: `Admin User`
-3. **Email**: `admin` (Use "admin" as the unique identifier)
-If you need to test as a different user, use the `User` model and use that user's uid as the email.
+# Run specific type
+bin/rspec spec/models
+bin/rspec spec/system
 
+# Guard (Watch mode)
+bundle exec guard
+```
 
-### Tab Management
-Close the browser tab at the end of the session.
+### Manual / Browser Implementation
+When manually testing or running browser specs that require login:
+
+**Developer Auth Strategy** (Available in Development/Test):
+1. Navigate to `/login` or trigger a login action.
+2. Select "Developer" (if prompted) or enter credentials:
+   - **Name**: `Admin User`
+   - **Email**: `admin` (or any string to identify the user)
+   - **Role**: Created dynamically or matched to existing seed data.
+
+*Note: In production/staging, Google OAuth is the primary authentication method.*
+
+## Quality Gates
+Before pushing code, ensure the following pass:
+1. `bin/rspec` (All tests green)
+2. `bin/rubocop` (No style offenses)
+3. `bin/brakeman` (No security warnings)
