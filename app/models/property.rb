@@ -6,7 +6,6 @@ class Property < ApplicationRecord
   has_many :leases, dependent: :destroy
 
   validates :name, presence: true
-  validates :address, presence: true
   validates :capacity, presence: true, numericality: { greater_than: 0, only_integer: true }
   validates :unit, presence: true
 
