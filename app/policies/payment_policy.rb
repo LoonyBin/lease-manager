@@ -5,14 +5,18 @@ class PaymentPolicy < ApplicationPolicy
     true
   end
 
-  delegate :show?, :update?, :destroy?, to: :lease_policy, allow_nil: true
+  delegate :show?, :destroy?, to: :lease_policy, allow_nil: true
 
   def create?
-    lease_policy&.update?
+    lease_policy&.show?
   end
 
   def new?
-    admin? || user.owners.exists?
+    admin? || user.owners.exists? || user.tenants.exists?
+  end
+
+  def update?
+    admin? || owner_user?
   end
 
   private
@@ -21,6 +25,12 @@ class PaymentPolicy < ApplicationPolicy
     return unless record.lease
 
     @lease_policy ||= LeasePolicy.new(user, record.lease)
+  end
+
+  def owner_user?
+    return false unless record.lease&.property_id
+
+    user.owners.exists?(id: record.lease.property.owner_id)
   end
 
   class Scope < Scope

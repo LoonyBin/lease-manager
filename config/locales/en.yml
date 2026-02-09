@@ -27,6 +27,8 @@ en:
   payments:
     create:
       success: Payment recorded successfully.
+    update:
+      success: Payment updated successfully.
   properties:
     create:
       success: Property was successfully created.

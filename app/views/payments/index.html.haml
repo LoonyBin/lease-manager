@@ -57,7 +57,9 @@
               .resource-col.payment-col-amount-table
                 .resource-item-text= number_to_currency(payment.amount, unit: "₹", precision: 0)
               .resource-col-flex.payment-col-status
-                - if fully_allocated
+                - if payment.draft?
+                  %span.resource-badge.resource-badge-warning Draft
+                - elsif fully_allocated
                   %span.resource-badge.resource-badge-success Allocated
                 - elsif settlement_entries.any?
                   %span.resource-badge.resource-badge-warning

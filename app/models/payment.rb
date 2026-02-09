@@ -3,6 +3,7 @@
 class Payment < ApplicationRecord
   belongs_to :lease
   has_many :entries, as: :instrument, dependent: :destroy
+  has_one_attached :attachment
 
   validates :amount, presence: true, numericality: { greater_than: 0 }
   validates :date, presence: true
@@ -20,9 +21,10 @@ class Payment < ApplicationRecord
   }, default: :rtgs
 
   enum :payment_type, { payment: 0, refund: 1 }, default: :payment
+  enum :status, { draft: 0, confirmed: 1 }, default: :confirmed
 
-  after_create :create_initial_entry
-  after_create :auto_settle
+  after_save :create_initial_entry, if: :should_create_entry?
+  after_save :auto_settle, if: :should_auto_settle?
 
   def credit?
     payment?
@@ -43,6 +45,14 @@ class Payment < ApplicationRecord
   # rubocop:enable Rails/SkipsModelValidations
 
   private
+
+  def should_create_entry?
+    confirmed? && entries.initial.none?
+  end
+
+  def should_auto_settle?
+    saved_change_to_status? && confirmed? && balance != 0
+  end
 
   def create_initial_entry
     entries.create!(lease: lease, amount: signed_amount, transaction_id: nil)

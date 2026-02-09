@@ -1,8 +1,14 @@
 - content_for :page_title do
   Payment
   %span.text-base.font-normal.opacity-60.ml-2= @payment.date.strftime("%b %d, %Y")
+  - if @payment.draft?
+    %span.badge.badge-warning.ml-2 Draft
 
 - content_for :page_actions do
+  - if @payment.draft? && policy(@payment).update?
+    = button_to payment_path(@payment), method: :patch, params: { payment: { status: :confirmed } }, class: "btn btn-primary btn-sm", data: { turbo_confirm: "Confirm this payment? This will allocate it to outstanding invoices." } do
+      = heroicon "check", options: { class: "w-4 h-4" }
+      Confirm
   %label.btn.btn-ghost.btn-sm.btn-square{for: "history-drawer", title: "History"}
     = heroicon "clock", options: { class: "w-5 h-5" }
 
@@ -34,6 +40,19 @@
           .show-field
             .show-field-label Lease
             .show-field-value= link_to "#{@payment.lease.start_date.strftime('%b %Y')} → #{@payment.lease.end_date&.strftime('%b %Y') || 'Ongoing'}", @payment.lease, class: "link link-primary"
+
+      - if @payment.attachment.attached?
+        .show-section
+          .show-section-header
+            %h3.show-section-title Attachment
+          .p-4
+            - if @payment.attachment.content_type.start_with?("image/")
+              = link_to rails_blob_path(@payment.attachment, disposition: "inline"), target: "_blank", class: "block" do
+                = image_tag @payment.attachment, class: "max-w-full max-h-96 rounded-lg shadow-md"
+            - else
+              = link_to rails_blob_path(@payment.attachment, disposition: "inline"), target: "_blank", class: "btn btn-outline btn-sm" do
+                = heroicon "document", options: { class: "w-4 h-4 mr-2" }
+                View Attachment
 
       - payment_settlements = @payment.entries.settlements
       - fully_allocated = @payment.balance.abs.zero?
