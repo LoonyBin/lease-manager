@@ -182,6 +182,11 @@ RSpec.describe Lease do
       expect(new_lease.renewed_from).to eq(old_lease)
     end
 
+    it "copies property_schedule from old lease" do
+      old_lease.update!(property_schedule: "Custom property schedule text")
+      expect(new_lease.property_schedule).to eq("Custom property schedule text")
+    end
+
     it "does not persist the new lease" do
       expect(new_lease).not_to be_persisted
     end
