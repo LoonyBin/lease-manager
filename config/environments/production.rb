@@ -53,6 +53,7 @@ Rails.application.configure do # rubocop:disable Metrics/BlockLength
 
   # Use Solid Queue for Active Job in production.
   config.active_job.queue_adapter = :solid_queue
+  config.solid_queue.connects_to = { database: { writing: :queue } }
 
   # Ignore bad email addresses and do not raise email delivery errors.
   # Set this to true and configure the email server for immediate delivery to raise delivery errors.
