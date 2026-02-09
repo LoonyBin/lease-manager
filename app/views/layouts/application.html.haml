@@ -2,15 +2,54 @@
 %html
   %head
     = render 'layouts/head'
-  %body.bg-base-200.font-sans.min-h-screen
-    = render 'shared/navbar'
+  %body.bg-base-100.font-sans.min-h-screen.text-base-content.antialiased{ class: body_classes }
+    .drawer.lg:drawer-open
+      %input#nav-drawer.drawer-toggle{type: "checkbox"}
 
-    %main.container.mx-auto.px-4.pb-12
-      - if notice
-        .alert.alert-success.mb-4
-          %span= notice
-      - if alert
-        .alert.alert-error.mb-4
-          %span= alert
+      .drawer-content
+        -# Header bar (contains logo/menu button, page header)
+        %header.app-header
+          -# Logo acts as menu button on mobile
+          %label.app-logo{for: "nav-drawer", aria: { label: "Open menu" }}
+            .app-logo-icon
+              %span= Rails.application.name.first
 
-      = content_for?(:nested_layout_content) ? yield(:nested_layout_content) : yield
+          -# Page header (title + actions)
+          .page-header
+            %h1.page-title= yield(:page_title).presence || "Home"
+            .page-actions
+              = yield(:page_actions)
+
+        -# Main content
+        %main.app-main
+
+          -# Flash messages
+          - if notice
+            .alert.alert-success.mb-4
+              %span= notice
+          - if alert
+            .alert.alert-error.mb-4
+              %span= alert
+
+          -# Page content
+          .page-content
+            = content_for?(:nested_layout_content) ? yield(:nested_layout_content) : yield
+
+      -# Sidebar navigation
+      .drawer-side
+        %label.drawer-overlay{for: "nav-drawer", aria: { label: "Close menu" }}
+        %nav.app-sidebar
+          -# Sidebar header
+          .app-sidebar-header
+            .app-logo
+              .app-logo-icon
+                %span= Rails.application.name.first
+              %span.app-logo-text= Rails.application.name.titleize
+
+          -# Navigation items
+          .app-sidebar-nav
+            = render 'shared/nav_items'
+
+          -# User profile
+          .app-user
+            = render 'shared/user_profile'

@@ -1,89 +1,103 @@
+- content_for :page_title do
+  = "#{@lease.property.name} → #{@lease.tenant.name}"
+
+- content_for :page_actions do
+  -# Special actions first
+  - if policy(@lease).new? && !@lease.terminated_on
+    = link_to new_lease_path(renewed_from_id: @lease.id), class: "btn btn-ghost btn-sm btn-square text-success", title: "Renew" do
+      = heroicon "arrow-path", options: { class: "w-5 h-5" }
+  -# Generic actions
+  - if policy(@lease).edit?
+    = link_to edit_lease_path(@lease), class: "btn btn-ghost btn-sm btn-square", title: "Edit" do
+      = heroicon "pencil-square", options: { class: "w-5 h-5" }
+  - if policy(@lease).update? && !@lease.terminated_on
+    %label.btn.btn-ghost.btn-sm.btn-square.text-error{for: "terminate-modal", title: "Terminate"}
+      = heroicon "x-circle", options: { class: "w-5 h-5" }
+  - if policy(@lease).destroy?
+    = button_to lease_path(@lease), method: :delete, class: "btn btn-ghost btn-sm btn-square text-error", data: { turbo_confirm: "Are you sure you want to delete this lease?" }, title: "Delete" do
+      = heroicon "trash", options: { class: "w-5 h-5" }
+  -# Info actions last
+  %label.btn.btn-ghost.btn-sm.btn-square{for: "history-drawer", title: "History"}
+    = heroicon "clock", options: { class: "w-5 h-5" }
+
 .drawer.drawer-end
   %input#history-drawer.drawer-toggle{type: "checkbox"}
   .drawer-content
-    .card.w-full.bg-base-100.shadow-xl.mx-auto
-      .card-body
-        .flex.justify-between.items-center.mb-4
-          %h2.card-title Lease Details
-          %label.btn.btn-ghost.btn-sm.btn-circle{for: "history-drawer"}
-            = heroicon "clock", options: { class: "w-4 h-4" }
-            %span.sr-only History
-
-        .grid.grid-cols-1.md:grid-cols-2.gap-4
-          %div
-            %p.mb-2
-              %strong Property:
-              = @lease.property.name
-            %p.mb-2
-              %strong Tenant:
-              = @lease.tenant.name
-            %p.mb-2
-              %strong Start Date:
-              = @lease.start_date
-            %p.mb-2
-              %strong End Date:
-              = @lease.end_date
+    .show-card
+      .show-section
+        .show-grid
+          .show-field
+            .show-field-label Property
+            .show-field-value= link_to @lease.property.name, @lease.property, class: "link link-primary"
+          .show-field
+            .show-field-label Tenant
+            .show-field-value= link_to @lease.tenant.name, @lease.tenant, class: "link link-primary"
+          .show-field
+            .show-field-label Start Date
+            .show-field-value= @lease.start_date.strftime("%B %d, %Y")
+          .show-field
+            .show-field-label End Date
+            .show-field-value
+              = @lease.end_date&.strftime("%B %d, %Y") || "Ongoing"
               - if @lease.terminated_on
-                %span.text-error (Terminated)
-            %p.mb-2
-              %strong Duration:
-              = "#{@lease.duration_months} months"
+                %span.resource-badge.resource-badge-error.ml-2 Terminated
+          .show-field
+            .show-field-label Duration
+            .show-field-value= pluralize(@lease.duration_months, "month")
 
-          %div
-            %p.mb-2
-              %strong Rent Amount:
-              = number_to_currency(@lease.rent_amount)
-            %p.mb-2
-              %strong Security Deposit (Months):
-              = @lease.security_deposit_in_months
-            %p.mb-2
-              %strong Security Deposit (Total):
-              = number_to_currency(@lease.security_deposit)
-            %p.mb-2
-              %strong Enhancement Period:
-              = "#{@lease.enhancement_period_months} months"
-            %p.mb-2
-              %strong Enhancement:
+      .show-section
+        %h3.show-section-title Financials
+        .show-grid
+          .show-field
+            .show-field-label Rent Amount
+            .show-field-value.text-lg.font-semibold= number_to_currency(@lease.rent_amount, unit: "₹", precision: 0)
+          .show-field
+            .show-field-label Security Deposit
+            .show-field-value
+              = number_to_currency(@lease.security_deposit, unit: "₹", precision: 0)
+              %span.text-sm.opacity-60 (#{@lease.security_deposit_in_months} months)
+          .show-field
+            .show-field-label Enhancement
+            .show-field-value
               - if @lease.enhancement_amount.present?
                 = @lease.enhancement_amount
                 = @lease.percentage? ? "%" : "₹"
+                every #{@lease.enhancement_period_months} months
+              - else
+                %span.opacity-50 None
 
-        - if @lease.renewed_from || @lease.renewal
-          .divider
+      - if @lease.renewed_from || @lease.renewal
+        .show-section
+          %h3.show-section-title Related Leases
+          .show-list
+            - if @lease.renewed_from
+              .show-list-item
+                .show-list-item-title= link_to "Previous Lease", @lease.renewed_from, class: "link link-primary"
+                .show-list-item-meta= @lease.renewed_from.start_date.strftime("%b %Y") + " → " + (@lease.renewed_from.end_date&.strftime("%b %Y") || "Ongoing")
+            - if @lease.renewal
+              .show-list-item
+                .show-list-item-title= link_to "Renewal Lease", @lease.renewal, class: "link link-primary"
+                .show-list-item-meta= @lease.renewal.start_date.strftime("%b %Y") + " → " + (@lease.renewal.end_date&.strftime("%b %Y") || "Ongoing")
 
-          %h3.text-lg.font-bold.mb-4 Related Leases
-          - if @lease.renewed_from
-            %p.mb-2
-              %strong Renewed from:
-              = link_to "Lease ##{@lease.renewed_from.id}", lease_path(@lease.renewed_from), class: "link link-primary"
-          - if @lease.renewal
-            %p.mb-2
-              %strong Renewed as:
-              = link_to "Lease ##{@lease.renewal.id}", lease_path(@lease.renewal), class: "link link-primary"
-
-        .divider
-
-        %h3.text-lg.font-bold.mb-4 Documents
+      .show-section
+        %h3.show-section-title Documents
         - if @lease.documents.attached?
-          .grid.grid-cols-1.md:grid-cols-2.lg:grid-cols-3.gap-4
+          .show-documents
             - @lease.documents.each do |doc|
-              .card.bg-base-200.shadow-sm
-                .card-body.p-4
-                  .flex.items-center.gap-3
-                    = heroicon "document", options: { class: "w-8 h-8 text-primary" }
-                    %div
-                      %p.font-medium.truncate= doc.filename.to_s
-                      %p.text-xs.text-base-content.opacity-60= number_to_human_size(doc.byte_size)
-                  .card-actions.justify-end.mt-2
-                    = link_to "Download", rails_blob_path(doc, disposition: "attachment"), class: "btn btn-xs btn-primary"
+              .show-document
+                .show-document-icon
+                  = heroicon "document", options: { class: "w-6 h-6" }
+                .show-document-info
+                  .show-document-name= doc.filename.to_s
+                  .show-document-size= number_to_human_size(doc.byte_size)
+                = link_to "Download", rails_blob_path(doc, disposition: "attachment"), class: "btn btn-xs btn-primary"
         - else
-          %p.text-base-content.opacity-50 No documents uploaded yet.
+          .show-empty No documents uploaded
 
-        .divider
-
-        .flex.items-center.gap-2.mb-4
-          %h3.text-lg.font-bold Invoices
-          = link_to invoices_path(q: { lease_id_eq: @lease.id }), class: "btn btn-ghost btn-xs", aria: { label: "View all invoices" } do
+      .show-section
+        .show-section-header
+          %h3.show-section-title Invoices
+          = link_to invoices_path(q: { lease_id_eq: @lease.id }), class: "btn btn-ghost btn-xs", title: "View all" do
             = heroicon "arrows-pointing-out", options: { class: "w-4 h-4" }
 
         .overflow-x-auto
@@ -92,7 +106,7 @@
               %tr
                 %th Month
                 %th Status
-                %th Amount
+                %th.text-right Amount
                 %th
             %tbody
               - billable_months(@lease).reverse.each do |month|
@@ -101,28 +115,19 @@
                   %tr.hover.cursor-pointer{data: { controller: "clickable-row", clickable_row_url_value: invoice_path(invoice), action: "click->clickable-row#click" }}
                     %td= link_to month.strftime("%B %Y"), invoice, class: "link link-hover font-medium"
                     %td
-                      %span{class: "badge badge-#{invoice.paid? ? 'success' : invoice.draft? ? 'ghost' : 'info'}"}
+                      %span.resource-badge{class: "resource-badge-#{invoice.paid? ? 'success' : invoice.draft? ? 'neutral' : 'info'}"}
                         = invoice.status.humanize
-                    %td= number_to_currency(invoice.total_amount)
+                    %td.text-right= number_to_currency(invoice.total_amount, unit: "₹", precision: 0)
                     %td
                 - else
                   %tr
                     %td= month.strftime("%B %Y")
                     %td
-                      %span.badge.badge-warning Missing
-                    %td -
+                      %span.resource-badge.resource-badge-warning Missing
+                    %td.text-right -
                     %td
                       - if policy(Invoice.new(lease: @lease)).new?
                         = link_to "Generate", new_invoice_path(lease_id: @lease.id, date: month.to_s), class: "btn btn-xs btn-primary"
-
-        .card-actions.justify-end.mt-6
-          - if policy(@lease).edit?
-            = link_to 'Edit', edit_lease_path(@lease), class: "btn btn-primary"
-          - if policy(@lease).update? && !@lease.terminated_on
-            %label.btn.btn-warning{for: "terminate-modal"} Terminate
-          - if policy(@lease).new? && !@lease.terminated_on
-            = link_to "Renew", new_lease_path(renewed_from_id: @lease.id), class: "btn btn-success"
-          = link_to 'Back', leases_path, class: "btn btn-ghost"
 
     -# Termination Modal
     %input#terminate-modal.modal-toggle{type: "checkbox"}

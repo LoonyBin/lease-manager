@@ -12,14 +12,13 @@ RSpec.describe "invoices/show" do
     render
   end
 
-  it { is_expected.to have_css("h2", text: "Invoice") }
+  it { is_expected.to have_css(".show-card") }
+  it { is_expected.to have_css(".show-section-title", text: "Line Items") }
   it { is_expected.to have_css("th", text: "Description") }
   it { is_expected.to have_css("td", text: "Rent") }
-  it { is_expected.to have_css("td", text: "₹1,000.00") }
+  it { is_expected.to have_css("td", text: "₹1,000") }
   it { is_expected.to have_css("th", text: "Tax") }
-  it { is_expected.to have_css("td", text: /₹180.00\s+\(18.0%\)/) }
+  it { is_expected.to have_css("td", text: /₹180/) }
   it { is_expected.to have_css("th", text: "Total") }
-  it { is_expected.to have_css("td", text: "₹1,180.00") }
-  it { is_expected.to have_link("Edit") }
-  it { is_expected.to have_link("Back") }
+  it { is_expected.to have_css("td", text: "₹1,180") }
 end

@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 class UsersController < ApplicationController
-  layout "settings"
-
   def index
     @q = policy_scope(User).ransack(params[:q])
     @users = @q.result.page(params[:page]).per(20)

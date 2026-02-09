@@ -1,0 +1,89 @@
+- content_for :page_title do
+  Payment
+  %span.text-base.font-normal.opacity-60.ml-2= @payment.date.strftime("%b %d, %Y")
+
+- content_for :page_actions do
+  %label.btn.btn-ghost.btn-sm.btn-square{for: "history-drawer", title: "History"}
+    = heroicon "clock", options: { class: "w-5 h-5" }
+
+.drawer.drawer-end
+  %input#history-drawer.drawer-toggle{type: "checkbox"}
+  .drawer-content
+    .show-card
+      .show-section
+        .show-grid
+          .show-field
+            .show-field-label Amount
+            .show-field-value.text-2xl.font-bold= number_to_currency(@payment.amount, unit: "₹", precision: 0)
+          .show-field
+            .show-field-label Date
+            .show-field-value= @payment.date.strftime("%B %d, %Y")
+          .show-field
+            .show-field-label Mode
+            .show-field-value= @payment.mode.humanize.titleize
+          - if @payment.reference_number.present?
+            .show-field
+              .show-field-label Reference
+              .show-field-value= @payment.reference_number
+          .show-field
+            .show-field-label Property
+            .show-field-value= link_to @payment.lease.property.name, @payment.lease.property, class: "link link-primary"
+          .show-field
+            .show-field-label Tenant
+            .show-field-value= link_to @payment.lease.tenant.name, @payment.lease.tenant, class: "link link-primary"
+          .show-field
+            .show-field-label Lease
+            .show-field-value= link_to "#{@payment.lease.start_date.strftime('%b %Y')} → #{@payment.lease.end_date&.strftime('%b %Y') || 'Ongoing'}", @payment.lease, class: "link link-primary"
+
+      - payment_settlements = @payment.entries.settlements
+      - fully_allocated = @payment.balance.abs.zero?
+      -# Find invoice entries that share transaction_ids with payment settlements
+      - transaction_ids = payment_settlements.pluck(:transaction_id)
+      - invoice_entries = Entry.where(transaction_id: transaction_ids).where.not(instrument: @payment).includes(:instrument)
+
+      .show-section
+        .show-section-header
+          %h3.show-section-title Allocation Status
+          - if fully_allocated
+            %span.resource-badge.resource-badge-success Fully Allocated
+          - elsif payment_settlements.any?
+            %span.resource-badge.resource-badge-warning
+              = number_to_currency(@payment.balance.abs, unit: "₹", precision: 0)
+              pending
+          - else
+            %span.resource-badge.resource-badge-amber
+              = number_to_currency(@payment.balance.abs, unit: "₹", precision: 0)
+              unallocated
+
+        - if invoice_entries.any?
+          .overflow-x-auto
+            %table.table.w-full
+              %thead
+                %tr
+                  %th Invoice
+                  %th Date
+                  %th.text-right Amount
+              %tbody
+                - invoice_entries.each do |entry|
+                  - invoice = entry.instrument
+                  %tr.hover
+                    %td
+                      = link_to invoice_path(invoice), class: "link link-hover font-medium" do
+                        - if invoice.number.present?
+                          = "##{invoice.number}"
+                        - else
+                          Draft
+                    %td= invoice.date.strftime("%b %Y")
+                    %td.text-right.font-medium= number_to_currency(entry.amount.abs, unit: "₹", precision: 0)
+                %tfoot
+                  %tr.font-bold
+                    %td{colspan: 2} Total Allocated
+                    %td.text-right= number_to_currency(invoice_entries.sum { |e| e.amount.abs }, unit: "₹", precision: 0)
+        - else
+          .show-empty
+            No invoices have been allocated to this payment yet.
+
+  .drawer-side
+    %label.drawer-overlay{for: "history-drawer", aria: { label: "close sidebar" }}
+    .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
+      = render "shared/history_sidebar", item: @payment

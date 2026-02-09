@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 class VersionsController < ApplicationController
-  layout "settings"
-
   def index
     @versions = policy_scope(Version, policy_scope_class: VersionPolicy::Scope)
     @q = @versions.ransack(params[:q])

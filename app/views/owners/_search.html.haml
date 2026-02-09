@@ -1,5 +1,4 @@
-= search_form_for @q, class: "flex flex-col gap-4 p-4" do |f|
-  %h3.text-lg.font-bold Filters
+= search_form_for @q, class: "flex flex-col gap-4" do |f|
   .form-control
     = f.label :name_cont, "Name", class: "label-text"
     = f.search_field :name_cont, class: "input input-bordered input-sm w-full"

@@ -1,85 +1,66 @@
 - content_for :title, "Financial Dashboard"
+- content_for :page_title, "Overview"
 
-.container.mx-auto.p-6.space-y-8
-  .flex.justify-between.items-center
-    %h1.text-3xl.font-bold.text-base-content Financial Dashboard
-    .text-sm{class: "text-base-content/70"}= "Overview for #{Date.current.strftime('%B %Y')}"
+.space-y-6
 
   -# Summary Cards
-  .grid.grid-cols-1.md:grid-cols-2.lg:grid-cols-4.gap-6
-    .card.bg-gradient-to-br.from-primary.to-primary-focus.text-primary-content.shadow-xl
-      .card-body.p-6
-        .flex.justify-between.items-start
-          %div
-            %h2.card-title.text-sm.opacity-90 Total Revenue
-            %p.text-3xl.font-bold.mt-2= number_to_currency(@total_revenue, unit: "₹")
-          - if defined?(heroicon)
-            = heroicon "currency-rupee", variant: :outline, options: { class: "w-8 h-8 opacity-50" }
-        .card-actions.justify-end.mt-4
-          = link_to revenue_reports_path, class: "btn btn-sm btn-ghost gap-2 hover:bg-white/20 text-primary-content" do
-            View Details
-            - if defined?(heroicon)
-              = heroicon "arrow-right", variant: :outline, options: { class: "w-4 h-4" }
+  .grid.grid-cols-1.sm:grid-cols-2.lg:grid-cols-4.gap-4
+    .stat-card
+      .stat-card-header
+        %span.stat-label Revenue (MTD)
+        .stat-icon.stat-icon-green
+          = heroicon "arrow-right", options: { class: "w-4 h-4 rotate-[-45deg]" }
+      .stat-value= number_to_currency(@total_revenue, unit: "₹")
+      .stat-subtext.text-success
+        = link_to "View details →", revenue_reports_path
 
-    .card.bg-gradient-to-br.from-warning.to-warning-focus.text-warning-content.shadow-xl
-      .card-body.p-6
-        .flex.justify-between.items-start
-          %div
-            %h2.card-title.text-sm.opacity-90 Outstanding
-            %p.text-3xl.font-bold.mt-2= number_to_currency(@total_outstanding, unit: "₹")
-          - if defined?(heroicon)
-            = heroicon "exclamation-circle", variant: :outline, options: { class: "w-8 h-8 opacity-50" }
-        .card-actions.justify-end.mt-4
-          = link_to outstanding_reports_path, class: "btn btn-sm btn-ghost gap-2 hover:bg-white/20 text-warning-content" do
-            View Details
-            - if defined?(heroicon)
-              = heroicon "arrow-right", variant: :outline, options: { class: "w-4 h-4" }
+    .stat-card
+      .stat-card-header
+        %span.stat-label Outstanding
+        .stat-icon.stat-icon-amber
+          = heroicon "exclamation-circle", options: { class: "w-4 h-4" }
+      .stat-value= number_to_currency(@total_outstanding, unit: "₹")
+      .stat-subtext
+        = link_to "View details →", outstanding_reports_path
 
-    .card.bg-gradient-to-br.from-success.to-success-focus.text-success-content.shadow-xl
-      .card-body.p-6
-        .flex.justify-between.items-start
-          %div
-            %h2.card-title.text-sm.opacity-90 Collected
-            %p.text-3xl.font-bold.mt-2= number_to_currency(@total_collected, unit: "₹")
-          - if defined?(heroicon)
-            = heroicon "check-circle", variant: :outline, options: { class: "w-8 h-8 opacity-50" }
-        .card-actions.justify-end.mt-4
-          %button.btn.btn-sm.btn-ghost.gap-2.cursor-default.text-success-content{class: "hover:bg-white/20"}
-            Total Collected
+    .stat-card
+      .stat-card-header
+        %span.stat-label Collected
+        .stat-icon.stat-icon-blue
+          = heroicon "check-circle", options: { class: "w-4 h-4" }
+      .stat-value= number_to_currency(@total_collected, unit: "₹")
+      .stat-subtext Total payments received
 
-    .card.bg-gradient-to-br.from-secondary.to-secondary-focus.text-secondary-content.shadow-xl
-      .card-body.p-6
-        .flex.justify-between.items-start
-          %div
-            %h2.card-title.text-sm.opacity-90 Total Taxes
-            %p.text-3xl.font-bold.mt-2= number_to_currency(@total_taxes, unit: "₹")
-          - if defined?(heroicon)
-            = heroicon "receipt-tax", variant: :outline, options: { class: "w-8 h-8 opacity-50" }
-        .card-actions.justify-end.mt-4
-          = link_to taxes_reports_path, class: "btn btn-sm btn-ghost gap-2 hover:bg-white/20 text-secondary-content" do
-            View Details
-            - if defined?(heroicon)
-              = heroicon "arrow-right", variant: :outline, options: { class: "w-4 h-4" }
+    .stat-card
+      .stat-card-header
+        %span.stat-label Total Taxes
+        .stat-icon.stat-icon-indigo
+          = heroicon "receipt-tax", options: { class: "w-4 h-4" }
+      .stat-value= number_to_currency(@total_taxes, unit: "₹")
+      .stat-subtext
+        = link_to "View details →", taxes_reports_path
 
   -# Charts Section
   .grid.grid-cols-1.lg:grid-cols-3.gap-6
     -# Main Revenue Chart
-    .lg:col-span-2.card.bg-base-100.shadow-xl.border.border-base-200
-      .card-body
-        .flex.justify-between.items-center.mb-6
-          %h2.card-title Revenue vs Collection
-          .badge.badge-outline Last 12 Months
-        = line_chart [{ name: "Billed", data: @revenue_by_month }, { name: "Collected", data: @payments_by_month }], colors: ["#661AE6", "#36D399"], thousands: ",", prefix: "₹", curve: false, loading: "Loading..."
+    .lg:col-span-2.dashboard-card
+      .dashboard-card-header
+        %h3.dashboard-card-title Revenue vs Collection
+        %span.dashboard-badge Last 12 Months
+      .dashboard-card-body
+        = line_chart [{ name: "Billed", data: @revenue_by_month }, { name: "Collected", data: @payments_by_month }], colors: ["#6366f1", "#10b981"], thousands: ",", prefix: "₹", curve: false, loading: "Loading..."
 
     -# Occupancy Chart
-    .card.bg-base-100.shadow-xl.border.border-base-200
-      .card-body
-        %h2.card-title.mb-6 Occupancy Rate
-        = pie_chart @occupancy_stats, donut: true, colors: ["#36D399", "#E5E7EB"], legend: "bottom", loading: "Loading..."
+    .dashboard-card
+      .dashboard-card-header
+        %h3.dashboard-card-title Occupancy Rate
+      .dashboard-card-body
+        = pie_chart @occupancy_stats, donut: true, colors: ["#10b981", "#e2e8f0"], legend: "bottom", loading: "Loading..."
 
   -# Secondary Charts
   .grid.grid-cols-1.lg:grid-cols-2.gap-6
-    .card.bg-base-100.shadow-xl.border.border-base-200
-      .card-body
-        %h2.card-title.mb-4 Invoice Status Breakdown
-        = column_chart @invoice_status_distribution, colors: ["#3ABFF8"], loading: "Loading..."
+    .dashboard-card
+      .dashboard-card-header
+        %h3.dashboard-card-title Invoice Status Breakdown
+      .dashboard-card-body
+        = column_chart @invoice_status_distribution, colors: ["#6366f1"], loading: "Loading..."

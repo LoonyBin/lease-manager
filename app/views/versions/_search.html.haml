@@ -1,8 +1,7 @@
-= search_form_for @q, class: "flex flex-col gap-4 p-4" do |f|
-  %h3.text-lg.font-bold Filters
+= search_form_for @q, class: "flex flex-col gap-4" do |f|
   .form-control
     = f.label :item_type_eq, "Item Type", class: "label-text"
-    = f.select :item_type_eq, Version.distinct.pluck(:item_type).sort, { include_blank: true }, class: "select select-bordered select-sm w-full"
+    = f.select :item_type_eq, Version.distinct.pluck(:item_type).sort, { include_blank: "All" }, class: "select select-bordered select-sm w-full"
 
   .form-control
     = f.label :item_id_eq, "ID", class: "label-text"
@@ -17,7 +16,7 @@
 
   .form-control
     = f.label :event_eq, "Event", class: "label-text"
-    = f.select :event_eq, %w[create update destroy], { include_blank: true }, class: "select select-bordered select-sm w-full"
+    = f.select :event_eq, %w[create update destroy].map { |e| [e.humanize, e] }, { include_blank: "All" }, class: "select select-bordered select-sm w-full"
 
   .flex.gap-2.mt-4
     = f.submit "Apply Filters", class: "btn btn-primary btn-sm flex-1"

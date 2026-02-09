@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 class PropertiesController < ApplicationController
-  layout "settings"
-
   def index
     @q = policy_scope(Property).ransack(params[:q])
     @properties = @q.result.page(params[:page]).per(20)

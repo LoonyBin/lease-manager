@@ -5,6 +5,7 @@ source "https://rubygems.org"
 gem "bootsnap", require: false
 gem "dartsass-rails"
 gem "haml-rails"
+gem "heroicons"
 gem "importmap-rails"
 gem "jbuilder"
 gem "kamal", require: false
