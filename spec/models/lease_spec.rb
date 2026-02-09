@@ -78,6 +78,26 @@ RSpec.describe Lease do
     end
   end
 
+  describe "#property_schedule default" do
+    let(:property) { create(:property, name: "Sunset Villa", address: "123 Main St") }
+
+    it "defaults to property name and address" do
+      lease = create(:lease, property: property)
+      expect(lease.property_schedule).to eq("Sunset Villa, 123 Main St")
+    end
+
+    it "does not overwrite an explicit value" do
+      lease = create(:lease, property: property, property_schedule: "Custom schedule")
+      expect(lease.property_schedule).to eq("Custom schedule")
+    end
+
+    it "handles property without address" do
+      property.update_column(:address, nil)
+      lease = create(:lease, property: property)
+      expect(lease.property_schedule).to eq("Sunset Villa")
+    end
+  end
+
   describe "#end_date" do
     context "when terminated_on is set" do
       subject { build(:lease, start_date: "2025-01-01", duration_months: 12, terminated_on: "2025-06-01") }

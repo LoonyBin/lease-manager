@@ -13,6 +13,8 @@ class Lease < ApplicationRecord
 
   has_many_attached :documents
 
+  before_validation :set_default_property_schedule
+
   after_create :handle_security_deposit_creation
   after_update :handle_security_deposit_termination, if: :saved_change_to_terminated_on?
 
@@ -40,6 +42,12 @@ class Lease < ApplicationRecord
   end
 
   private
+
+  def set_default_property_schedule
+    return if property_schedule.present?
+
+    self.property_schedule = [property&.name, property&.address].compact_blank.join(", ")
+  end
 
   def handle_security_deposit_creation
     SecurityDepositInvoicer.new(self).call
