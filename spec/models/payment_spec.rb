@@ -25,7 +25,12 @@ RSpec.describe Payment do
     end
 
     it { is_expected.to define_enum_for(:payment_type).with_values(payment: 0, refund: 1) }
-    it { is_expected.to define_enum_for(:status).with_values(draft: 0, confirmed: 1).with_default(:confirmed) }
+
+    it do
+      is_expected.to define_enum_for(:status)
+        .with_values(draft: 0, confirmed: 1, rejected: 2, partially_allocated: 3, fully_allocated: 4)
+        .with_default(:confirmed)
+    end
   end
 
   describe "attachments" do
@@ -47,8 +52,13 @@ RSpec.describe Payment do
 
     it "auto-settles after creation" do
       allow(SettlementService).to receive(:auto_settle)
+      create(:payment, lease: lease, amount: 100, status: :confirmed)
+      expect(SettlementService).to have_received(:auto_settle)
+    end
+
+    it "updates status to partially_allocated after creation with no invoices" do
       payment = create(:payment, lease: lease, amount: 100, status: :confirmed)
-      expect(SettlementService).to have_received(:auto_settle).with(payment)
+      expect(payment.reload).to be_partially_allocated
     end
   end
 
@@ -92,13 +102,37 @@ RSpec.describe Payment do
       expect(SettlementService).to have_received(:auto_settle).with(payment)
     end
 
-    it "does not create duplicate entries if already confirmed" do
-      confirmed_payment = create(:payment, lease: lease, amount: 50, status: :confirmed)
-      initial_entry_count = confirmed_payment.entries.count
+    it "does not create duplicate entries if already allocated" do
+      allocated_payment = create(:payment, lease: lease, amount: 50, status: :confirmed)
+      initial_entry_count = allocated_payment.entries.count
 
-      confirmed_payment.update!(status: :confirmed)
+      allocated_payment.update!(status: :partially_allocated)
 
-      expect(confirmed_payment.entries.count).to eq(initial_entry_count)
+      expect(allocated_payment.entries.count).to eq(initial_entry_count)
+    end
+  end
+
+  describe "#update_status_from_balance!" do
+    let(:lease) { create(:lease) }
+
+    it "sets partially_allocated when balance remains" do
+      payment = create(:payment, lease: lease, amount: 100, status: :confirmed)
+      expect(payment.reload).to be_partially_allocated
+    end
+
+    it "sets fully_allocated when balance is zero" do
+      invoice = create(:invoice, lease: lease)
+      create(:line_item, invoice: invoice, amount: 100)
+      invoice.update!(status: :finalized)
+      payment = create(:payment, lease: lease, amount: 100, status: :confirmed)
+      expect(payment.reload).to be_fully_allocated
+    end
+
+    it "does not change status if rejected" do
+      payment = create(:payment, lease: lease, amount: 100, status: :draft)
+      payment.update!(status: :rejected)
+      payment.recalculate_balance!
+      expect(payment).to be_rejected
     end
   end
 

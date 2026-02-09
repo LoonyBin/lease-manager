@@ -3,9 +3,14 @@
   %span.text-base.font-normal.opacity-60.ml-2= @payment.date.strftime("%b %d, %Y")
   - if @payment.draft?
     %span.badge.badge-warning.ml-2 Draft
+  - elsif @payment.rejected?
+    %span.badge.badge-error.ml-2 Rejected
 
 - content_for :page_actions do
   - if @payment.draft? && policy(@payment).update?
+    = button_to payment_path(@payment), method: :patch, params: { payment: { status: :rejected } }, class: "btn btn-ghost btn-sm text-error", data: { turbo_confirm: "Reject this payment?" } do
+      = heroicon "x-mark", options: { class: "w-4 h-4" }
+      Reject
     = button_to payment_path(@payment), method: :patch, params: { payment: { status: :confirmed } }, class: "btn btn-primary btn-sm", data: { turbo_confirm: "Confirm this payment? This will allocate it to outstanding invoices." } do
       = heroicon "check", options: { class: "w-4 h-4" }
       Confirm
@@ -55,52 +60,47 @@
                 View Attachment
 
       - payment_settlements = @payment.entries.settlements
-      - fully_allocated = @payment.balance.abs.zero?
       -# Find invoice entries that share transaction_ids with payment settlements
       - transaction_ids = payment_settlements.pluck(:transaction_id)
       - invoice_entries = Entry.where(transaction_id: transaction_ids).where.not(instrument: @payment).includes(:instrument)
 
-      .show-section
-        .show-section-header
-          %h3.show-section-title Allocation Status
-          - if fully_allocated
-            %span.resource-badge.resource-badge-success Fully Allocated
-          - elsif payment_settlements.any?
-            %span.resource-badge.resource-badge-warning
-              = number_to_currency(@payment.balance.abs, unit: "₹", precision: 0)
-              pending
-          - else
-            %span.resource-badge.resource-badge-amber
-              = number_to_currency(@payment.balance.abs, unit: "₹", precision: 0)
-              unallocated
+      - if @payment.confirmed_or_later?
+        .show-section
+          .show-section-header
+            %h3.show-section-title Allocation Status
+            - if @payment.fully_allocated?
+              %span.resource-badge.resource-badge-success Fully Allocated
+            - else
+              %span.resource-badge.resource-badge-amber
+                = "#{number_to_currency(@payment.balance.abs, unit: '₹', precision: 0)} unallocated"
 
-        - if invoice_entries.any?
-          .overflow-x-auto
-            %table.table.w-full
-              %thead
-                %tr
-                  %th Invoice
-                  %th Date
-                  %th.text-right Amount
-              %tbody
-                - invoice_entries.each do |entry|
-                  - invoice = entry.instrument
-                  %tr.hover
-                    %td
-                      = link_to invoice_path(invoice), class: "link link-hover font-medium" do
-                        - if invoice.number.present?
-                          = "##{invoice.number}"
-                        - else
-                          Draft
-                    %td= invoice.date.strftime("%b %Y")
-                    %td.text-right.font-medium= number_to_currency(entry.amount.abs, unit: "₹", precision: 0)
-                %tfoot
-                  %tr.font-bold
-                    %td{colspan: 2} Total Allocated
-                    %td.text-right= number_to_currency(invoice_entries.sum { |e| e.amount.abs }, unit: "₹", precision: 0)
-        - else
-          .show-empty
-            No invoices have been allocated to this payment yet.
+          - if invoice_entries.any?
+            .overflow-x-auto
+              %table.table.w-full
+                %thead
+                  %tr
+                    %th Invoice
+                    %th Date
+                    %th.text-right Amount
+                %tbody
+                  - invoice_entries.each do |entry|
+                    - invoice = entry.instrument
+                    %tr.hover
+                      %td
+                        = link_to invoice_path(invoice), class: "link link-hover font-medium" do
+                          - if invoice.number.present?
+                            = "##{invoice.number}"
+                          - else
+                            Draft
+                      %td= invoice.date.strftime("%b %Y")
+                      %td.text-right.font-medium= number_to_currency(entry.amount.abs, unit: "₹", precision: 0)
+                  %tfoot
+                    %tr.font-bold
+                      %td{colspan: 2} Total Allocated
+                      %td.text-right= number_to_currency(invoice_entries.sum { |e| e.amount.abs }, unit: "₹", precision: 0)
+          - else
+            .show-empty
+              No invoices have been allocated to this payment yet.
 
   .drawer-side
     %label.drawer-overlay{for: "history-drawer", aria: { label: "close sidebar" }}

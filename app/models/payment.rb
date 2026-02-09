@@ -21,10 +21,13 @@ class Payment < ApplicationRecord
   }, default: :rtgs
 
   enum :payment_type, { payment: 0, refund: 1 }, default: :payment
-  enum :status, { draft: 0, confirmed: 1 }, default: :confirmed
+  enum :status, { draft: 0, confirmed: 1, rejected: 2, partially_allocated: 3, fully_allocated: 4 },
+       default: :confirmed, validate: true
 
   after_save :create_initial_entry, if: :should_create_entry?
   after_save :auto_settle, if: :should_auto_settle?
+
+  scope :confirmed_or_later, -> { where(status: %i[confirmed partially_allocated fully_allocated]) }
 
   def credit?
     payment?
@@ -41,17 +44,29 @@ class Payment < ApplicationRecord
   # rubocop:disable Rails/SkipsModelValidations -- Intentionally skip callbacks to avoid infinite loops
   def recalculate_balance!
     update_column(:balance, entries.sum(:amount))
+    update_status_from_balance!
+  end
+
+  def update_status_from_balance!
+    return if draft? || rejected?
+
+    new_status = balance.abs.zero? ? :fully_allocated : :partially_allocated
+    update_column(:status, self.class.statuses[new_status])
   end
   # rubocop:enable Rails/SkipsModelValidations
+
+  def confirmed_or_later?
+    confirmed? || partially_allocated? || fully_allocated?
+  end
 
   private
 
   def should_create_entry?
-    confirmed? && entries.initial.none?
+    confirmed_or_later? && entries.initial.none?
   end
 
   def should_auto_settle?
-    saved_change_to_status? && confirmed? && balance != 0
+    saved_change_to_status? && confirmed_or_later? && balance != 0
   end
 
   def create_initial_entry

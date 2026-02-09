@@ -59,13 +59,11 @@
               .resource-col-flex.payment-col-status
                 - if payment.draft?
                   %span.resource-badge.resource-badge-warning Draft
-                - elsif fully_allocated
+                - elsif payment.rejected?
+                  %span.resource-badge.resource-badge-error Rejected
+                - elsif payment.fully_allocated?
                   %span.resource-badge.resource-badge-success Allocated
-                - elsif settlement_entries.any?
-                  %span.resource-badge.resource-badge-warning
-                    = number_to_currency(payment.balance.abs, unit: "₹", precision: 0)
-                    pending
-                - else
+                - elsif payment.partially_allocated?
                   %span.resource-badge.resource-badge-amber
                     = number_to_currency(payment.balance.abs, unit: "₹", precision: 0)
                     unallocated

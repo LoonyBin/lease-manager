@@ -37,9 +37,9 @@ RSpec.describe "Payments" do
     context "when admin creates payment" do
       before { sign_in_admin }
 
-      it "creates a confirmed payment" do
+      it "creates a payment and allocates it" do
         post payments_path, params: valid_params
-        expect(Payment.last).to be_confirmed
+        expect(Payment.last).to be_partially_allocated
       end
 
       it "creates initial entry and balance", :aggregate_failures do
@@ -63,9 +63,9 @@ RSpec.describe "Payments" do
         sign_in_as(user)
       end
 
-      it "creates a confirmed payment" do
+      it "creates a payment and allocates it" do
         post payments_path, params: valid_params
-        expect(Payment.last).to be_confirmed
+        expect(Payment.last).to be_partially_allocated
       end
 
       it "creates initial entry and balance", :aggregate_failures do
@@ -160,9 +160,9 @@ RSpec.describe "Payments" do
         sign_in_as(user)
       end
 
-      it "confirms the payment" do
+      it "confirms and allocates the payment" do
         patch payment_path(draft_payment), params: confirm_params
-        expect(draft_payment.reload).to be_confirmed
+        expect(draft_payment.reload).to be_partially_allocated
       end
 
       it "creates initial entry and balance", :aggregate_failures do
@@ -200,9 +200,9 @@ RSpec.describe "Payments" do
     context "when admin updates status" do
       before { sign_in_admin }
 
-      it "confirms the payment" do
+      it "confirms and allocates the payment" do
         patch payment_path(draft_payment), params: confirm_params
-        expect(draft_payment.reload).to be_confirmed
+        expect(draft_payment.reload).to be_partially_allocated
       end
     end
   end
