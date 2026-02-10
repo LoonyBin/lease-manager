@@ -62,7 +62,7 @@ RSpec.describe Invoice do
 
       before do
         invoice.line_items.destroy_all
-        create(:line_item, invoice: invoice, amount: 100)
+        create(:line_item, invoice: invoice, amount: 100, tax_rate: nil)
       end
 
       it "creates an initial entry when finalized" do
@@ -83,7 +83,7 @@ RSpec.describe Invoice do
     describe "auto settlement" do
       before do
         invoice.line_items.destroy_all
-        create(:line_item, invoice: invoice, amount: 100)
+        create(:line_item, invoice: invoice, amount: 100, tax_rate: nil)
       end
 
       it "auto-settles after save when finalizing" do
@@ -113,12 +113,34 @@ RSpec.describe Invoice do
     end
   end
 
+  describe "#total_amount" do
+    let(:invoice) { create(:invoice, status: :draft) }
+
+    before { invoice.line_items.destroy_all }
+
+    it "sums line item amounts when no tax" do
+      create(:line_item, invoice: invoice, amount: 100, tax_rate: nil)
+      expect(invoice.total_amount).to eq(100)
+    end
+
+    it "includes tax in the total" do
+      create(:line_item, invoice: invoice, amount: 100, tax_rate: 18)
+      expect(invoice.total_amount).to eq(118)
+    end
+
+    it "sums multiple line items with mixed tax rates" do
+      create(:line_item, invoice: invoice, amount: 1000, tax_rate: 18)
+      create(:line_item, invoice: invoice, amount: 500, tax_rate: nil)
+      expect(invoice.total_amount).to eq(1680)
+    end
+  end
+
   describe "#signed_amount" do
     let(:invoice) { create(:invoice, status: :draft) }
 
     before do
       invoice.line_items.destroy_all
-      create(:line_item, invoice: invoice, amount: 100)
+      create(:line_item, invoice: invoice, amount: 100, tax_rate: nil)
     end
 
     it "returns positive amount for regular invoices" do
@@ -151,7 +173,7 @@ RSpec.describe Invoice do
 
     before do
       invoice.line_items.destroy_all
-      create(:line_item, invoice: invoice, amount: 100)
+      create(:line_item, invoice: invoice, amount: 100, tax_rate: nil)
       invoice.update!(status: :finalized)
     end
 
@@ -172,7 +194,7 @@ RSpec.describe Invoice do
 
     before do
       invoice.line_items.destroy_all
-      create(:line_item, invoice: invoice, amount: 100)
+      create(:line_item, invoice: invoice, amount: 100, tax_rate: nil)
       invoice.update!(status: :finalized)
       invoice.entries.destroy_all # Clear for manual testing
     end

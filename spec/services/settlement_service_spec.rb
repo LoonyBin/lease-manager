@@ -9,7 +9,7 @@ RSpec.describe SettlementService do
     invoice = create(:invoice, lease: lease, date: date, status: :draft, document_type: document_type)
     invoice.line_items.destroy_all
     # All line_items store positive amounts - document_type determines sign
-    create(:line_item, invoice: invoice, amount: amount.abs)
+    create(:line_item, invoice: invoice, amount: amount.abs, tax_rate: nil)
     # Manually set status to trigger entry creation
     invoice.update!(status: status)
     invoice.reload
