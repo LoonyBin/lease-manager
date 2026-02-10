@@ -7,7 +7,7 @@ class LeasesController < ApplicationController
   end
 
   def show
-    @lease = Lease.find(params[:id])
+    @lease = Lease.includes(invoices: :line_items).find(params[:id])
     authorize @lease
   end
 
