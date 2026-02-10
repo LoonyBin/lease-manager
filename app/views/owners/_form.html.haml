@@ -2,9 +2,7 @@
   = f.error_notification
 
   = f.grid_inputs do
-    .col-span-1.md:col-span-2
-      = f.input :name
-    .col-span-1.md:col-span-2
-      = f.input :address, as: :text, input_html: { rows: 4 }
+    = f.input :name, col: 4
+    = f.input :address, col: 4, as: :text, input_html: { rows: 4 }
 
   = f.form_actions

@@ -120,11 +120,11 @@ SimpleForm.setup do |config|
   config.boolean_label_class = "checkbox"
 end
 
-# Monkey patch SimpleForm::FormBuilder to add custom helpers
+# Custom helpers for SimpleForm::FormBuilder
 module SimpleForm
   class FormBuilder
-    def grid_inputs(columns: 2, gap: 6, &)
-      grid_classes = "form-inputs grid grid-cols-1 md:grid-cols-#{columns} gap-#{gap}"
+    def grid_inputs(columns: 4, gap: 6, &)
+      grid_classes = "form-inputs grid grid-cols-1 md:grid-cols-#{columns} gap-#{gap} [&>*]:min-w-0"
       template.content_tag(:div, class: grid_classes, &)
     end
 
@@ -142,3 +142,16 @@ module SimpleForm
     end
   end
 end
+
+# Prepend col: option support so super resolves through the module chain
+module SimpleFormColSpan
+  def input(attribute_name, options = {}, &)
+    col = options.delete(:col) || 2
+    options[:wrapper_html] ||= {}
+    existing = options[:wrapper_html][:class]
+    options[:wrapper_html][:class] = ["md:col-span-#{col}", existing].compact.join(" ")
+    super
+  end
+end
+
+SimpleForm::FormBuilder.prepend(SimpleFormColSpan)
