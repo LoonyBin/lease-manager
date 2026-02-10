@@ -113,9 +113,17 @@ RSpec.describe Lease do
   end
 
   describe "#security_deposit" do
-    subject { build(:lease, rent_amount: 1000, security_deposit_in_months: 2) }
+    context "with months type" do
+      subject { build(:lease, rent_amount: 1000, security_deposit_value: 2, security_deposit_type: :months) }
 
-    its(:security_deposit) { is_expected.to eq(2000.0) }
+      its(:security_deposit) { is_expected.to eq(2000.0) }
+    end
+
+    context "with fixed type" do
+      subject { build(:lease, rent_amount: 1000, security_deposit_value: 50_000, security_deposit_type: :fixed) }
+
+      its(:security_deposit) { is_expected.to eq(50_000) }
+    end
   end
 
   describe "#current_rent_at" do

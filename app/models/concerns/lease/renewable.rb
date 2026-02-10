@@ -19,7 +19,7 @@ class Lease
 
       def renewal_attributes_from(old_lease)
         new_start = old_lease.end_date + 1.day
-        old_lease.slice(:property_id, :tenant_id, :duration_months, :security_deposit_in_months,
+        old_lease.slice(:property_id, :tenant_id, :duration_months, :security_deposit_value, :security_deposit_type,
                         :enhancement_period_months, :enhancement_amount, :enhancement_type, :tax_name, :tax_rate,
                         :property_schedule)
                  .merge(start_date: new_start, rent_amount: old_lease.current_rent_at(new_start))

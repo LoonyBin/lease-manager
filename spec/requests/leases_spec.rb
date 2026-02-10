@@ -45,7 +45,7 @@ RSpec.describe "Leases" do
           start_date: "2025-01-01",
           duration_months: 12,
           rent_amount: 1000.0,
-          security_deposit_in_months: 2,
+          security_deposit_value: 2,
           enhancement_period_months: 12,
           enhancement_amount: "5.0",
           enhancement_type: "percentage"
@@ -104,7 +104,7 @@ RSpec.describe "Leases" do
     end
     let(:renewal_attributes) do
       { property_id: old_lease.property.id, tenant_id: old_lease.tenant.id, start_date: old_lease.end_date + 1.day,
-        duration_months: 12, rent_amount: 1050.0, security_deposit_in_months: 2, enhancement_period_months: 12,
+        duration_months: 12, rent_amount: 1050.0, security_deposit_value: 2, enhancement_period_months: 12,
         enhancement_amount: 5, enhancement_type: "percentage", renewed_from_id: old_lease.id }
     end
 

@@ -6,11 +6,12 @@ class Lease
 
     included do
       enum :enhancement_type, { percentage: 0, fixed: 1 }
+      enum :security_deposit_type, { months: 0, fixed: 1 }, prefix: :security_deposit
 
       validates :rent_amount, presence: true, numericality: { greater_than: 0 }
       validates :enhancement_period_months, presence: true, numericality: { only_integer: true, greater_than: 0 }
-      validates :security_deposit_in_months, presence: true,
-                                             numericality: { greater_than_or_equal_to: 0 }
+      validates :security_deposit_value, presence: true,
+                                         numericality: { greater_than_or_equal_to: 0 }
       validates :enhancement_amount, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
       validates :tax_rate, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }, allow_nil: true
     end
@@ -43,9 +44,9 @@ class Lease
     end
 
     def security_deposit
-      return 0 unless rent_amount && security_deposit_in_months
+      return 0 unless security_deposit_value&.positive?
 
-      rent_amount * security_deposit_in_months
+      security_deposit_months? ? rent_amount * security_deposit_value : security_deposit_value
     end
   end
 end
