@@ -61,7 +61,7 @@ RSpec.describe SecurityDepositInvoicer do
     end
 
     let!(:lease) do
-      create(:lease, property: property, tenant: tenant, rent_amount: 1000, security_deposit_in_months: 2)
+      create(:lease, property: property, tenant: tenant, rent_amount: 1000, security_deposit_value: 2)
     end
 
     it "creates a refund credit note" do
@@ -80,6 +80,6 @@ RSpec.describe SecurityDepositInvoicer do
 
   def create_lease(start_date:)
     create(:lease, property: property, tenant: tenant, start_date: start_date, rent_amount: 1000,
-                   security_deposit_in_months: 2)
+                   security_deposit_value: 2)
   end
 end

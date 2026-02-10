@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_09_170745) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_10_081557) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -79,7 +79,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_09_170745) do
     t.integer "quantity", default: 1, null: false
     t.bigint "renewed_from_id"
     t.decimal "rent_amount"
-    t.decimal "security_deposit_in_months", precision: 5, scale: 2
+    t.integer "security_deposit_type", default: 0, null: false
+    t.decimal "security_deposit_value", precision: 12, scale: 2
     t.date "start_date"
     t.string "tax_name"
     t.decimal "tax_rate", precision: 5, scale: 2

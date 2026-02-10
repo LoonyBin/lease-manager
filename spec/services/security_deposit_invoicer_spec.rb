@@ -24,7 +24,7 @@ RSpec.describe SecurityDepositInvoicer do
       end
 
       let(:create_lease) do
-        create(:lease, rent_amount: 1000, security_deposit_in_months: 2, start_date: 1.month.ago)
+        create(:lease, rent_amount: 1000, security_deposit_value: 2, start_date: 1.month.ago)
       end
 
       it "creates a security deposit invoice" do
@@ -47,13 +47,13 @@ RSpec.describe SecurityDepositInvoicer do
       end
 
       let!(:old_lease) do
-        create(:lease, rent_amount: 1000, security_deposit_in_months: 2,
+        create(:lease, rent_amount: 1000, security_deposit_value: 2,
                        terminated_on: Date.yesterday, start_date: 1.year.ago)
       end
 
       let(:create_renewal) do
         create(:lease, property: old_lease.property, tenant: old_lease.tenant,
-                       rent_amount: 1200, security_deposit_in_months: 2,
+                       rent_amount: 1200, security_deposit_value: 2,
                        renewed_from: old_lease, start_date: Time.zone.today)
       end
 
@@ -77,13 +77,13 @@ RSpec.describe SecurityDepositInvoicer do
       end
 
       let!(:old_lease) do
-        create(:lease, rent_amount: 1000, security_deposit_in_months: 2,
+        create(:lease, rent_amount: 1000, security_deposit_value: 2,
                        terminated_on: Date.yesterday, start_date: 1.year.ago)
       end
 
       let(:create_renewal) do
         create(:lease, property: old_lease.property, tenant: old_lease.tenant,
-                       rent_amount: 800, security_deposit_in_months: 2,
+                       rent_amount: 800, security_deposit_value: 2,
                        renewed_from: old_lease, start_date: Time.zone.today)
       end
 
@@ -102,14 +102,14 @@ RSpec.describe SecurityDepositInvoicer do
 
     context "when renewal has same deposit" do
       let!(:old_lease) do
-        create(:lease, rent_amount: 1000, security_deposit_in_months: 2,
+        create(:lease, rent_amount: 1000, security_deposit_value: 2,
                        terminated_on: Date.yesterday, start_date: 1.year.ago)
       end
 
       it "does nothing" do
         expect do
           create(:lease, property: old_lease.property, tenant: old_lease.tenant,
-                         rent_amount: 1000, security_deposit_in_months: 2,
+                         rent_amount: 1000, security_deposit_value: 2,
                          renewed_from: old_lease, start_date: Time.zone.today)
         end.not_to change(Invoice, :count)
       end
@@ -121,7 +121,7 @@ RSpec.describe SecurityDepositInvoicer do
         Invoice.last
       end
 
-      let!(:lease) { create(:lease, rent_amount: 1000, security_deposit_in_months: 2, start_date: 1.month.ago) }
+      let!(:lease) { create(:lease, rent_amount: 1000, security_deposit_value: 2, start_date: 1.month.ago) }
 
       it "creates a full refund credit note if not renewed" do
         expect { lease.update!(terminated_on: Time.zone.today) }
@@ -158,12 +158,12 @@ RSpec.describe SecurityDepositInvoicer do
       end
 
       let(:old_lease) do
-        create(:lease, rent_amount: 1000, security_deposit_in_months: 2,
+        create(:lease, rent_amount: 1000, security_deposit_value: 2,
                        terminated_on: Date.yesterday, start_date: 1.year.ago)
       end
       let!(:renewal_lease) do
         create(:lease, property: old_lease.property, tenant: old_lease.tenant,
-                       rent_amount: 1200, security_deposit_in_months: 2,
+                       rent_amount: 1200, security_deposit_value: 2,
                        renewed_from: old_lease, start_date: Time.zone.today)
       end
 

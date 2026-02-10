@@ -55,7 +55,10 @@
             .show-field-label Security Deposit
             .show-field-value
               = number_to_currency(@lease.security_deposit, unit: "₹", precision: 0)
-              %span.text-sm.opacity-60 (#{@lease.security_deposit_in_months} months)
+              - if @lease.security_deposit_months?
+                %span.text-sm.opacity-60 (#{@lease.security_deposit_value.to_f} months)
+              - else
+                %span.text-sm.opacity-60 (Fixed)
           .show-field
             .show-field-label Enhancement
             .show-field-value

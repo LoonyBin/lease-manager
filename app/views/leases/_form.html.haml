@@ -21,7 +21,17 @@
     = f.input :duration_months
 
     = f.input :rent_amount
-    = f.input :security_deposit_in_months
+    = f.input :security_deposit_value, as: :string do
+      .join.w-full.flex{data: {controller: "security-deposit-toggle"}}
+        = f.input_field :security_deposit_value, class: "input input-bordered join-item w-full min-w-0",
+                        data: { security_deposit_toggle_target: "valueInput",
+                                action: "input->security-deposit-toggle#markEdited" }
+        = f.hidden_field :security_deposit_type, value: f.object.security_deposit_type || "months",
+                         data: { security_deposit_toggle_target: "typeInput" }
+        %button.btn.join-item{type: "button",
+                              data: { action: "click->security-deposit-toggle#toggle",
+                                      security_deposit_toggle_target: "buttonLabel" }}
+          = f.object.security_deposit_months? ? "\u00d7 months" : "\u20b9"
 
     = f.input :enhancement_amount, as: :string do
       .join.w-full.flex{data: {controller: "enhancement-toggle"}}
