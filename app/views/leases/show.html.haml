@@ -113,15 +113,26 @@
                 %th
             %tbody
               - billable_months(@lease).reverse.each do |month|
-                - invoice = @lease.invoices.find { |i| i.date.beginning_of_month == month }
-                - if invoice
-                  %tr.hover.cursor-pointer{data: { controller: "clickable-row", clickable_row_url_value: invoice_path(invoice), action: "click->clickable-row#click" }}
-                    %td= link_to month.strftime("%B %Y"), invoice, class: "link link-hover font-medium"
-                    %td
-                      %span.resource-badge{class: "resource-badge-#{invoice.paid? ? 'success' : invoice.draft? ? 'neutral' : 'info'}"}
-                        = invoice.status.humanize
-                    %td.text-right= number_to_currency(invoice.total_amount, unit: "₹", precision: 0)
-                    %td
+                - invoices = @lease.invoices.select { |i| i.date.beginning_of_month == month }
+                - has_rental = invoices.any? { |i| i.line_items.any? { |li| li.category == "rent" } }
+                - if invoices.any?
+                  - invoices.each do |invoice|
+                    %tr.hover.cursor-pointer{data: { controller: "clickable-row", clickable_row_url_value: invoice_path(invoice), action: "click->clickable-row#click" }}
+                      %td= link_to month.strftime("%B %Y"), invoice, class: "link link-hover font-medium"
+                      %td
+                        %span.resource-badge{class: "resource-badge-#{invoice.paid? ? 'success' : invoice.draft? ? 'neutral' : 'info'}"}
+                          = invoice.status.humanize
+                      %td.text-right= number_to_currency(invoice.total_amount, unit: "₹", precision: 0)
+                      %td
+                  - unless has_rental
+                    %tr
+                      %td= month.strftime("%B %Y")
+                      %td
+                        %span.resource-badge.resource-badge-warning Missing rental
+                      %td.text-right -
+                      %td
+                        - if policy(Invoice.new(lease: @lease)).new?
+                          = link_to "Generate", new_invoice_path(lease_id: @lease.id, date: month.to_s), class: "btn btn-xs btn-primary"
                 - else
                   %tr
                     %td= month.strftime("%B %Y")
