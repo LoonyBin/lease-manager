@@ -13,9 +13,8 @@
 
     = f.input :quantity, hint: "Amount of property capacity to lease. Available: #{lease.property&.available_capacity || 'N/A'}"
 
-    .col-span-1.md:col-span-2
-      = f.input :property_schedule, as: :text, input_html: { rows: 2 },
-                hint: "Defaults to property name and address. Edit to customise what appears on invoices."
+    = f.input :property_schedule, col: 4, as: :text, input_html: { rows: 2 },
+              hint: "Defaults to property name and address. Edit to customise what appears on invoices."
 
     = f.input :start_date, as: :date, html5: true
     = f.input :duration_months
@@ -35,11 +34,9 @@
     = f.input :tax_name, placeholder: "e.g., GST"
 
     - if f.object.terminated_on.present?
-      .col-span-1.md:col-span-2
-        = f.input :terminated_on, as: :date, html5: true
+      = f.input :terminated_on, col: 4, as: :date, html5: true
 
-    .col-span-1.md:col-span-2
-      = f.input :documents, as: :file, input_html: { multiple: true },
-                label: "Upload Documents (PDF, images)", hint: "You can select multiple files"
+    = f.input :documents, col: 4, as: :file, input_html: { multiple: true },
+              label: "Upload Documents (PDF, images)", hint: "You can select multiple files"
 
   = f.form_actions

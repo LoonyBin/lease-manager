@@ -16,5 +16,5 @@ RSpec.describe "payments/new" do
   it { is_expected.to have_select("payment[lease_id]") }
   it { is_expected.to have_field("payment[date]") }
   it { is_expected.to have_field("payment[amount]") }
-  it { is_expected.to have_button("Save Payment") }
+  it { is_expected.to have_button("Create Payment") }
 end

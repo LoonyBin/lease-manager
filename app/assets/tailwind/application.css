@@ -3,6 +3,9 @@
   themes: light --default, dark --prefersdark;
 }
 
+/* Force-include col-span utilities generated dynamically in simple_form.rb */
+@source inline("md:col-span-1 md:col-span-2 md:col-span-3 md:col-span-4 md:grid-cols-4");
+
 /* ==========================================================================
    Dark Mode Enhancements
    ========================================================================== */

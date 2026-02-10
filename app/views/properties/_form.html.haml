@@ -3,16 +3,10 @@
   = f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present?
 
   = f.grid_inputs do
-    .col-span-1.md:col-span-2
-      = f.input :name
-    .col-span-1.md:col-span-2
-      = f.association :owner
-    .col-span-1.md:col-span-2
-      = f.input :address, as: :text, input_html: { rows: 3 }
-
-    .col-span-1.md:col-span-2
-      .grid.grid-cols-2.gap-6
-        = f.input :capacity, hint: "Total capacity available for leasing"
-        = f.input :unit, hint: "Unit of capacity (e.g., Rooms, Desks, Seats)"
+    = f.input :name, col: 4
+    = f.association :owner, col: 4
+    = f.input :address, col: 4, as: :text, input_html: { rows: 3 }
+    = f.input :capacity, hint: "Total capacity available for leasing"
+    = f.input :unit, hint: "Unit of capacity (e.g., Rooms, Desks, Seats)"
 
   = f.form_actions

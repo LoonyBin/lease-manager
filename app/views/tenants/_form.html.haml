@@ -3,8 +3,7 @@
   = f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present?
 
   = f.grid_inputs do
-    .col-span-1.md:col-span-2
-      = f.input :name
+    = f.input :name, col: 4
     = f.input :email
     = f.input :phone_number
 
