@@ -21,7 +21,7 @@ RSpec.describe "Reports" do
       end
 
       it { expect(response).to have_http_status(:success) }
-      it { expect(response.body).to include("Financial Dashboard") }
+      it { expect(response.body).to include("Overview") }
     end
 
     context "when authenticated as admin" do

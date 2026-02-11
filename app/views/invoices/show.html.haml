@@ -1,4 +1,4 @@
-- content_for :page_title do
+- content_for :title do
   = @invoice.credit_note? ? "Credit Note" : "Invoice"
   - if @invoice.number.present?
     = " ##{@invoice.number}"
