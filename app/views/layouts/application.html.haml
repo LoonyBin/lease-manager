@@ -16,7 +16,7 @@
 
           -# Page header (title + actions)
           .page-header
-            %h1.page-title= yield(:page_title).presence || "Home"
+            %h1.page-title= yield(:title).presence || "Home"
             .page-actions
               = yield(:page_actions)
 
