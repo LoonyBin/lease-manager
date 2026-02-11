@@ -13,14 +13,9 @@ class InvoicesController < ApplicationController
   end
 
   def new
-    if params[:lease_id] && params[:date]
-      @lease = Lease.find(params[:lease_id])
-      date = Date.parse(params[:date])
-      @invoice = ::InvoiceGenerator.new(@lease, date).call
-    else
-      @invoice = Invoice.new(invoice_params)
-    end
+    @invoice = ::InvoiceGenerator.new(Invoice.new(invoice_params)).call
     authorize @invoice
+    @leases = policy_scope(Lease).includes(:property, :tenant) unless @invoice.lease_id?
   end
 
   def edit
@@ -35,6 +30,7 @@ class InvoicesController < ApplicationController
     if @invoice.save
       redirect_to @invoice, notice: t(".success")
     else
+      @leases = policy_scope(Lease).includes(:property, :tenant) unless @invoice.lease_id?
       render :new, status: :unprocessable_content
     end
   end

@@ -103,45 +103,80 @@
           = link_to invoices_path(q: { lease_id_eq: @lease.id }), class: "btn btn-ghost btn-xs", title: "View all" do
             = heroicon "arrows-pointing-out", options: { class: "w-4 h-4" }
 
-        .overflow-x-auto
-          %table.table.w-full
-            %thead
-              %tr
-                %th Month
-                %th Status
-                %th.text-right Amount
-                %th
-            %tbody
-              - billable_months(@lease).reverse.each do |month|
-                - invoices = @lease.invoices.select { |i| i.date.beginning_of_month == month }
-                - has_rental = invoices.any? { |i| i.line_items.any? { |li| li.category == "rent" } }
-                - if invoices.any?
-                  - invoices.each do |invoice|
-                    %tr.hover.cursor-pointer{data: { controller: "clickable-row", clickable_row_url_value: invoice_path(invoice), action: "click->clickable-row#click" }}
-                      %td= link_to month.strftime("%B %Y"), invoice, class: "link link-hover font-medium"
-                      %td
-                        %span.resource-badge{class: "resource-badge-#{invoice.paid? ? 'success' : invoice.draft? ? 'neutral' : 'info'}"}
-                          = invoice.status.humanize
-                      %td.text-right= number_to_currency(invoice.total_amount, unit: "₹", precision: 0)
-                      %td
-                  - unless has_rental
-                    %tr
-                      %td= month.strftime("%B %Y")
-                      %td
-                        %span.resource-badge.resource-badge-warning Missing rental
-                      %td.text-right -
-                      %td
-                        - if policy(Invoice.new(lease: @lease)).new?
-                          = link_to "Generate", new_invoice_path(lease_id: @lease.id, date: month.to_s), class: "btn btn-xs btn-primary"
-                - else
-                  %tr
-                    %td= month.strftime("%B %Y")
-                    %td
-                      %span.resource-badge.resource-badge-warning Missing
-                    %td.text-right -
-                    %td
+        .resource-list.table-only.invoice-list.lease-invoice-list
+          .resource-list-header
+            %div Invoice
+            %div Amount
+            %div Status
+            %div Actions
+
+          - billable_months(@lease).reverse.each do |month|
+            - invoices = @lease.invoices.select { |i| i.date.beginning_of_month == month }
+            - has_rental = invoices.any? { |i| i.line_items.any? { |li| li.category == "rent" } }
+            - if invoices.any?
+              - invoices.each do |invoice|
+                .resource-item.invoice-item{data: { controller: "clickable-row", clickable_row_url_value: invoice_path(invoice), action: "click->clickable-row#click" }}
+                  .resource-col-header
+                    .resource-item-icon
+                      - if invoice.credit_note?
+                        = heroicon "document-minus", options: { class: "w-5 h-5 text-error" }
+                      - else
+                        = heroicon "document", options: { class: "w-5 h-5" }
+                    %div
+                      = link_to invoice_path(invoice), class: "resource-item-title" do
+                        - if invoice.credit_note?
+                          Credit Note
+                        - if invoice.number.present?
+                          = "##{invoice.number}"
+                        - elsif !invoice.credit_note?
+                          Draft
+                      .resource-item-subtitle= month.strftime("%B %Y")
+                  .resource-col
+                    .invoice-item-amount-compact
+                      %span.amount
+                        - if invoice.credit_note?
+                          %span.text-error= "-#{number_to_currency(invoice.total_amount, unit: '₹', precision: 0)}"
+                        - else
+                          = number_to_currency(invoice.total_amount, unit: "₹", precision: 0)
+                      - if invoice.outstanding_amount > 0
+                        %span.balance= "#{number_to_currency(invoice.outstanding_amount, unit: '₹', precision: 0)} due"
+                  .resource-col-flex
+                    %span.resource-badge{class: "resource-badge-#{invoice.status == 'paid' ? 'success' : invoice.status == 'sent' ? 'info' : invoice.status == 'overdue' ? 'error' : 'neutral'}"}= invoice.status.humanize
+                  .resource-col-actions
+                    .resource-item-actions
+                      - if policy(invoice).edit?
+                        = link_to edit_invoice_path(invoice), class: "btn btn-sm btn-ghost", aria: { label: "Edit invoice #{invoice.number}" } do
+                          = heroicon "pencil-square", options: { class: "w-4 h-4" }
+              - unless has_rental
+                .resource-item
+                  .resource-col-header
+                    .resource-item-icon
+                      = heroicon "document", options: { class: "w-5 h-5 opacity-40" }
+                    %div
+                      %span.resource-item-title.opacity-60= month.strftime("%B %Y")
+                  .resource-col
+                    %span.opacity-40 -
+                  .resource-col-flex
+                    %span.resource-badge.resource-badge-warning Missing rental
+                  .resource-col-actions
+                    .resource-item-actions
                       - if policy(Invoice.new(lease: @lease)).new?
-                        = link_to "Generate", new_invoice_path(lease_id: @lease.id, date: month.to_s), class: "btn btn-xs btn-primary"
+                        = link_to "Generate", new_invoice_path(invoice: { lease_id: @lease.id, date: month.to_s }), class: "btn btn-xs btn-primary"
+            - else
+              .resource-item
+                .resource-col-header
+                  .resource-item-icon
+                    = heroicon "document", options: { class: "w-5 h-5 opacity-40" }
+                  %div
+                    %span.resource-item-title.opacity-60= month.strftime("%B %Y")
+                .resource-col
+                  %span.opacity-40 -
+                .resource-col-flex
+                  %span.resource-badge.resource-badge-warning Missing
+                .resource-col-actions
+                  .resource-item-actions
+                    - if policy(Invoice.new(lease: @lease)).new?
+                      = link_to "Generate", new_invoice_path(invoice: { lease_id: @lease.id, date: month.to_s }), class: "btn btn-xs btn-primary"
 
     -# Termination Modal
     %input#terminate-modal.modal-toggle{type: "checkbox"}

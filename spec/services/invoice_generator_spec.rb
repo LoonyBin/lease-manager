@@ -3,7 +3,7 @@
 require "rails_helper"
 
 RSpec.describe InvoiceGenerator do
-  subject(:service) { described_class.new(lease, date) }
+  subject(:service) { described_class.new(Invoice.new(lease: lease, date: date)) }
 
   let!(:lease) { create(:lease, rent_amount: 1000) }
   let(:date) { Date.new(2025, 2, 1) }
@@ -127,6 +127,36 @@ RSpec.describe InvoiceGenerator do
 
       it "returns the existing invoice" do
         expect(service.call).to eq(existing_invoice)
+      end
+    end
+
+    context "when invoice is a credit note" do
+      subject(:service) { described_class.new(invoice) }
+
+      let(:invoice) { Invoice.new(lease: lease, date: date, document_type: :credit_note) }
+
+      it "returns the original invoice unchanged" do
+        expect(service.call).to be(invoice)
+      end
+    end
+
+    context "when lease is missing" do
+      subject(:service) { described_class.new(invoice) }
+
+      let(:invoice) { Invoice.new(date: date) }
+
+      it "returns the original invoice unchanged" do
+        expect(service.call).to be(invoice)
+      end
+    end
+
+    context "when date is missing" do
+      subject(:service) { described_class.new(invoice) }
+
+      let(:invoice) { Invoice.new(lease: lease) }
+
+      it "returns the original invoice unchanged" do
+        expect(service.call).to be(invoice)
       end
     end
 
