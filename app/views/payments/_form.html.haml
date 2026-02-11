@@ -1,6 +1,7 @@
 = simple_form_for(payment) do |f|
   = f.error_notification
   = f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present?
+  = f.hidden_field :payment_type
 
   = f.grid_inputs do
     = f.association :lease, col: 4, collection: leases,

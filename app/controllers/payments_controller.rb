@@ -13,7 +13,7 @@ class PaymentsController < ApplicationController
   end
 
   def new
-    @payment = Payment.new
+    @payment = Payment.new(payment_params)
     authorize @payment
     @leases = policy_scope(Lease).includes(:property, :tenant)
   end
@@ -44,7 +44,7 @@ class PaymentsController < ApplicationController
   private
 
   def payment_params
-    params.expect(payment: %i[lease_id date amount mode reference_number attachment])
+    params.permit(payment: %i[lease_id date amount mode reference_number attachment payment_type])[:payment]
   end
 
   def update_params

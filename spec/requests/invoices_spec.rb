@@ -34,12 +34,42 @@ RSpec.describe "Invoices" do
         expect(response).to have_http_status(:success)
       end
     end
+
+    context "with document_type=credit_note" do
+      it "returns success with credit note title" do
+        get new_invoice_path(invoice: { document_type: "credit_note" })
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include("New Credit Note")
+      end
+    end
   end
 
   describe "GET /invoices/:id/edit" do
     it "returns http success" do
       get edit_invoice_path(create(:invoice))
       expect(response).to have_http_status(:success)
+    end
+  end
+
+  describe "POST /invoices" do
+    context "with document_type credit_note" do
+      let(:lease) { create(:lease) }
+
+      it "creates a credit note" do
+        params = { invoice: { lease_id: lease.id, date: Date.current, document_type: "credit_note",
+                              line_items_attributes: { "0" => { name: "Refund", amount: 500, tax_rate: 0,
+                                                                category: "other" } } } }
+        expect { post invoices_path, params: params }.to change(Invoice, :count).by(1)
+        expect(Invoice.last).to be_credit_note
+      end
+    end
+  end
+
+  describe "GET /invoices/:id (credit note)" do
+    it "shows Credit Note in the page" do
+      credit_note = create(:invoice, :credit_note)
+      get invoice_path(credit_note)
+      expect(response.body).to include("Credit Note")
     end
   end
 

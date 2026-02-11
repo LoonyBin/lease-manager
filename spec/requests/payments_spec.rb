@@ -23,6 +23,16 @@ RSpec.describe "Payments" do
     end
   end
 
+  describe "GET /payments/new (refund)" do
+    before { sign_in_admin }
+
+    it "returns success with refund title" do
+      get new_payment_path(payment: { payment_type: "refund" })
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("Record Refund")
+    end
+  end
+
   describe "POST /payments" do
     let(:valid_params) do
       {
@@ -32,6 +42,28 @@ RSpec.describe "Payments" do
           date: Time.zone.today
         }
       }
+    end
+
+    context "with payment_type refund" do
+      before { sign_in_admin }
+
+      let(:refund_params) do
+        {
+          payment: {
+            lease_id: lease.id,
+            amount: "100.00",
+            date: Time.zone.today,
+            payment_type: "refund"
+          }
+        }
+      end
+
+      it "creates a refund with positive balance (debit)" do
+        post payments_path, params: refund_params
+        payment = Payment.last
+        expect(payment).to be_refund
+        expect(payment.balance).to eq(100)
+      end
     end
 
     context "when admin creates payment" do
@@ -145,6 +177,16 @@ RSpec.describe "Payments" do
         post payments_path, params: params_with_attachment
         expect(Payment.last.attachment).to be_attached
       end
+    end
+  end
+
+  describe "GET /payments/:id (refund)" do
+    before { sign_in_admin }
+
+    it "shows Refund in the page" do
+      refund = create(:payment, :refund, lease: lease)
+      get payment_path(refund)
+      expect(response.body).to include("Refund")
     end
   end
 

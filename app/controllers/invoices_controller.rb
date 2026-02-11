@@ -18,7 +18,7 @@ class InvoicesController < ApplicationController
       date = Date.parse(params[:date])
       @invoice = ::InvoiceGenerator.new(@lease, date).call
     else
-      @invoice = Invoice.new
+      @invoice = Invoice.new(invoice_params)
     end
     authorize @invoice
   end
@@ -52,7 +52,7 @@ class InvoicesController < ApplicationController
   private
 
   def invoice_params
-    params.expect(invoice: [:lease_id, :date, :status,
-                            { line_items_attributes: [%i[id name amount tax_rate category _destroy]] }])
+    params.permit(invoice: [:lease_id, :date, :status, :document_type,
+                            { line_items_attributes: %i[id name amount tax_rate category _destroy] }])[:invoice]
   end
 end

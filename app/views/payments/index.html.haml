@@ -15,6 +15,8 @@
   - if policy(@payments.new).new?
     = link_to new_payment_path, class: "btn btn-ghost btn-sm btn-square", title: "Record Payment" do
       = heroicon "plus", options: { class: "w-5 h-5" }
+    = link_to new_payment_path(payment: { payment_type: :refund }), class: "btn btn-ghost btn-sm btn-square", title: "Record Refund" do
+      = heroicon "arrow-uturn-left", options: { class: "w-5 h-5" }
 
 .drawer.drawer-end
   %input#sort-drawer.drawer-toggle{type: "checkbox"}
@@ -42,9 +44,15 @@
             .resource-item.payment-item{data: { controller: "clickable-row", clickable_row_url_value: payment_path(payment), action: "click->clickable-row#click" }}
               .resource-col-header.payment-col-amount
                 .resource-item-icon
-                  = heroicon "currency-rupee", options: { class: "w-5 h-5" }
+                  - if payment.refund?
+                    = heroicon "arrow-uturn-left", options: { class: "w-5 h-5 text-error" }
+                  - else
+                    = heroicon "currency-rupee", options: { class: "w-5 h-5" }
                 .payment-item-header
-                  %span.resource-item-title= "##{payment.id}"
+                  %span.resource-item-title
+                    - if payment.refund?
+                      Refund
+                    = "##{payment.id}"
                   .resource-item-subtitle= payment.date.strftime("%b %d, %Y")
               .resource-col.payment-col-tenant
                 .resource-item-text= payment.lease.tenant.name
