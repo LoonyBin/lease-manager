@@ -1,12 +1,15 @@
 # frozen_string_literal: true
 
 class InvoiceGenerator
-  def initialize(lease, date)
-    @lease = lease
-    @date = date.beginning_of_month
+  def initialize(invoice)
+    @invoice = invoice
+    @lease = invoice.lease
+    @date = invoice.date&.beginning_of_month
   end
 
   def call
+    return @invoice unless @invoice.lease_id? && @invoice.date? && @invoice.invoice?
+
     existing_invoice = Invoice.rental.find_by(lease: @lease, date: @date)
     return existing_invoice if existing_invoice
 

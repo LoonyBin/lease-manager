@@ -7,7 +7,7 @@ class BatchInvoiceGenerator
 
   def call
     Lease.active_at(@date).find_each do |lease|
-      invoice = InvoiceGenerator.new(lease, @date).call
+      invoice = InvoiceGenerator.new(Invoice.new(lease: lease, date: @date)).call
       invoice.save! if invoice.new_record?
     end
   end

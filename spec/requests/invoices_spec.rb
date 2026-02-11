@@ -30,7 +30,7 @@ RSpec.describe "Invoices" do
       let(:date) { "2025-02-01" }
 
       it "returns valid prefilled invoice" do
-        get new_invoice_path(lease_id: lease.id, date: date)
+        get new_invoice_path(invoice: { lease_id: lease.id, date: date })
         expect(response).to have_http_status(:success)
       end
     end

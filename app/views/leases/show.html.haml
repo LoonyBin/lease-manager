@@ -161,7 +161,7 @@
                   .resource-col-actions
                     .resource-item-actions
                       - if policy(Invoice.new(lease: @lease)).new?
-                        = link_to "Generate", new_invoice_path(lease_id: @lease.id, date: month.to_s), class: "btn btn-xs btn-primary"
+                        = link_to "Generate", new_invoice_path(invoice: { lease_id: @lease.id, date: month.to_s }), class: "btn btn-xs btn-primary"
             - else
               .resource-item
                 .resource-col-header
@@ -176,7 +176,7 @@
                 .resource-col-actions
                   .resource-item-actions
                     - if policy(Invoice.new(lease: @lease)).new?
-                      = link_to "Generate", new_invoice_path(lease_id: @lease.id, date: month.to_s), class: "btn btn-xs btn-primary"
+                      = link_to "Generate", new_invoice_path(invoice: { lease_id: @lease.id, date: month.to_s }), class: "btn btn-xs btn-primary"
 
     -# Termination Modal
     %input#terminate-modal.modal-toggle{type: "checkbox"}
