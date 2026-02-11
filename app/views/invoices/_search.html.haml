@@ -16,6 +16,9 @@
     = f.label :total_amount_lteq, "Amount Max", class: "label-text"
     = f.number_field :total_amount_lteq, class: "input input-bordered input-sm w-full", step: "0.01"
   .form-control
+    = f.label :document_type_eq, "Type", class: "label-text"
+    = f.select :document_type_eq, [["Invoice", 0], ["Credit Note", 1]], { include_blank: true }, class: "select select-bordered select-sm w-full"
+  .form-control
     = f.label :status_eq, "Status", class: "label-text"
     = f.select :status_eq, Invoice.statuses.map { |k, v| [k.humanize, v] }, { include_blank: true }, class: "select select-bordered select-sm w-full"
 

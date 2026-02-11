@@ -1,5 +1,5 @@
 - content_for :page_title do
-  Payment
+  = @payment.refund? ? "Refund" : "Payment"
   %span.text-base.font-normal.opacity-60.ml-2= @payment.date.strftime("%b %d, %Y")
   - if @payment.draft?
     %span.badge.badge-warning.ml-2 Draft
@@ -67,7 +67,7 @@
       - if @payment.confirmed_or_later?
         .show-section
           .show-section-header
-            %h3.show-section-title Allocation Status
+            %h3.show-section-title= @payment.refund? ? "Settlement Status" : "Allocation Status"
             - if @payment.fully_allocated?
               %span.resource-badge.resource-badge-success Fully Allocated
             - else
@@ -79,7 +79,7 @@
               %table.table.w-full
                 %thead
                   %tr
-                    %th Invoice
+                    %th= @payment.refund? ? "Credit Note" : "Invoice"
                     %th Date
                     %th.text-right Amount
                 %tbody

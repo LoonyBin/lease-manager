@@ -1,4 +1,4 @@
 .max-w-4xl.mx-auto.card.bg-base-100.shadow-xl
   .card-body
-    %h2.card-title.mb-5 Record Payment
+    %h2.card-title.mb-5= @payment.refund? ? "Record Refund" : "Record Payment"
     = render 'form', payment: @payment, leases: @leases

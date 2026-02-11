@@ -19,6 +19,9 @@
     = f.number_field :amount_lteq, class: "input input-bordered input-sm w-full", step: "0.01"
 
   .form-control
+    = f.label :payment_type_eq, "Type", class: "label-text"
+    = f.select :payment_type_eq, [["Payment", 0], ["Refund", 1]], { include_blank: true }, class: "select select-bordered select-sm w-full"
+  .form-control
     = f.label :mode_eq, "Mode", class: "label-text"
     = f.select :mode_eq, Payment.modes.map { |k, v| [k.humanize, v] }, { include_blank: true }, class: "select select-bordered select-sm w-full"
 

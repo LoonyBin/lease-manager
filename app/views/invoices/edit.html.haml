@@ -1,4 +1,4 @@
 .max-w-4xl.mx-auto.card.bg-base-100.shadow-xl
   .card-body
-    %h2.card-title.mb-5 Edit Invoice
+    %h2.card-title.mb-5= @invoice.credit_note? ? "Edit Credit Note" : "Edit Invoice"
     = render 'form', invoice: @invoice
