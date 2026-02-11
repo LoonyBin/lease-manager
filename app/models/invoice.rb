@@ -7,7 +7,10 @@ class Invoice < ApplicationRecord
   has_many :entries, as: :instrument, dependent: :destroy
 
   ransacker :total_amount do
-    Arel.sql("(SELECT COALESCE(SUM(line_items.amount), 0) FROM line_items WHERE line_items.invoice_id = invoices.id)")
+    Arel.sql(<<~SQL.squish)
+      (SELECT COALESCE(SUM(line_items.amount + line_items.amount * COALESCE(line_items.tax_rate, 0) / 100.0), 0)
+       FROM line_items WHERE line_items.invoice_id = invoices.id)
+    SQL
   end
 
   enum :status, { draft: 0, finalized: 1, sent: 2, paid: 3, cancelled: 4, partially_paid: 5 }, default: :draft,
@@ -25,7 +28,7 @@ class Invoice < ApplicationRecord
   scope :rental, -> { joins(:line_items).where(line_items: { category: "rent" }).distinct }
 
   def total_amount
-    line_items.sum(:amount)
+    line_items.sum("ROUND(amount + amount * COALESCE(tax_rate, 0) / 100.0, 2)")
   end
 
   def paid_amount
