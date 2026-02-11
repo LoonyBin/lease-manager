@@ -26,7 +26,7 @@ RSpec.describe "Payments" do
   describe "GET /payments/new (refund)" do
     before { sign_in_admin }
 
-    it "returns success with refund title" do
+    it "returns success with refund title", :aggregate_failures do
       get new_payment_path(payment: { payment_type: "refund" })
       expect(response).to have_http_status(:success)
       expect(response.body).to include("Record Refund")
@@ -58,7 +58,7 @@ RSpec.describe "Payments" do
         }
       end
 
-      it "creates a refund with positive balance (debit)" do
+      it "creates a refund with positive balance (debit)", :aggregate_failures do
         post payments_path, params: refund_params
         payment = Payment.last
         expect(payment).to be_refund

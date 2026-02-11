@@ -36,7 +36,7 @@ RSpec.describe "Invoices" do
     end
 
     context "with document_type=credit_note" do
-      it "returns success with credit note title" do
+      it "returns success with credit note title", :aggregate_failures do
         get new_invoice_path(invoice: { document_type: "credit_note" })
         expect(response).to have_http_status(:success)
         expect(response.body).to include("New Credit Note")
@@ -55,7 +55,7 @@ RSpec.describe "Invoices" do
     context "with document_type credit_note" do
       let(:lease) { create(:lease) }
 
-      it "creates a credit note" do
+      it "creates a credit note", :aggregate_failures do
         params = { invoice: { lease_id: lease.id, date: Date.current, document_type: "credit_note",
                               line_items_attributes: { "0" => { name: "Refund", amount: 500, tax_rate: 0,
                                                                 category: "other" } } } }
