@@ -99,84 +99,49 @@
 
       .show-section
         .show-section-header
-          %h3.show-section-title Invoices
-          = link_to invoices_path(q: { lease_id_eq: @lease.id }), class: "btn btn-ghost btn-xs", title: "View all" do
-            = heroicon "arrows-pointing-out", options: { class: "w-4 h-4" }
+          %h3.show-section-title Statement
+          .show-section-actions
+            = link_to invoices_path(q: { lease_id_eq: @lease.id }), class: "btn btn-ghost btn-xs", title: "All invoices" do
+              = heroicon "document-text", options: { class: "w-4 h-4" }
+            = link_to payments_path(q: { lease_id_eq: @lease.id }), class: "btn btn-ghost btn-xs", title: "All payments" do
+              = heroicon "banknotes", options: { class: "w-4 h-4" }
 
-        .resource-list.table-only.invoice-list.lease-invoice-list
-          .resource-list-header
-            %div Invoice
-            %div Amount
-            %div Status
-            %div Actions
+        - if @statement_entries.any?
+          .resource-list.table-only.lease-statement-list
+            .resource-list-header
+              %div Description
+              %div Debit
+              %div Credit
+              %div Balance
 
-          - billable_months(@lease).reverse.each do |month|
-            - invoices = @lease.invoices.select { |i| i.date.beginning_of_month == month }
-            - has_rental = invoices.any? { |i| i.line_items.any? { |li| li.category == "rent" } }
-            - if invoices.any?
-              - invoices.each do |invoice|
-                .resource-item.invoice-item{data: { controller: "clickable-row", clickable_row_url_value: invoice_path(invoice), action: "click->clickable-row#click" }}
-                  .resource-col-header
-                    .resource-item-icon
-                      - if invoice.credit_note?
-                        = heroicon "document-minus", options: { class: "w-5 h-5 text-error" }
-                      - else
-                        = heroicon "document", options: { class: "w-5 h-5" }
-                    %div
-                      = link_to invoice_path(invoice), class: "resource-item-title" do
-                        - if invoice.credit_note?
-                          Credit Note
-                        - if invoice.number.present?
-                          = "##{invoice.number}"
-                        - elsif !invoice.credit_note?
-                          Draft
-                      .resource-item-subtitle= month.strftime("%B %Y")
-                  .resource-col
-                    .invoice-item-amount-compact
-                      %span.amount
-                        - if invoice.credit_note?
-                          %span.text-error= "-#{number_to_currency(invoice.total_amount, unit: '₹', precision: 0)}"
-                        - else
-                          = number_to_currency(invoice.total_amount, unit: "₹", precision: 0)
-                      - if invoice.outstanding_amount > 0
-                        %span.balance= "#{number_to_currency(invoice.outstanding_amount, unit: '₹', precision: 0)} due"
-                  .resource-col-flex
-                    %span.resource-badge{class: "resource-badge-#{invoice.status == 'paid' ? 'success' : invoice.status == 'sent' ? 'info' : invoice.status == 'overdue' ? 'error' : 'neutral'}"}= invoice.status.humanize
-                  .resource-col-actions
-                    .resource-item-actions
-                      - if policy(invoice).edit?
-                        = link_to edit_invoice_path(invoice), class: "btn btn-sm btn-ghost", aria: { label: "Edit invoice #{invoice.number}" } do
-                          = heroicon "pencil-square", options: { class: "w-4 h-4" }
-              - unless has_rental
-                .resource-item
-                  .resource-col-header
-                    .resource-item-icon
-                      = heroicon "document", options: { class: "w-5 h-5 opacity-40" }
-                    %div
-                      %span.resource-item-title.opacity-60= month.strftime("%B %Y")
-                  .resource-col
-                    %span.opacity-40 -
-                  .resource-col-flex
-                    %span.resource-badge.resource-badge-warning Missing rental
-                  .resource-col-actions
-                    .resource-item-actions
-                      - if policy(Invoice.new(lease: @lease)).new?
-                        = link_to "Generate", new_invoice_path(invoice: { lease_id: @lease.id, date: month.to_s }), class: "btn btn-xs btn-primary"
-            - else
-              .resource-item
+            - @statement_entries.each do |line|
+              .resource-item{class: line.accent_class, data: { controller: "clickable-row", clickable_row_url_value: polymorphic_path(line.instrument), action: "click->clickable-row#click" }}
                 .resource-col-header
                   .resource-item-icon
-                    = heroicon "document", options: { class: "w-5 h-5 opacity-40" }
+                    = heroicon line.icon_name, options: { class: "w-5 h-5 #{line.icon_color_class}" }
                   %div
-                    %span.resource-item-title.opacity-60= month.strftime("%B %Y")
+                    = link_to polymorphic_path(line.instrument), class: "resource-item-title" do
+                      = line.description
+                    .resource-item-subtitle= line.date.strftime("%B %d, %Y")
                 .resource-col
-                  %span.opacity-40 -
-                .resource-col-flex
-                  %span.resource-badge.resource-badge-warning Missing
-                .resource-col-actions
-                  .resource-item-actions
-                    - if policy(Invoice.new(lease: @lease)).new?
-                      = link_to "Generate", new_invoice_path(invoice: { lease_id: @lease.id, date: month.to_s }), class: "btn btn-xs btn-primary"
+                  - if line.debit_amount
+                    %span.font-semibold= number_to_currency(line.debit_amount, unit: "₹", precision: 0)
+                  - else
+                    %span.opacity-30 —
+                .resource-col
+                  - if line.credit_amount
+                    %span.font-semibold= number_to_currency(line.credit_amount, unit: "₹", precision: 0)
+                  - else
+                    %span.opacity-30 —
+                .resource-col
+                  - if line.balance.positive?
+                    %span.font-semibold.text-error= number_to_currency(line.balance, unit: "₹", precision: 0)
+                  - elsif line.balance.negative?
+                    %span.font-semibold.text-success= number_to_currency(line.balance.abs, unit: "₹", precision: 0, format: "-%u%n")
+                  - else
+                    %span.font-semibold= number_to_currency(0, unit: "₹", precision: 0)
+        - else
+          .show-empty No finalized transactions yet.
 
     -# Termination Modal
     %input#terminate-modal.modal-toggle{type: "checkbox"}

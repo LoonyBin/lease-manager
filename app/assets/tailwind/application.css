@@ -1119,11 +1119,16 @@ body.versions [data-nav="versions"] {
   grid-template-columns: 1.5fr 1.5fr 1fr 1fr 6rem;
 }
 
-/* Lease show invoice list: Invoice | Amount | Status | Actions */
-.lease-invoice-list.table-only .resource-list-header,
-.lease-invoice-list.table-only .resource-item {
-  grid-template-columns: 1.5fr 1fr 0.75fr 6rem;
+/* Lease show statement: Description | Debit | Credit | Balance */
+.lease-statement-list.table-only .resource-list-header,
+.lease-statement-list.table-only .resource-item {
+  grid-template-columns: 2fr 1fr 1fr 1fr;
 }
+
+.statement-invoice { --resource-accent: var(--color-warning); }
+.statement-credit-note { --resource-accent: var(--color-error); }
+.statement-payment { --resource-accent: var(--color-success); }
+.statement-refund { --resource-accent: var(--color-error); }
 
 /* ==========================================================================
    Resource-Specific Accent Colors
