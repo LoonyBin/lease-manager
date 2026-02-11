@@ -9,7 +9,7 @@ class LeasesController < ApplicationController
   def show
     @lease = Lease.find(params[:id])
     authorize @lease
-    @statement_entries = statement_entries(@lease.entries.initial.preload(:instrument))
+    @statement_entries = helpers.statement_entries(@lease.entries.initial.preload(:instrument))
   end
 
   def new
