@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class LineItem < ApplicationRecord
-  belongs_to :invoice
+  belongs_to :invoice, touch: true
 
   validates :name, presence: true
   validates :amount, presence: true, numericality: true

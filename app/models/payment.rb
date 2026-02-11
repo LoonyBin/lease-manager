@@ -24,10 +24,11 @@ class Payment < ApplicationRecord
   enum :status, { draft: 0, confirmed: 1, rejected: 2, partially_allocated: 3, fully_allocated: 4 },
        default: :confirmed, validate: true
 
-  after_save :create_initial_entry, if: :should_create_entry?
+  after_save :sync_initial_entry, if: :should_sync_entry?
   after_save :auto_settle, if: :should_auto_settle?
 
   scope :confirmed_or_later, -> { where(status: %i[confirmed partially_allocated fully_allocated]) }
+  scope :unsettled, -> { where(status: %i[confirmed partially_allocated]) }
 
   def credit?
     payment?
@@ -59,22 +60,35 @@ class Payment < ApplicationRecord
     confirmed? || partially_allocated? || fully_allocated?
   end
 
+  def unsettled?
+    confirmed? || partially_allocated?
+  end
+
   private
 
-  def should_create_entry?
-    confirmed_or_later? && entries.initial.none?
+  def should_sync_entry?
+    confirmed_or_later? && initial_entry_stale?
   end
 
   def should_auto_settle?
     saved_change_to_status? && confirmed_or_later? && balance != 0
   end
 
-  def create_initial_entry
-    entries.create!(lease: lease, amount: signed_amount, transaction_id: nil)
+  def initial_entry_stale?
+    initial = entries.initial.first
+    initial.nil? || initial.amount != signed_amount
+  end
+
+  def sync_initial_entry
+    entries.initial.first_or_initialize(lease: lease, transaction_id: nil).tap do |entry|
+      entry.amount = signed_amount
+    end.save!
     recalculate_balance!
   end
 
   def auto_settle
+    return unless unsettled?
+
     SettlementService.auto_settle(self)
   end
 end

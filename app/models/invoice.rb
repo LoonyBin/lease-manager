@@ -21,10 +21,11 @@ class Invoice < ApplicationRecord
   validates :status, presence: true
 
   before_save :assign_number, if: -> { finalized? && number.nil? }
-  after_save :create_initial_entry, if: :should_create_entry?
+  after_save :sync_initial_entry, if: :should_sync_entry?
   after_save :auto_settle, if: :should_auto_settle?
 
   scope :finalized_or_later, -> { where(status: %i[finalized sent paid partially_paid]) }
+  scope :unsettled, -> { where(status: %i[finalized sent partially_paid]) }
   scope :rental, -> { joins(:line_items).where(line_items: { category: "rent" }).distinct }
 
   def total_amount
@@ -62,13 +63,20 @@ class Invoice < ApplicationRecord
   def update_status_from_balance!
     return if draft? || cancelled?
 
-    if balance <= 0 && total_amount.positive?
-      update_column(:status, self.class.statuses[:paid])
+    new_status = :finalized
+    if balance.zero? && total_amount.positive?
+      new_status = :paid
     elsif balance < total_amount
-      update_column(:status, self.class.statuses[:partially_paid])
+      new_status = :partially_paid
     end
+
+    update_column(:status, self.class.statuses[new_status])
   end
   # rubocop:enable Rails/SkipsModelValidations
+
+  def unsettled?
+    finalized? || sent? || partially_paid?
+  end
 
   private
 
@@ -76,8 +84,8 @@ class Invoice < ApplicationRecord
     InvoiceNumberingService.new(self).call
   end
 
-  def should_create_entry?
-    finalized_or_later? && entries.initial.none? && !signed_amount.zero?
+  def should_sync_entry?
+    finalized_or_later? && !signed_amount.zero? && initial_entry_stale?
   end
 
   def should_auto_settle?
@@ -88,12 +96,21 @@ class Invoice < ApplicationRecord
     finalized? || sent? || paid? || partially_paid?
   end
 
-  def create_initial_entry
-    entries.create!(lease: lease, amount: signed_amount, transaction_id: nil)
+  def initial_entry_stale?
+    initial = entries.initial.first
+    initial.nil? || initial.amount != signed_amount
+  end
+
+  def sync_initial_entry
+    entries.initial.first_or_initialize(lease: lease, transaction_id: nil).tap do |entry|
+      entry.amount = signed_amount
+    end.save!
     recalculate_balance!
   end
 
   def auto_settle
+    return unless unsettled?
+
     SettlementService.auto_settle(self)
   end
 end
