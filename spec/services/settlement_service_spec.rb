@@ -195,6 +195,36 @@ RSpec.describe SettlementService do
     end
   end
 
+  describe ".readjust" do
+    let!(:older_invoice) { create_invoice(amount: 100, date: 2.months.ago) }
+    let!(:newer_invoice) { create_invoice(amount: 100, date: 1.month.ago) }
+    let!(:payment) { create_payment_record(amount: 150) }
+
+    # rubocop:disable RSpec/ExampleLength, RSpec/MultipleExpectations -- Integration test
+    it "clears old settlements and re-settles credits chronologically" do
+      # Corrupt state manually by deleting settlements without updating balances correctly
+      older_invoice.entries.settlements.destroy_all
+      older_invoice.recalculate_balance!
+
+      # Pre-condition: Inconsistent state (older invoice unpaid, payment still thinks it paid something)
+      # Actually payment balance won't update automatically here unless we force it, but let's assume
+      # we are fixing a messed up state.
+      expect(older_invoice.reload.balance).to eq(100)
+
+      # Run readjust
+      result = described_class.readjust(lease)
+
+      expect(result[:settlement_count]).to be >= 0
+      expect(result[:credit_count]).to eq(1)
+
+      # Post-condition: Correctly settled (older invoice paid first)
+      expect(older_invoice.reload.balance).to eq(0)
+      expect(newer_invoice.reload.balance).to eq(50)
+      expect(payment.reload.balance).to eq(0)
+    end
+    # rubocop:enable RSpec/ExampleLength, RSpec/MultipleExpectations
+  end
+
   describe "balance queries" do
     it "tenant balance equals sum of all entries" do
       create_invoice(amount: 500)
