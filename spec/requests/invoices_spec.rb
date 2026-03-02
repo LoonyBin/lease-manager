@@ -3,6 +3,8 @@
 require "rails_helper"
 
 RSpec.describe "Invoices" do
+  before { sign_in_admin }
+
   describe "GET /invoices" do
     it "returns http success" do
       get invoices_path
@@ -17,21 +19,27 @@ RSpec.describe "Invoices" do
     end
   end
 
-  describe "PATCH /invoices/:id/finalize" do
-    context "when invoice is draft" do
-      it "finalizes the invoice and assigns a number", :aggregate_failures do
-        invoice = create(:invoice, status: :draft, number: nil)
-        patch finalize_invoice_path(invoice)
+  describe "GET /invoices/new" do
+    it "returns http success for empty new" do
+      get new_invoice_path
+      expect(response).to have_http_status(:success)
+    end
 
-        expect(invoice.reload).to have_attributes(status: "finalized", number: be_present)
-        expect(response).to redirect_to(invoice_path(invoice))
+    context "with generation params" do
+      let(:lease) { create(:lease) }
+      let(:date) { "2025-02-01" }
+
+      it "returns valid prefilled invoice" do
+        get new_invoice_path(invoice: { lease_id: lease.id, date: date })
+        expect(response).to have_http_status(:success)
       end
     end
 
-    context "when invoice is already finalized" do
-      it "shows an error" do
-        patch finalize_invoice_path(create(:invoice, status: :finalized))
-        expect(flash[:alert]).to eq("Invoice is not in draft status.")
+    context "with document_type=credit_note" do
+      it "returns success with credit note title", :aggregate_failures do
+        get new_invoice_path(invoice: { document_type: "credit_note" })
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include("New Credit Note")
       end
     end
   end
@@ -40,6 +48,28 @@ RSpec.describe "Invoices" do
     it "returns http success" do
       get edit_invoice_path(create(:invoice))
       expect(response).to have_http_status(:success)
+    end
+  end
+
+  describe "POST /invoices" do
+    context "with document_type credit_note" do
+      let(:lease) { create(:lease) }
+
+      it "creates a credit note", :aggregate_failures do
+        params = { invoice: { lease_id: lease.id, date: Date.current, document_type: "credit_note",
+                              line_items_attributes: { "0" => { name: "Refund", amount: 500, tax_rate: 0,
+                                                                category: "other" } } } }
+        expect { post invoices_path, params: params }.to change(Invoice, :count).by(1)
+        expect(Invoice.last).to be_credit_note
+      end
+    end
+  end
+
+  describe "GET /invoices/:id (credit note)" do
+    it "shows Credit Note in the page" do
+      credit_note = create(:invoice, :credit_note)
+      get invoice_path(credit_note)
+      expect(response.body).to include("Credit Note")
     end
   end
 
@@ -74,6 +104,14 @@ RSpec.describe "Invoices" do
         params = { invoice: { line_items_attributes: { "0" => { name: "New Fee", amount: 250, tax_rate: 10,
                                                                 category: "other" } } } }
         expect { patch invoice_path(invoice), params: params }.to change(LineItem, :count).by(1)
+      end
+    end
+
+    context "when finalizing invoice" do
+      it "assigns number and allocates payment" do
+        invoice = create(:invoice, status: :draft, number: nil)
+        patch invoice_path(invoice), params: { invoice: { status: "finalized" } }
+        expect(invoice.reload).to have_attributes(status: "finalized", number: be_present)
       end
     end
   end

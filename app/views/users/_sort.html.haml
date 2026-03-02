@@ -1,0 +1,18 @@
+= form_with url: users_path, method: :get, class: "flex flex-col gap-2" do |f|
+  -# Preserve existing filter params
+  - if params[:q].present?
+    - params[:q].each do |key, value|
+      - next if key == "s"
+      = hidden_field_tag "q[#{key}]", value
+
+  - current_sort = params.dig(:q, :s)
+  - sort_options = [["Name (A-Z)", "name asc"], ["Name (Z-A)", "name desc"], ["Email (A-Z)", "email asc"], ["Email (Z-A)", "email desc"], ["Role (Admin First)", "role asc"], ["Role (Normal First)", "role desc"], ["Newest First", "created_at desc"], ["Oldest First", "created_at asc"]]
+
+  - sort_options.each do |label, value|
+    %label.label.cursor-pointer.justify-start.gap-3.py-2.px-3.rounded-lg.hover:bg-base-300{class: current_sort == value ? "bg-base-300" : ""}
+      %input.radio.radio-sm.radio-primary{type: "radio", name: "q[s]", value: value, checked: current_sort == value, onchange: "this.form.submit()"}
+      %span.label-text= label
+
+  - filter_params = params[:q].present? ? params[:q].to_unsafe_h.except("s") : {}
+  .flex.gap-2.mt-4.pt-4.border-t.border-base-300
+    = link_to "Clear Sort", users_path(q: filter_params.presence), class: "btn btn-ghost btn-sm flex-1"

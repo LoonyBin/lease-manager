@@ -1,23 +1,20 @@
+# frozen_string_literal: true
+
 Rails.application.routes.draw do
-  resources :leases do
-    member do
-      patch :terminate
-      get :renew
-    end
-  end
+  resources :leases
+  resources :payments, only: %i[index show new create update]
   resources :properties
   resources :tenants
   resources :owners
-  resources :invoices, only: %i[index show edit update] do
-    member do
-      patch :finalize
-    end
-    collection do
-      post :generate
-    end
-  end
+  resources :invoices, except: %i[destroy]
+  resources :users
+  resources :user_associations, only: %i[create destroy]
 
-  resources :payments, only: [:index, :new, :create]
+  get "/login", to: "sessions#new", as: :login
+  match "/auth/:provider/callback", to: "sessions#create", via: %i[get post]
+  delete "/logout", to: "sessions#destroy", as: :logout
+
+  resources :versions, only: %i[index show destroy]
   resources :reports, only: [:index] do
     collection do
       get :revenue

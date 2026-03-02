@@ -1,37 +1,91 @@
-.card.w-full.bg-base-100.shadow-xl
-  .card-body
-    .flex.justify-between.items-center.mb-4
-      %h2.card-title Payments
-      = link_to "Record Payment", new_payment_path, class: "btn btn-primary"
+- content_for :title, "Payments"
 
-    .overflow-x-auto
-      %table.table.table-zebra.w-full
-        %thead
-          %tr
-            %th Date
-            %th Tenant
-            %th Details
-            %th Amount
-            %th Allocations
-        %tbody
+- content_for :page_actions do
+  -# View toggle (desktop only)
+  .view-toggle-group.hidden.lg:flex
+    %input#view-toggle.view-toggle-input{type: "checkbox", data: { controller: "view-toggle" }}
+    %label.view-toggle-btn{for: "view-toggle", data: { view: "card" }, title: "Card view"}
+      = heroicon "squares-2x2", options: { class: "w-4 h-4" }
+    %label.view-toggle-btn{for: "view-toggle", data: { view: "table" }, title: "Table view"}
+      = heroicon "list-bullet", options: { class: "w-4 h-4" }
+  %label.btn.btn-ghost.btn-sm.btn-square{for: "sort-drawer", title: "Sort"}
+    = heroicon "bars-arrow-down", options: { class: "w-5 h-5" }
+  %label.btn.btn-ghost.btn-sm.btn-square{for: "filter-drawer", title: "Filter"}
+    = heroicon "funnel", options: { class: "w-5 h-5" }
+  - if policy(@payments.new).new?
+    = link_to new_payment_path, class: "btn btn-ghost btn-sm btn-square", title: "Record Payment" do
+      = heroicon "plus", options: { class: "w-5 h-5" }
+    = link_to new_payment_path(payment: { payment_type: :refund }), class: "btn btn-ghost btn-sm btn-square", title: "Record Refund" do
+      = heroicon "arrow-uturn-left", options: { class: "w-5 h-5" }
+
+.drawer.drawer-end
+  %input#sort-drawer.drawer-toggle{type: "checkbox"}
+  .drawer-content
+    .drawer.drawer-end
+      %input#filter-drawer.drawer-toggle{type: "checkbox"}
+      .drawer-content.flex.flex-col
+        = render_active_filters(@q)
+
+        -# Single markup - CSS handles card vs table display
+        .resource-list.payment-list
+          -# Table header (visible only in table view on desktop)
+          .resource-list-header.payment-list-header
+            .payment-col-amount Amount
+            .payment-col-tenant Tenant
+            .payment-col-mode Mode
+            .payment-col-amount-table Amount
+            .payment-col-status Status
+
+          -# Payment items
           - @payments.each do |payment|
-            %tr
-              %td= payment.date.strftime("%b %d, %Y")
-              %td
-                %p.font-bold= payment.lease.tenant.name
-                %p.text-xs.opacity-50= payment.lease.property.name
-              %td
-                %p.font-semibold= payment.mode.humanize.titleize
+            - settlement_entries = payment.entries.settlements
+            - fully_allocated = payment.balance.abs.zero?
+
+            .resource-item.payment-item{data: { controller: "clickable-row", clickable_row_url_value: payment_path(payment), action: "click->clickable-row#click" }}
+              .resource-col-header.payment-col-amount
+                .resource-item-icon
+                  - if payment.refund?
+                    = heroicon "arrow-uturn-left", options: { class: "w-5 h-5 text-error" }
+                  - else
+                    = heroicon "currency-rupee", options: { class: "w-5 h-5" }
+                .payment-item-header
+                  %span.resource-item-title
+                    - if payment.refund?
+                      Refund
+                    = "##{payment.id}"
+                  .resource-item-subtitle= payment.date.strftime("%b %d, %Y")
+              .resource-col.payment-col-tenant
+                .resource-item-text= payment.lease.tenant.name
+                .resource-item-meta= payment.lease.property.name
+              .resource-col.payment-col-mode
+                .resource-item-text
+                  = payment.mode.humanize.titleize
                 - if payment.reference_number.present?
-                  %p.text-xs.font-mono.opacity-70= payment.reference_number
-              %td= number_to_currency(payment.amount)
-              %td
-                - if payment.payment_allocations.any?
-                  %ul.list-disc.list-inside.text-xs
-                    - payment.payment_allocations.each do |allocation|
-                      %li
-                        = number_to_currency(allocation.amount)
-                        to Invoice
-                        = link_to "##{allocation.invoice.number}", invoice_path(allocation.invoice), class: "link link-hover"
-                - else
-                  %span.badge.badge-ghost Unallocated
+                  .resource-item-meta= payment.reference_number
+              .resource-col.payment-col-amount-table
+                .resource-item-text= number_to_currency(payment.amount, unit: "₹", precision: 0)
+              .resource-col-flex.payment-col-status
+                - if payment.draft?
+                  %span.resource-badge.resource-badge-warning Draft
+                - elsif payment.rejected?
+                  %span.resource-badge.resource-badge-error Rejected
+                - elsif payment.fully_allocated?
+                  %span.resource-badge.resource-badge-success Allocated
+                - elsif payment.partially_allocated?
+                  %span.resource-badge.resource-badge-amber
+                    = number_to_currency(payment.balance.abs, unit: "₹", precision: 0)
+                    unallocated
+
+        = paginate @payments
+
+      .drawer-side
+        %label.drawer-overlay{for: "filter-drawer", aria: { label: "close sidebar" }}
+        .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
+          %h3.text-lg.font-bold.mb-4 Filter Payments
+          = render "search"
+
+  .drawer-side
+    %label.drawer-overlay{for: "sort-drawer", aria: { label: "close sidebar" }}
+    .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
+      %h3.text-lg.font-bold.mb-4 Sort Payments
+      = render "sort"

@@ -1,26 +1,76 @@
-.card.w-full.bg-base-100.shadow-xl
-  .card-body
-    .flex.justify-between.items-center.mb-4
-      %h2.card-title Owners
-      = link_to "New Owner", new_owner_path, class: "btn btn-primary"
+- content_for :title, "Owners"
 
-    .overflow-x-auto
-      %table.table.table-zebra.w-full
-        %thead
-          %tr
-            %th Name
-            %th Address
-            %th Invoice Sequence
-            %th Properties
-            %th Actions
-        %tbody
+- content_for :page_actions do
+  -# View toggle (desktop only)
+  .view-toggle-group.hidden.lg:flex
+    %input#view-toggle.view-toggle-input{type: "checkbox", data: { controller: "view-toggle" }}
+    %label.view-toggle-btn{for: "view-toggle", data: { view: "card" }, title: "Card view"}
+      = heroicon "squares-2x2", options: { class: "w-4 h-4" }
+    %label.view-toggle-btn{for: "view-toggle", data: { view: "table" }, title: "Table view"}
+      = heroicon "list-bullet", options: { class: "w-4 h-4" }
+  %label.btn.btn-ghost.btn-sm.btn-square{for: "sort-drawer", title: "Sort"}
+    = heroicon "bars-arrow-down", options: { class: "w-5 h-5" }
+  %label.btn.btn-ghost.btn-sm.btn-square{for: "filter-drawer", title: "Filter"}
+    = heroicon "funnel", options: { class: "w-5 h-5" }
+  - if policy(@owners.new).new?
+    = link_to new_owner_path, class: "btn btn-ghost btn-sm btn-square", title: "New Owner" do
+      = heroicon "plus", options: { class: "w-5 h-5" }
+
+.drawer.drawer-end
+  %input#sort-drawer.drawer-toggle{type: "checkbox"}
+  .drawer-content
+    .drawer.drawer-end
+      %input#filter-drawer.drawer-toggle{type: "checkbox"}
+      .drawer-content.flex.flex-col
+        = render_active_filters(@q)
+
+        -# Single markup - CSS handles card vs table display
+        .resource-list.owner-list
+          -# Table header (visible only in table view on desktop)
+          .resource-list-header.owner-list-header
+            .owner-col-name Name
+            .owner-col-address Address
+            .owner-col-properties Properties
+            .owner-col-actions Actions
+
+          -# Owner items
           - @owners.each do |owner|
-            %tr
-              %td= link_to owner.name, owner_path(owner), class: "link link-hover font-bold"
-              %td= owner.address
-              %td= owner.invoice_sequence
-              %td= owner.properties.count
-              %td
-                .join
-                  = link_to "Edit", edit_owner_path(owner), class: "btn btn-xs btn-ghost join-item"
-                  = button_to "Delete", owner_path(owner), method: :delete, data: { turbo_confirm: "Are you sure?" }, class: "btn btn-xs btn-ghost text-error join-item"
+            - properties_count = owner.properties.count
+
+            .resource-item.owner-item{data: { controller: "clickable-row", clickable_row_url_value: owner_path(owner), action: "click->clickable-row#click" }}
+              .resource-col-header.owner-col-name
+                .resource-item-icon
+                  = heroicon "briefcase", options: { class: "w-5 h-5" }
+                = link_to owner.name, owner, class: "resource-item-title"
+              .resource-col.owner-col-address
+                .resource-item-meta
+                  = heroicon "map-pin", options: { class: "w-3.5 h-3.5 shrink-0 hidden-table" }
+                  %span= owner.address
+              .resource-col-flex.owner-col-properties
+                - if properties_count > 0
+                  %span.resource-badge.resource-badge-success
+                    = pluralize(properties_count, "property", "properties")
+                - else
+                  %span.resource-badge.resource-badge-neutral No properties
+              .resource-col-actions.owner-col-actions
+                .resource-item-actions
+                  - if policy(owner).edit?
+                    = link_to edit_owner_path(owner), class: "btn btn-sm btn-ghost", aria: { label: "Edit #{owner.name}" } do
+                      = heroicon "pencil-square", options: { class: "w-4 h-4" }
+                  - if policy(owner).destroy?
+                    = button_to owner_path(owner), method: :delete, data: { turbo_confirm: "Are you sure?" }, class: "btn btn-sm btn-ghost text-error", aria: { label: "Delete #{owner.name}" } do
+                      = heroicon "trash", options: { class: "w-4 h-4" }
+
+        = paginate @owners
+
+      .drawer-side
+        %label.drawer-overlay{for: "filter-drawer", aria: { label: "close sidebar" }}
+        .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
+          %h3.text-lg.font-bold.mb-4 Filter Owners
+          = render "search"
+
+  .drawer-side
+    %label.drawer-overlay{for: "sort-drawer", aria: { label: "close sidebar" }}
+    .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
+      %h3.text-lg.font-bold.mb-4 Sort Owners
+      = render "sort"

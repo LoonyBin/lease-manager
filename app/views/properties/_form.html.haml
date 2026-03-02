@@ -2,11 +2,11 @@
   = f.error_notification
   = f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present?
 
-  .form-inputs
-    = f.association :owner
-    = f.input :name
-    = f.input :address, as: :text, input_html: { rows: 3 }
+  = f.grid_inputs do
+    = f.input :name, col: 4
+    = f.association :owner, col: 4
+    = f.input :address, col: 4, as: :text, input_html: { rows: 3 }
+    = f.input :capacity, hint: "Total capacity available for leasing"
+    = f.input :unit, hint: "Unit of capacity (e.g., Rooms, Desks, Seats)"
 
-  .form-actions.mt-5
-    = f.button :submit, class: "btn btn-primary"
-    = link_to "Back", properties_path, class: "btn btn-ghost ml-4"
+  = f.form_actions

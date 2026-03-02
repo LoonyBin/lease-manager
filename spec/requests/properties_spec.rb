@@ -3,6 +3,8 @@
 require "rails_helper"
 
 RSpec.describe "Properties" do
+  before { sign_in_admin }
+
   describe "GET /properties" do
     it "returns http success" do
       get properties_path
@@ -13,7 +15,9 @@ RSpec.describe "Properties" do
   describe "POST /properties" do
     context "with valid parameters" do
       let(:owner) { create(:owner) }
-      let(:valid_attributes) { { name: "Sunset Villa", address: "123 Sunset Blvd", owner_id: owner.id } }
+      let(:valid_attributes) do
+        { name: "Sunset Villa", address: "123 Sunset Blvd", owner_id: owner.id, capacity: 10, unit: "Rooms" }
+      end
 
       it "creates a new Property" do
         expect do

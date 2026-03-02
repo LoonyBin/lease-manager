@@ -3,6 +3,8 @@
 require "rails_helper"
 
 RSpec.describe "Leases" do
+  before { sign_in_admin }
+
   let(:property) { create(:property) }
   let(:tenant) { create(:tenant) }
 
@@ -18,6 +20,20 @@ RSpec.describe "Leases" do
       get new_lease_path
       expect(response).to have_http_status(:success)
     end
+
+    context "when renewing" do
+      let(:old_lease) { create(:lease) }
+
+      it "returns success for renewal" do
+        get new_lease_path(renewed_from_id: old_lease.id)
+        expect(response).to have_http_status(:success)
+      end
+
+      it "pre-fills lease form with renewal defaults" do
+        get new_lease_path(renewed_from_id: old_lease.id)
+        expect(response.body).to include("Renewing lease ##{old_lease.id}")
+      end
+    end
   end
 
   describe "POST /leases" do
@@ -29,7 +45,7 @@ RSpec.describe "Leases" do
           start_date: "2025-01-01",
           duration_months: 12,
           rent_amount: 1000.0,
-          security_deposit_in_months: 2,
+          security_deposit_value: 2,
           enhancement_period_months: 12,
           enhancement_amount: "5.0",
           enhancement_type: "percentage"
@@ -40,6 +56,12 @@ RSpec.describe "Leases" do
         expect do
           post leases_path, params: { lease: valid_attributes }
         end.to change(Lease, :count).by(1)
+      end
+
+      it "attaches documents" do
+        file = fixture_file_upload("spec/fixtures/files/document.pdf", "application/pdf")
+        post leases_path, params: { lease: valid_attributes.merge(documents: [file]) }
+        expect(Lease.last.documents).to be_attached
       end
 
       it "redirects to the created lease" do
@@ -54,6 +76,50 @@ RSpec.describe "Leases" do
           post leases_path, params: { lease: { rent_amount: "" } }
         end.not_to change(Lease, :count)
       end
+    end
+  end
+
+  describe "PATCH /leases/:id" do
+    let(:lease) { create(:lease) }
+
+    context "when terminating" do
+      let(:termination_date) { lease.start_date + 1.month }
+
+      it "updates the terminated_on date" do
+        patch lease_path(lease), params: { lease: { terminated_on: termination_date } }
+        expect(lease.reload.terminated_on).to eq(termination_date)
+      end
+
+      it "redirects to the lease" do
+        patch lease_path(lease), params: { lease: { terminated_on: termination_date } }
+        expect(response).to redirect_to(lease_path(lease))
+      end
+    end
+  end
+
+  describe "renewal flow" do
+    let!(:old_lease) do
+      create(:lease, start_date: 1.year.ago.to_date, duration_months: 12, rent_amount: 1000,
+                     enhancement_period_months: 12, enhancement_amount: 5, enhancement_type: :percentage)
+    end
+    let(:renewal_attributes) do
+      { property_id: old_lease.property.id, tenant_id: old_lease.tenant.id, start_date: old_lease.end_date + 1.day,
+        duration_months: 12, rent_amount: 1050.0, security_deposit_value: 2, enhancement_period_months: 12,
+        enhancement_amount: 5, enhancement_type: "percentage", renewed_from_id: old_lease.id }
+    end
+
+    it "creates a new lease" do
+      expect { post leases_path, params: { lease: renewal_attributes } }.to change(Lease, :count).by(1)
+    end
+
+    it "links the new lease to the old one" do
+      post leases_path, params: { lease: renewal_attributes }
+      expect(Lease.last.renewed_from).to eq(old_lease)
+    end
+
+    it "terminates the old lease" do
+      post leases_path, params: { lease: renewal_attributes }
+      expect(old_lease.reload.terminated_on).to eq(Lease.last.start_date - 1.day)
     end
   end
 end

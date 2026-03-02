@@ -1,112 +1,65 @@
-# Lease Manager Requirements
+# Lease Manager Features & Requirements
 
 ## Overview
-A lease management application for property managers handling multiple properties, tenants, and complex lease terms.
+A web-based lease management application designed for property managers to handle multiple properties, owners, and tenants with complex lease terms and automated financial workflows.
 
 ## Core Entities
 
-### 1. Owner
-- **Description**: The legal entity that owns the property.
-- **Attributes**:
-    - Name
-    - Address
-    - Contact Details
-    - **Invoice Sequence**: Maintains a counter for invoices issued by this owner.
+### 1. Owners & Properties
+- **Owner**: Legal entity owning assets. Attributes: Name, Contact, Invoice Sequence.
+- **Property**: The physical asset.
+    - **Capacity Management**: Supports partial leasing (e.g., leasing 200 sqft of 1000 sqft).
+    - **Availability**: System automatically calculates available capacity based on active leases.
 
-### 2. Property
-- **Description**: A physical unit being rented out.
-- **Attributes**:
-    - **Owner**: Link to Owner.
-    - Name/Identifier (e.g., "Apt 4B", "123 Main St")
-    - Address
-    - (Potential) Type (Residential, Commercial, etc.) - TBD
+### 2. Tenants & Leases
+- **Tenant**: Profile management for lessees.
+- **Lease**:
+    - **Terms**: Fixed duration (Years/Months).
+    - **Auto-Calculation**: End dates derived from start date and duration.
+    - **Rent Escalation**: Configurable percentage or fixed amount increases (e.g., 5% every 12 months).
+    - **Documents**: Attachment support for contracts.
+    - **Renewal**: Workflow to close old lease and start new one with carry-over terms.
+    - **Termination**: Early exit handling with automated financial reconciliation.
 
-### 3. Tenant
-- **Description**: The entity renting the property.
-- **Attributes**:
-    - Name
-    - Contact Information
-    - Identity details (TBD)
+## Financial Engine
 
-### 4. Lease
-- **Description**: The legal agreement between Property and Tenant.
-- **Attributes**:
-    - **Property**: Link to Property
-    - **Tenant**: Link to Tenant
-    - **Start Date**: Date lease begins.
-    - **Duration**: Fixed term defined in Years + Months (e.g., 1 Year 6 Months).
-    - **End Date**: Calculated from Start Date + Duration.
-    - **Terminated On**: Optional date if lease is ended early (not visible during creation).
-    - **Documents**: Capability to upload and store multiple attachments (contracts, ID proofs).
+### 1. Invoicing
+- **Rent Invoices**: Automated or manual generation.
+- **Security Deposits**: Automatically invoiced upon lease creation.
+- **Sequencing**: Unique invoice number sequences per Owner.
+- **Taxation**: Support for tax configurations on leases.
 
-### 5. Payment
-- **Description**: A record of money received from a Tenant.
-- **Attributes**:
-    - **Lease**: Link to Lease.
-    - **Amount**: Value of the payment.
-    - **Date**: Date received.
-    - **Mode**: Method of payment (RTGS, NEFT, IMPS, UPI, Cheque, Cash, Demand Draft, Tax Deducted at Source).
-    - **Reference Number**: Transaction ID or Check Number.
+### 2. Payments & Settlements
+- **Payment Tracking**: Record payments via various modes (NEFT, UPI, Cheque, etc.).
+- **Payment Status Workflow**: `draft` → `confirmed` → `partially_allocated` / `fully_allocated`. Payments can also be `rejected`.
+    - **Draft**: Tenant-submitted payments awaiting confirmation.
+    - **Confirmed**: Approved payments eligible for settlement.
+    - **Allocated**: Automatically tracked as payments are settled against invoices.
+- **Settlement**: "Settleable" interface allows flexible allocation.
+    - A single payment can settle multiple invoices.
+    - Partial payments and overpayments are handled.
+- **Credit Notes**: Generated for security deposit returns or other adjustments.
 
-## Financials
+### 3. Reporting
+- **Dashboards**: Visual overview of Revenue and Occupancy.
+- **Outstanding Balances**: Track unpaid invoices.
 
-### Rent Configuration
-- **Base Rent**: The starting monthly rent amount ($r$).
-- **Due Date**: On or before the **5th** of each calendar month.
-- **Rent Enhancement (Escalation)**:
-    - **Frequency**: Every $n$ months.
-    - **Alignment**: Enhancements are effective from the **1st of the calendar month**.
-    - **Logic**: Rent automatically adjusts based on the enhancement schedule.
-    - **Type** (Mutually Exclusive):
-        1.  **Percentage**: Increase by $i$%.
-        2.  **Fixed Amount**: Increase by $+\$i$.
-    - **Constraint**: Must choose exactly one type; cannot use both.
+## System Capabilities
 
-### Security Deposit
-- **Initial Lease**: Calculated based on the *initial* rent of the term ($n$ months * Base Rent).
-- **Renewal**: Recalculated based on the *new* enhanced rent at the start of the renewal term.
+### 1. Security & Access
+- **Authentication**: Google OAuth and Developer login support.
+- **Authorization**: Granular permission scopes (Pundit policies) for Admins, Owners, and Tenants.
 
-### Taxes and Charges
-- **Configuration**: Applicable taxes (e.g., GST @ 18%) defined on the Lease.
-- **Invoicing**: Taxes must be calculated explicitly and shown on the Invoice.
+### 2. Audit & Integrity
+- **Audit Trail**: Complete history of changes (Who, What, When) for critical records.
+- **Validations**: Strict data integrity checks (e.g., preventing overlapping leases exceeding capacity).
 
-### Invoicing
-- **Draft Generation**: Automatically generate draft invoices on a configurable date (default: **20th** of the previous month).
-- **Invoice Date**: Dated **1st** of the billing month.
-- **Numbering**: Sequentially numbered **per Owner**. Each Owner has their own sequence (e.g., OWNER1-001, OWNER2-001).
-- **Workflow**:
-    1. **Draft**: System generates; or User manually generates missing months via "Generate" button.
-    2. **Finalized**: Confirmed by user. Assigns the official Invoice Number.
-    3. **Sent**: Emailed/Sent to tenant.
-    4. **Paid/Partially Paid**: Updated automatically when Payments are allocated.
-- **Visibility**: All invoices listed directly on the Lease show page, with visual indicators for "missing" months (gaps).
+### 3. User Interface
+- **Responsive Design**: Mobile-friendly layouts with drawer-based navigation and CSS Grid.
+- **Card & Table Views**: All resource index pages support switchable card and table views with persistent user preference (localStorage).
+- **Dark Theme**: DaisyUI v5-powered theming with dark mode support.
+- **Filtering & Search**: Advanced filtering (Ransack) and sort sidebars on all index pages.
+- **Interactivity**: Hotwire-driven updates for seamless user experience.
 
-### Reconciliation (Planned)
-- **Input**: CSV Bank Statement upload.
-- **Logic**: Match statement entries against active Lease/Tenant records.
-- **Goal**: Identify paid vs unpaid invoices effortlessly.
-
-## Lease Lifecycle Logic
-
-### Termination
-- **Process**: Manual action via a dedicated UI (Modal).
-- **Input**: User selects `terminated_on` date.
-- **Validation**: Date must be within the active lease duration.
-
-### Renewal
-- **Process**: One-click "Renew" action on an existing lease.
-- **Logic**:
-    1.  **Terminate Old**: Ends current lease at its natural end date (or specified date).
-    2.  **Create New**: Creates a fresh Lease record.
-    3.  **Data Copy**: Copies Tenant, Property, and Configuration from the old lease.
-    4.  **Rent Calculation**: Automatically sets new Base Rent = (Old Final Rent + Enhancement Terms).
-
-## Data & Logic Requirements
-
-### Date Handling & Proration (CRITICAL)
-- **Calendar Alignment**: All calculations (Enhancements, Renewals, Expiry) must align to the **1st of the calendar month**.
-- **Proration Logic (Discount Model)**:
-    - Months are treated as **Full Months**.
-    - For partial months (Start/End), a **Prorated Discount** credit is applied to the invoice.
-- **Duration Calculation**:
-    - A "12-month" lease starting Feb 15th will expire **Jan 31st** of the following year.
+## Deployment
+- **Kamal**: Configuration available for containerized deployment.

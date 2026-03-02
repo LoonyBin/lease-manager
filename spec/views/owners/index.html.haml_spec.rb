@@ -8,15 +8,15 @@ RSpec.describe "owners/index" do
   before do
     owner = create(:owner, name: "John Smith", address: "123 Main St")
     create(:property, owner: owner)
-    assign(:owners, [owner])
+    assign(:owners, Owner.where(id: owner.id).page(1))
+    assign(:q, Owner.ransack(nil))
     render
   end
 
-  it { is_expected.to have_css("h2", text: "Owners") }
-  it { is_expected.to have_link("New Owner") }
-  it { is_expected.to have_css("th", text: "Name") }
-  it { is_expected.to have_css("th", text: "Address") }
+  it { is_expected.to have_css(".resource-item.owner-item", count: 1) }
+  it { is_expected.to have_css(".resource-list-header.owner-list-header .owner-col-name", text: "Name") }
+  it { is_expected.to have_css(".resource-list-header.owner-list-header .owner-col-address", text: "Address") }
   it { is_expected.to have_link("John Smith") }
-  it { is_expected.to have_css("td", text: "123 Main St") }
-  it { is_expected.to have_link("Edit") }
+  it { is_expected.to have_css(".resource-item-meta", text: "123 Main St") }
+  it { is_expected.to have_css("a[aria-label='Edit John Smith']") }
 end

@@ -13,5 +13,5 @@ RSpec.describe "leases/show" do
   it { is_expected.to match(/#{@lease.property.name}/) }
   it { is_expected.to match(/#{@lease.tenant.name}/) }
   it { is_expected.to match(/12 months/) }
-  it { is_expected.to match(/1,000.00/) }
+  it { is_expected.to match(/₹1,000/) }
 end

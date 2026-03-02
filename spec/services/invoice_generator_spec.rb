@@ -3,24 +3,31 @@
 require "rails_helper"
 
 RSpec.describe InvoiceGenerator do
-  subject(:service) { described_class.new(lease, date) }
+  subject(:service) { described_class.new(Invoice.new(lease: lease, date: date)) }
 
-  let(:lease) { create(:lease, rent_amount: 1000) }
+  let!(:lease) { create(:lease, rent_amount: 1000) }
   let(:date) { Date.new(2025, 2, 1) }
 
   describe "#call" do
-    it "creates an invoice" do
-      expect { service.call }.to change(Invoice, :count).by(1)
+    it "does not create an invoice" do
+      expect { service.call }.not_to change(Invoice, :count)
     end
 
-    it "creates a draft invoice for the correct month" do
-      expect(service.call).to have_attributes(persisted?: true, date: date.beginning_of_month,
+    it "builds a draft invoice for the correct month" do
+      expect(service.call).to have_attributes(persisted?: false, date: date.beginning_of_month,
                                               status: "draft", lease: lease)
     end
 
-    it "creates a rent line item with correct amount" do
-      line_item = service.call.line_items.find_by(category: "rent")
-      expect(line_item).to have_attributes(present?: true, amount: 1000, name: "Rent for February 2025")
+    describe "rent line item" do
+      let(:line_item) { service.call.line_items.find { |i| i.category == "rent" } }
+
+      it "is present" do
+        expect(line_item).to be_present
+      end
+
+      it "has correct attributes" do
+        expect(line_item).to have_attributes(amount: 1000, name: "Rent for February 2025")
+      end
     end
 
     context "with enhanced rent" do
@@ -36,35 +43,29 @@ RSpec.describe InvoiceGenerator do
 
       it "calculates correct enhanced rent" do
         invoice = service.call
-        line_item = invoice.line_items.find_by(category: "rent")
+        line_item = invoice.line_items.find { |i| i.category == "rent" }
         expect(line_item.amount).to eq(1100.0)
       end
     end
 
     context "with tax configured" do
       let(:lease) { create(:lease, rent_amount: 1000, tax_name: "GST", tax_rate: 18) }
+      let(:rent_item) { service.call.line_items.find { |i| i.category == "rent" } }
 
       it "sets tax_rate on the rent line item" do
-        invoice = service.call
-        rent_item = invoice.line_items.find_by(category: "rent")
         expect(rent_item.tax_rate).to eq(18.0)
       end
 
       it "calculates tax_amount dynamically" do
-        invoice = service.call
-        rent_item = invoice.line_items.find_by(category: "rent")
-        # 1000 * 18% = 180
         expect(rent_item.tax_amount).to eq(180.0)
       end
 
       it "does not create a separate tax line item" do
         invoice = service.call
-        expect(invoice.line_items.find_by(category: "tax")).to be_nil
+        expect(invoice.line_items.find { |i| i.category == "tax" }).to be_nil
       end
 
       it "calculates correct total for the line item" do
-        invoice = service.call
-        rent_item = invoice.line_items.find_by(category: "rent")
         expect(rent_item.total).to eq(1180.0)
       end
     end
@@ -72,16 +73,17 @@ RSpec.describe InvoiceGenerator do
     context "with proration (first month mid-start)" do
       let(:lease) { create(:lease, rent_amount: 3100, start_date: Date.new(2025, 1, 16)) }
       let(:date) { Date.new(2025, 1, 1) }
+      let(:discount_item) { service.call.line_items.find { |i| i.category == "discount" } }
 
-      it "creates a discount line item for unused days" do
-        invoice = service.call
-        discount_item = invoice.line_items.find_by(category: "discount")
-        expect(discount_item).to have_attributes(present?: true, name: "Pro-rated discount (15 days)")
+      it "creates a discount line item" do
+        expect(discount_item).to be_present
+      end
+
+      it "has correct name" do
+        expect(discount_item.name).to eq("Pro-rated discount (15 days)")
       end
 
       it "calculates correct discount amount" do
-        invoice = service.call
-        discount_item = invoice.line_items.find_by(category: "discount")
         expect(discount_item.amount).to eq(-1500.0)
       end
     end
@@ -91,42 +93,86 @@ RSpec.describe InvoiceGenerator do
         create(:lease, rent_amount: 3100, start_date: Date.new(2025, 1, 16), tax_name: "GST", tax_rate: 10)
       end
       let(:date) { Date.new(2025, 1, 1) }
+      let(:invoice) { service.call }
+      let(:rent_item) { invoice.line_items.find { |i| i.category == "rent" } }
+      let(:discount_item) { invoice.line_items.find { |i| i.category == "discount" } }
 
       it "sets tax_rate on the rent line item" do
-        invoice = service.call
-        rent_item = invoice.line_items.find_by(category: "rent")
         expect(rent_item.tax_rate).to eq(10.0)
       end
 
       it "sets tax_rate on the discount line item" do
-        invoice = service.call
-        discount_item = invoice.line_items.find_by(category: "discount")
         expect(discount_item.tax_rate).to eq(10.0)
       end
 
       it "calculates correct tax amount on the rent line item" do
-        invoice = service.call
-        rent_item = invoice.line_items.find_by(category: "rent")
-        expect(rent_item.tax_amount).to eq(310.0) # 3100 * 10%
+        expect(rent_item.tax_amount).to eq(310.0)
       end
 
       it "calculates correct tax amount on the discount line item" do
-        invoice = service.call
-        discount_item = invoice.line_items.find_by(category: "discount")
-        expect(discount_item.tax_amount).to eq(-150.0) # -1500 * 10%
+        expect(discount_item.tax_amount).to eq(-150.0)
       end
     end
 
-    context "when invoice already exists" do
-      before { create(:invoice, lease: lease, date: date.beginning_of_month) }
+    context "when rental invoice already exists" do
+      let!(:existing_invoice) do
+        invoice = create(:invoice, lease: lease, date: date.beginning_of_month)
+        invoice.line_items.create!(name: "Rent", amount: 1000, category: "rent")
+        invoice
+      end
 
       it "does not create a new invoice" do
         expect { service.call }.not_to change(Invoice, :count)
       end
 
       it "returns the existing invoice" do
-        invoice = service.call
-        expect(invoice).to eq(Invoice.find_by(lease: lease, date: date.beginning_of_month))
+        expect(service.call).to eq(existing_invoice)
+      end
+    end
+
+    context "when invoice is a credit note" do
+      subject(:service) { described_class.new(invoice) }
+
+      let(:invoice) { Invoice.new(lease: lease, date: date, document_type: :credit_note) }
+
+      it "returns the original invoice unchanged" do
+        expect(service.call).to be(invoice)
+      end
+    end
+
+    context "when lease is missing" do
+      subject(:service) { described_class.new(invoice) }
+
+      let(:invoice) { Invoice.new(date: date) }
+
+      it "returns the original invoice unchanged" do
+        expect(service.call).to be(invoice)
+      end
+    end
+
+    context "when date is missing" do
+      subject(:service) { described_class.new(invoice) }
+
+      let(:invoice) { Invoice.new(lease: lease) }
+
+      it "returns the original invoice unchanged" do
+        expect(service.call).to be(invoice)
+      end
+    end
+
+    context "when only security deposit invoice exists" do
+      before do
+        invoice = create(:invoice, lease: lease, date: date.beginning_of_month)
+        invoice.line_items.create!(name: "Security Deposit", amount: 2000, category: "security_deposit")
+      end
+
+      it "builds a new rental invoice" do
+        expect(service.call).to be_new_record
+      end
+
+      it "includes a rent line item" do
+        result = service.call
+        expect(result.line_items.any? { |li| li.category == "rent" }).to be true
       end
     end
   end

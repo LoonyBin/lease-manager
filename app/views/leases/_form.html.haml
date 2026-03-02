@@ -2,34 +2,51 @@
   = f.error_notification
   = f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present?
 
-  .form-inputs.grid.grid-cols-1.md:grid-cols-2.gap-4
+  - if f.object.renewed_from_id
+    = f.hidden_field :renewed_from_id
+    .alert.alert-info.mb-4
+      %span Renewing lease ##{f.object.renewed_from_id}
+
+  = f.grid_inputs do
     = f.association :property
     = f.association :tenant
+
+    = f.input :quantity, hint: "Amount of property capacity to lease. Available: #{lease.property&.available_capacity || 'N/A'}"
+
+    = f.input :property_schedule, col: 4, as: :text, input_html: { rows: 2 },
+              hint: "Defaults to property name and address. Edit to customise what appears on invoices."
 
     = f.input :start_date, as: :date, html5: true
     = f.input :duration_months
 
     = f.input :rent_amount
-    = f.input :security_deposit_in_months
+    = f.input :security_deposit_value, as: :string do
+      .join.w-full.flex{data: {controller: "security-deposit-toggle"}}
+        = f.input_field :security_deposit_value, class: "input input-bordered join-item w-full min-w-0",
+                        data: { security_deposit_toggle_target: "valueInput",
+                                action: "input->security-deposit-toggle#markEdited" }
+        = f.hidden_field :security_deposit_type, value: f.object.security_deposit_type || "months",
+                         data: { security_deposit_toggle_target: "typeInput" }
+        %button.btn.join-item{type: "button",
+                              data: { action: "click->security-deposit-toggle#toggle",
+                                      security_deposit_toggle_target: "buttonLabel" }}
+          = f.object.security_deposit_months? ? "\u00d7 months" : "\u20b9"
 
+    = f.input :enhancement_amount, as: :string do
+      .join.w-full.flex{data: {controller: "enhancement-toggle"}}
+        = f.input_field :enhancement_amount, class: "input input-bordered join-item w-full"
+        = f.hidden_field :enhancement_type, value: f.object.enhancement_type || "percentage", data: { enhancement_toggle_target: "typeInput" }
+        %button.btn.join-item{type: "button", data: { action: "click->enhancement-toggle#toggle", enhancement_toggle_target: "buttonLabel" }}
+          = f.object.percentage? ? "%" : "₹"
     = f.input :enhancement_period_months
-    = f.input :enhancement_amount, as: :string, wrapper: false, label_html: { class: "label" }, input_html: { class: "input input-bordered w-full join-item" } do
-      .form-control.w-full{data: {controller: "enhancement-toggle"}}
-        %label.label{for: "lease_enhancement_amount"}
-          %span.label-text Enhancement Amount
-        .join.w-full
-          = f.input_field :enhancement_amount, class: "input input-bordered join-item w-full"
-          = f.hidden_field :enhancement_type, value: f.object.enhancement_type || "percentage", data: { enhancement_toggle_target: "typeInput" }
-          %button.btn.join-item{type: "button", data: { action: "click->enhancement-toggle#toggle", enhancement_toggle_target: "buttonLabel" }}
-            = f.object.percentage? ? "%" : "₹"
 
-
-    = f.input :tax_name, placeholder: "e.g., GST"
     = f.input :tax_rate, placeholder: "e.g., 18"
+    = f.input :tax_name, placeholder: "e.g., GST"
 
     - if f.object.terminated_on.present?
-      = f.input :terminated_on, as: :date, html5: true, wrapper_class: "col-span-2 form-control", input_html: { class: "input input-bordered w-full" }
+      = f.input :terminated_on, col: 4, as: :date, html5: true
 
-  .form-actions.mt-5.card-actions.justify-end
-    = f.button :submit, class: "btn btn-primary"
-    = link_to "Back", leases_path, class: "btn btn-ghost ml-4"
+    = f.input :documents, col: 4, as: :file, input_html: { multiple: true },
+              label: "Upload Documents (PDF, images)", hint: "You can select multiple files"
+
+  = f.form_actions

@@ -1,6 +1,4 @@
-.max-w-lg.mx-auto.card.bg-base-100.shadow-xl
-  .card-body
-    %h2.card-title.mb-5 New Property
-    = render 'form', property: @property
-
-= link_to 'Back', properties_path
+- content_for :title, "New Property"
+.max-w-lg.mx-auto
+  %h2.text-xl.font-bold.mb-5 New Property
+  = render 'form', property: @property

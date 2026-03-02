@@ -1,21 +1,86 @@
-.flex.justify-between.items-center.mb-6
-  %h1.text-2xl.font-bold Properties
-  = link_to 'New Property', new_property_path, class: "btn btn-primary"
+- content_for :title, "Properties"
 
-.overflow-x-auto
-  %table.table.w-full
-    %thead
-      %tr
-        %th Name
-        %th Address
-        %th.text-center Actions
-    %tbody
-      - @properties.each do |property|
-        %tr.hover
-          %td.font-medium= property.name
-          %td= property.address
-          %td.text-center
-            .join
-              = link_to 'Show', property, class: "btn btn-sm btn-ghost join-item"
-              = link_to 'Edit', edit_property_path(property), class: "btn btn-sm btn-ghost join-item"
-              = link_to 'Destroy', property, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-sm btn-ghost text-error join-item"
+- content_for :page_actions do
+  -# View toggle (desktop only)
+  .view-toggle-group.hidden.lg:flex
+    %input#view-toggle.view-toggle-input{type: "checkbox", data: { controller: "view-toggle" }}
+    %label.view-toggle-btn{for: "view-toggle", data: { view: "card" }, title: "Card view"}
+      = heroicon "squares-2x2", options: { class: "w-4 h-4" }
+    %label.view-toggle-btn{for: "view-toggle", data: { view: "table" }, title: "Table view"}
+      = heroicon "list-bullet", options: { class: "w-4 h-4" }
+  %label.btn.btn-ghost.btn-sm.btn-square{for: "sort-drawer", title: "Sort"}
+    = heroicon "bars-arrow-down", options: { class: "w-5 h-5" }
+  %label.btn.btn-ghost.btn-sm.btn-square{for: "filter-drawer", title: "Filter"}
+    = heroicon "funnel", options: { class: "w-5 h-5" }
+  - if policy(@properties.new).new?
+    = link_to new_property_path, class: "btn btn-ghost btn-sm btn-square" do
+      = heroicon "plus", options: { class: "w-5 h-5" }
+
+.drawer.drawer-end
+  %input#sort-drawer.drawer-toggle{type: "checkbox"}
+  .drawer-content
+    .drawer.drawer-end
+      %input#filter-drawer.drawer-toggle{type: "checkbox"}
+      .drawer-content.flex.flex-col
+        = render_active_filters(@q)
+
+        -# Single markup - CSS handles card vs table display
+        .resource-list.property-list
+          -# Table header (visible only in table view on desktop)
+          .resource-list-header.property-list-header
+            .property-col-name Name
+            .property-col-address Address
+            .property-col-capacity Capacity
+            .property-col-actions Actions
+
+          -# Property items
+          - @properties.each do |property|
+            - leased = property.leases.active_at(Date.current).sum(:quantity)
+            - available = property.capacity - leased
+            - occupancy = property.capacity.positive? ? (leased.to_f / property.capacity * 100).round : 0
+
+            .resource-item.property-item{data: { controller: "clickable-row", clickable_row_url_value: property_path(property), action: "click->clickable-row#click" }}
+              .resource-col-header.property-col-name
+                .resource-item-icon
+                  = heroicon "building-office-2", options: { class: "w-5 h-5" }
+                = link_to property.name, property, class: "resource-item-title"
+              .resource-col.property-col-address
+                .resource-item-meta
+                  = heroicon "map-pin", options: { class: "w-3.5 h-3.5 shrink-0 hidden-table" }
+                  %span= property.address
+              .resource-col-flex.property-col-capacity
+                .property-item-capacity
+                  .property-item-stats
+                    .property-item-stat
+                      %span.property-item-stat-label Occupancy
+                      %span.property-item-stat-value #{occupancy}%
+                    .property-item-stat
+                      %span.property-item-stat-label Available
+                      %span.property-item-stat-value #{available} #{property.unit.pluralize(available)}
+                  .property-item-progress
+                    .progress-bar
+                      .progress-bar-fill{class: occupancy > 90 ? "progress-bar-fill-amber" : "progress-bar-fill-indigo", style: "width: #{occupancy}%"}
+                  .property-item-capacity-compact
+                    %span #{leased}/#{property.capacity}
+              .resource-col-actions.property-col-actions
+                .resource-item-actions
+                  - if policy(property).edit?
+                    = link_to edit_property_path(property), class: "btn btn-sm btn-ghost", aria: { label: "Edit #{property.name}" } do
+                      = heroicon "pencil-square", options: { class: "w-4 h-4" }
+                  - if policy(property).destroy?
+                    = link_to property, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-sm btn-ghost text-error", aria: { label: "Delete #{property.name}" } do
+                      = heroicon "trash", options: { class: "w-4 h-4" }
+
+        = paginate @properties
+
+      .drawer-side
+        %label.drawer-overlay{for: "filter-drawer", aria: { label: "close sidebar" }}
+        .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
+          %h3.text-lg.font-bold.mb-4 Filter Properties
+          = render "search"
+
+  .drawer-side
+    %label.drawer-overlay{for: "sort-drawer", aria: { label: "close sidebar" }}
+    .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
+      %h3.text-lg.font-bold.mb-4 Sort Properties
+      = render "sort"

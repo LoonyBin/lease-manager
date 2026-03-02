@@ -12,11 +12,10 @@ RSpec.describe "reports/revenue" do
     render
   end
 
-  it { is_expected.to have_css("h1", text: "Revenue Report") }
   it { is_expected.to have_css("h2", text: "Revenue by Month") }
   it { is_expected.to have_css("td", text: "January 2025") }
   it { is_expected.to have_css("td", text: "₹10,000.00") }
   it { is_expected.to have_css("h2", text: "Revenue by Property") }
   it { is_expected.to have_css("td", text: "Sunset Villa") }
-  it { is_expected.to have_link("← Back to Reports") }
+  it { is_expected.to have_link("Back to Overview") }
 end

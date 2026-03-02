@@ -2,23 +2,28 @@
 
 class PropertiesController < ApplicationController
   def index
-    @properties = Property.all
+    @q = policy_scope(Property).ransack(params[:q])
+    @properties = @q.result.page(params[:page]).per(20)
   end
 
   def show
     @property = Property.find(params[:id])
+    authorize @property
   end
 
   def new
     @property = Property.new
+    authorize @property
   end
 
   def edit
     @property = Property.find(params[:id])
+    authorize @property
   end
 
   def create
     @property = Property.new(property_params)
+    authorize @property
 
     if @property.save
       redirect_to @property, notice: t(".success")
@@ -29,6 +34,7 @@ class PropertiesController < ApplicationController
 
   def update
     @property = Property.find(params[:id])
+    authorize @property
     if @property.update(property_params)
       redirect_to @property, notice: t(".success")
     else
@@ -38,6 +44,7 @@ class PropertiesController < ApplicationController
 
   def destroy
     @property = Property.find(params[:id])
+    authorize @property
     @property.destroy
     redirect_to properties_url, notice: t(".success")
   end
@@ -45,6 +52,6 @@ class PropertiesController < ApplicationController
   private
 
   def property_params
-    params.expect(property: %i[name address owner_id])
+    params.expect(property: %i[name address owner_id capacity unit])
   end
 end

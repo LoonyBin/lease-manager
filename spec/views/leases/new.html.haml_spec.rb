@@ -15,5 +15,5 @@ RSpec.describe "leases/new" do
   it { is_expected.to have_select("lease[tenant_id]") }
   it { is_expected.to have_field("lease[duration_months]") }
   it { is_expected.to have_field("lease[rent_amount]") }
-  it { is_expected.to have_field("lease[security_deposit_in_months]") }
+  it { is_expected.to have_field("lease[security_deposit_value]") }
 end

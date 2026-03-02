@@ -1,0 +1,76 @@
+- content_for :title, "Users"
+
+- content_for :page_actions do
+  -# View toggle (desktop only) - defaults to table view
+  .view-toggle-group.hidden.lg:flex
+    %input#view-toggle.view-toggle-input{type: "checkbox", data: { controller: "view-toggle" }}
+    %label.view-toggle-btn{for: "view-toggle", data: { view: "card" }, title: "Card view"}
+      = heroicon "squares-2x2", options: { class: "w-4 h-4" }
+    %label.view-toggle-btn{for: "view-toggle", data: { view: "table" }, title: "Table view"}
+      = heroicon "list-bullet", options: { class: "w-4 h-4" }
+  %label.btn.btn-ghost.btn-sm.btn-square{for: "sort-drawer", title: "Sort"}
+    = heroicon "bars-arrow-down", options: { class: "w-5 h-5" }
+  %label.btn.btn-ghost.btn-sm.btn-square{for: "filter-drawer", title: "Filter"}
+    = heroicon "funnel", options: { class: "w-5 h-5" }
+  - if policy(@users.new).new?
+    = link_to new_user_path, class: "btn btn-ghost btn-sm btn-square", title: "New User" do
+      = heroicon "plus", options: { class: "w-5 h-5" }
+
+.drawer.drawer-end
+  %input#sort-drawer.drawer-toggle{type: "checkbox"}
+  .drawer-content
+    .drawer.drawer-end
+      %input#filter-drawer.drawer-toggle{type: "checkbox"}
+      .drawer-content.flex.flex-col
+        = render_active_filters(@q)
+
+        -# Single markup - CSS handles card vs table display
+        .resource-list.user-list
+          -# Table header (visible only in table view on desktop)
+          .resource-list-header.user-list-header
+            .user-col-name Name
+            .user-col-email Email
+            .user-col-provider Provider
+            .user-col-role Role
+            .user-col-actions Actions
+
+          -# User items
+          - @users.each do |user|
+            .resource-item.user-item{data: { controller: "clickable-row", clickable_row_url_value: user_path(user), action: "click->clickable-row#click" }}
+              .resource-col-header.user-col-name
+                .resource-item-avatar
+                  %span= user.initials
+                = link_to user.name, user, class: "resource-item-title"
+              .resource-col.user-col-email
+                .resource-item-text
+                  = heroicon "envelope", options: { class: "w-3.5 h-3.5 shrink-0 hidden-table" }
+                  %span= user.email
+              .resource-col.user-col-provider
+                %span.resource-badge.resource-badge-neutral= user.provider.titleize
+              .resource-col-flex.user-col-role
+                - if user.admin?
+                  %span.resource-badge.resource-badge-warning Admin
+                - else
+                  %span.resource-badge.resource-badge-success Normal
+              .resource-col-actions.user-col-actions
+                .resource-item-actions
+                  - if policy(user).edit?
+                    = link_to edit_user_path(user), class: "btn btn-sm btn-ghost", aria: { label: "Edit #{user.name}" } do
+                      = heroicon "pencil-square", options: { class: "w-4 h-4" }
+                  - if policy(user).destroy?
+                    = link_to user, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-sm btn-ghost text-error", aria: { label: "Delete #{user.name}" } do
+                      = heroicon "trash", options: { class: "w-4 h-4" }
+
+        = paginate @users
+
+      .drawer-side
+        %label.drawer-overlay{for: "filter-drawer", aria: { label: "close sidebar" }}
+        .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
+          %h3.text-lg.font-bold.mb-4 Filter Users
+          = render "search"
+
+  .drawer-side
+    %label.drawer-overlay{for: "sort-drawer", aria: { label: "close sidebar" }}
+    .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
+      %h3.text-lg.font-bold.mb-4 Sort Users
+      = render "sort"

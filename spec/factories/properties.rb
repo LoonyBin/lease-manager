@@ -3,7 +3,7 @@
 FactoryBot.define do
   factory :property do
     owner
-    name { "Sunset Villa" }
-    address { "123 Sunset Blvd, California" }
+    name { "#{Faker::Address.community} #{%w[Apartments Villa Tower Complex].sample}" }
+    address { Faker::Address.full_address }
   end
 end

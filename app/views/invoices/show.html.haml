@@ -1,64 +1,116 @@
-.card.w-full.max-w-4xl.bg-base-100.shadow-xl.mx-auto
-  .card-body
-    .flex.justify-between.items-start.mb-6
-      %div
-        %h2.card-title.text-2xl.mb-2
-          Invoice
-          - if @invoice.number.present?
-            = "##{@invoice.number}"
-          - else
-            %span.badge.badge-ghost.text-lg.align-middle Draft
-        %p.text-sm.text-base-content
-          %span.font-bold Date:
-          = @invoice.date.strftime("%B %d, %Y")
-        %p.text-sm.text-base-content
-          %span.font-bold Status:
-          %span{class: "badge badge-#{@invoice.draft? ? 'ghost' : 'success'}"}
-            = @invoice.status.humanize
+- content_for :title do
+  = @invoice.credit_note? ? "Credit Note" : "Invoice"
+  - if @invoice.number.present?
+    = " ##{@invoice.number}"
+  - else
+    %span.resource-badge.resource-badge-neutral.ml-2 Draft
 
-      .text-right
-        %h3.font-bold.text-lg= @invoice.lease.property.owner.name
-        %p.text-sm= @invoice.lease.property.owner.address
-        %p.text-xs{class: "text-base-content/70"}= @invoice.lease.property.name
+- content_for :page_actions do
+  -# Special actions first
+  - if policy(@invoice).update? && @invoice.draft?
+    = button_to invoice_path(@invoice), method: :patch, params: { invoice: { status: 'finalized' } }, class: "btn btn-ghost btn-sm btn-square text-success", data: { turbo_confirm: "Finalize this #{@invoice.credit_note? ? 'credit note' : 'invoice'}? This will assign a number and cannot be undone." }, title: "Finalize" do
+      = heroicon "check-circle", options: { class: "w-5 h-5" }
+  -# Generic actions
+  - if policy(@invoice).edit?
+    = link_to edit_invoice_path(@invoice), class: "btn btn-ghost btn-sm btn-square", title: "Edit" do
+      = heroicon "pencil-square", options: { class: "w-5 h-5" }
+  -# Info actions last
+  %label.btn.btn-ghost.btn-sm.btn-square{for: "history-drawer", title: "History"}
+    = heroicon "clock", options: { class: "w-5 h-5" }
 
-    .divider
+.drawer.drawer-end
+  %input#history-drawer.drawer-toggle{type: "checkbox"}
+  .drawer-content
+    .show-card
+      .show-section
+        .show-invoice-header
+          .show-invoice-from
+            %h3.font-bold.text-lg= @invoice.lease.property.owner.name
+            %p.text-sm.opacity-70= @invoice.lease.property.owner.address
+            %p.text-xs.opacity-50= @invoice.lease.property.name
+          .show-invoice-meta
+            .show-field
+              .show-field-label Date
+              .show-field-value= @invoice.date.strftime("%B %d, %Y")
+            .show-field
+              .show-field-label Status
+              .show-field-value
+                %span.resource-badge{class: "resource-badge-#{@invoice.paid? ? 'success' : @invoice.draft? ? 'neutral' : 'info'}"}
+                  = @invoice.status.humanize
 
-    .grid.grid-cols-2.gap-4.mb-8
-      %div
-        %h4.font-bold.mb-2 Bill To:
-        %p= @invoice.lease.tenant.name
-        %p= @invoice.lease.tenant.email
-        %p= @invoice.lease.tenant.phone_number
+      .show-section
+        %h3.show-section-title Bill To
+        .show-field-value
+          %p.font-medium= @invoice.lease.tenant.name
+          %p.text-sm.opacity-70= @invoice.lease.tenant.email
+          %p.text-sm.opacity-70= @invoice.lease.tenant.phone_number
 
-    .overflow-x-auto.mb-8
-      %table.table.w-full
-        %thead
-          %tr
-            %th.w-full Description
-            %th.text-right Amount
-            %th.text-right Tax
-            %th.text-right Total
-        %tbody
-          - @invoice.line_items.each do |item|
-            %tr
-              %td
-                %div.font-bold= item.name
-                %div.text-xs.opacity-50= item.category.humanize
-              %td.text-right= number_to_currency(item.amount)
-              %td.text-right
-                = number_to_currency(item.tax_amount)
-                - if item.tax_rate.to_f.positive?
-                  %span.text-xs.opacity-50 (#{item.tax_rate}%)
-              %td.text-right.font-semibold= number_to_currency(item.total)
-        %tfoot
-          %tr
-            %th.text-right{colspan: 3} Total
-            %th.text-right.text-lg= number_to_currency(@invoice.line_items.sum(&:total))
+      .show-section
+        %h3.show-section-title Line Items
+        .overflow-x-auto
+          %table.table.w-full
+            %thead
+              %tr
+                %th.w-full Description
+                %th.text-right Amount
+                %th.text-right Tax
+                %th.text-right Total
+            %tbody
+              - @invoice.line_items.each do |item|
+                %tr
+                  %td
+                    .font-medium= item.name
+                    .text-xs.opacity-50= item.category.humanize
+                  %td.text-right= number_to_currency(item.amount, unit: "₹", precision: 0)
+                  %td.text-right
+                    = number_to_currency(item.tax_amount, unit: "₹", precision: 0)
+                    - if item.tax_rate.to_f.positive?
+                      %span.text-xs.opacity-50 (#{item.tax_rate}%)
+                  %td.text-right.font-semibold= number_to_currency(item.total, unit: "₹", precision: 0)
+            %tfoot
+              %tr
+                %th.text-right{colspan: 3} Total
+                %th.text-right.text-lg= number_to_currency(@invoice.line_items.sum(&:total), unit: "₹", precision: 0)
 
-    .card-actions.justify-end
-      = link_to "Edit", edit_invoice_path(@invoice), class: "btn btn-secondary"
-      = link_to "Back", invoices_path, class: "btn btn-ghost"
-      - if @invoice.draft?
-        = button_to "Finalize Invoice", finalize_invoice_path(@invoice), method: :patch, class: "btn btn-primary", data: { turbo_confirm: "Are you sure? This will assign an invoice number and cannot be undone." }
-      - else
-        %button.btn.btn-secondary{disabled: true} Paid (Mock)
+    - settlement_entries = @invoice.entries.settlements.includes(:lease)
+    - if settlement_entries.any?
+      .show-card.mt-4
+        .show-section
+          .show-section-header
+            %h3.show-section-title Settlements
+            - payment_ids = settlement_entries.flat_map { |e| Entry.where(transaction_id: e.transaction_id).where(instrument_type: "Payment").pluck(:instrument_id) }.uniq
+            = link_to payments_path(q: { id_in: payment_ids }), class: "btn btn-ghost btn-xs", title: "View payments" do
+              = heroicon "arrows-pointing-out", options: { class: "w-4 h-4" }
+
+          .overflow-x-auto
+            %table.table.table-sm.w-full
+              %thead
+                %tr
+                  %th Date
+                  %th Settled By
+                  %th.text-right Amount
+              %tbody
+                - settlement_entries.each do |entry|
+                  - counterparts = Entry.where(transaction_id: entry.transaction_id).where.not(id: entry.id).includes(:instrument)
+                  - counterparts.each do |counterpart|
+                    %tr
+                      %td= counterpart.instrument.date.strftime("%B %d, %Y")
+                      %td
+                        - if counterpart.instrument_type == "Payment"
+                          = link_to "Payment ##{counterpart.instrument_id}", payment_path(counterpart.instrument_id), class: "link link-primary"
+                        - else
+                          = "#{counterpart.instrument_type} ##{counterpart.instrument_id}"
+                      %td.text-right= number_to_currency(entry.amount.abs, unit: "₹", precision: 0)
+              %tfoot
+                %tr
+                  %th.text-right{colspan: 2} Total Settled
+                  %th.text-right= number_to_currency(settlement_entries.sum { |e| e.amount.abs }, unit: "₹", precision: 0)
+                - if @invoice.balance.positive?
+                  %tr.text-error
+                    %th.text-right{colspan: 2} Outstanding
+                    %th.text-right= number_to_currency(@invoice.balance, unit: "₹", precision: 0)
+
+  .drawer-side
+    %label.drawer-overlay{for: "history-drawer", aria: { label: "close sidebar" }}
+    .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
+      = render "shared/history_sidebar", item: @invoice

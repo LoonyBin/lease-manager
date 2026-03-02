@@ -13,10 +13,9 @@ RSpec.describe "reports/outstanding" do
     render
   end
 
-  it { is_expected.to have_css("h1", text: "Outstanding Report") }
   it { is_expected.to have_css("h2", text: "Outstanding Invoices") }
   it { is_expected.to have_css("th", text: "Property") }
   it { is_expected.to have_css("th", text: "Outstanding") }
   it { is_expected.to have_css(".badge", text: "₹1,000.00") }
-  it { is_expected.to have_link("← Back to Reports") }
+  it { is_expected.to have_link("Back to Overview") }
 end

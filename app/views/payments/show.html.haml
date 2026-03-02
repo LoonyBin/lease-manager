@@ -1,0 +1,108 @@
+- content_for :title do
+  = @payment.refund? ? "Refund" : "Payment"
+  %span.text-base.font-normal.opacity-60.ml-2= @payment.date.strftime("%b %d, %Y")
+  - if @payment.draft?
+    %span.badge.badge-warning.ml-2 Draft
+  - elsif @payment.rejected?
+    %span.badge.badge-error.ml-2 Rejected
+
+- content_for :page_actions do
+  - if @payment.draft? && policy(@payment).update?
+    = button_to payment_path(@payment), method: :patch, params: { payment: { status: :rejected } }, class: "btn btn-ghost btn-sm text-error", data: { turbo_confirm: "Reject this payment?" } do
+      = heroicon "x-mark", options: { class: "w-4 h-4" }
+      Reject
+    = button_to payment_path(@payment), method: :patch, params: { payment: { status: :confirmed } }, class: "btn btn-primary btn-sm", data: { turbo_confirm: "Confirm this payment? This will allocate it to outstanding invoices." } do
+      = heroicon "check", options: { class: "w-4 h-4" }
+      Confirm
+  %label.btn.btn-ghost.btn-sm.btn-square{for: "history-drawer", title: "History"}
+    = heroicon "clock", options: { class: "w-5 h-5" }
+
+.drawer.drawer-end
+  %input#history-drawer.drawer-toggle{type: "checkbox"}
+  .drawer-content
+    .show-card
+      .show-section
+        .show-grid
+          .show-field
+            .show-field-label Amount
+            .show-field-value.text-2xl.font-bold= number_to_currency(@payment.amount, unit: "₹", precision: 0)
+          .show-field
+            .show-field-label Date
+            .show-field-value= @payment.date.strftime("%B %d, %Y")
+          .show-field
+            .show-field-label Mode
+            .show-field-value= @payment.mode.humanize.titleize
+          - if @payment.reference_number.present?
+            .show-field
+              .show-field-label Reference
+              .show-field-value= @payment.reference_number
+          .show-field
+            .show-field-label Property
+            .show-field-value= link_to @payment.lease.property.name, @payment.lease.property, class: "link link-primary"
+          .show-field
+            .show-field-label Tenant
+            .show-field-value= link_to @payment.lease.tenant.name, @payment.lease.tenant, class: "link link-primary"
+          .show-field
+            .show-field-label Lease
+            .show-field-value= link_to "#{@payment.lease.start_date.strftime('%b %Y')} → #{@payment.lease.end_date&.strftime('%b %Y') || 'Ongoing'}", @payment.lease, class: "link link-primary"
+
+      - if @payment.attachment.attached?
+        .show-section
+          .show-section-header
+            %h3.show-section-title Attachment
+          .p-4
+            - if @payment.attachment.content_type.start_with?("image/")
+              = link_to rails_blob_path(@payment.attachment, disposition: "inline"), target: "_blank", class: "block" do
+                = image_tag @payment.attachment, class: "max-w-full max-h-96 rounded-lg shadow-md"
+            - else
+              = link_to rails_blob_path(@payment.attachment, disposition: "inline"), target: "_blank", class: "btn btn-outline btn-sm" do
+                = heroicon "document", options: { class: "w-4 h-4 mr-2" }
+                View Attachment
+
+      - payment_settlements = @payment.entries.settlements
+      -# Find invoice entries that share transaction_ids with payment settlements
+      - transaction_ids = payment_settlements.pluck(:transaction_id)
+      - invoice_entries = Entry.where(transaction_id: transaction_ids).where.not(instrument: @payment).includes(:instrument)
+
+      - if @payment.confirmed_or_later?
+        .show-section
+          .show-section-header
+            %h3.show-section-title= @payment.refund? ? "Settlement Status" : "Allocation Status"
+            - if @payment.fully_allocated?
+              %span.resource-badge.resource-badge-success Fully Allocated
+            - else
+              %span.resource-badge.resource-badge-amber
+                = "#{number_to_currency(@payment.balance.abs, unit: '₹', precision: 0)} unallocated"
+
+          - if invoice_entries.any?
+            .overflow-x-auto
+              %table.table.w-full
+                %thead
+                  %tr
+                    %th= @payment.refund? ? "Credit Note" : "Invoice"
+                    %th Date
+                    %th.text-right Amount
+                %tbody
+                  - invoice_entries.each do |entry|
+                    - invoice = entry.instrument
+                    %tr.hover
+                      %td
+                        = link_to invoice_path(invoice), class: "link link-hover font-medium" do
+                          - if invoice.number.present?
+                            = "##{invoice.number}"
+                          - else
+                            Draft
+                      %td= invoice.date.strftime("%b %Y")
+                      %td.text-right.font-medium= number_to_currency(entry.amount.abs, unit: "₹", precision: 0)
+                  %tfoot
+                    %tr.font-bold
+                      %td{colspan: 2} Total Allocated
+                      %td.text-right= number_to_currency(invoice_entries.sum { |e| e.amount.abs }, unit: "₹", precision: 0)
+          - else
+            .show-empty
+              No invoices have been allocated to this payment yet.
+
+  .drawer-side
+    %label.drawer-overlay{for: "history-drawer", aria: { label: "close sidebar" }}
+    .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
+      = render "shared/history_sidebar", item: @payment

@@ -1,0 +1,4 @@
+- if page.current?
+  = content_tag :button, page, class: "join-item btn btn-active", data: { remote: remote }
+- else
+  = link_to page, url, class: "join-item btn", remote: remote, rel: page.rel

@@ -1,32 +1,92 @@
-.flex.justify-between.items-center.mb-6
-  %h1.text-2xl.font-bold Leases
-  = link_to 'New Lease', new_lease_path, class: "btn btn-primary"
+- content_for :title, "Leases"
 
-.overflow-x-auto
-  %table.table.w-full
-    %thead
-      %tr
-        %th Property
-        %th Tenant
-        %th Start Date
-        %th End Date
-        %th Duration
-        %th.text-right Rent
-        %th.text-center Actions
-    %tbody
-      - @leases.each do |lease|
-        %tr.hover
-          %td= lease.property.name
-          %td= lease.tenant.name
-          %td= lease.start_date
-          %td
-            = lease.end_date
-            - if lease.terminated_on
-              %span.text-error (Terminated)
-          %td= "#{lease.duration_months} months"
-          %td.text-right= number_to_currency(lease.rent_amount)
-          %td.text-center
-            .join
-              = link_to 'Show', lease, class: "btn btn-sm btn-ghost join-item"
-              = link_to 'Edit', edit_lease_path(lease), class: "btn btn-sm btn-ghost join-item"
-              = link_to 'Destroy', lease, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-sm btn-ghost text-error join-item"
+- content_for :page_actions do
+  -# View toggle (desktop only)
+  .view-toggle-group.hidden.lg:flex
+    %input#view-toggle.view-toggle-input{type: "checkbox", data: { controller: "view-toggle" }}
+    %label.view-toggle-btn{for: "view-toggle", data: { view: "card" }, title: "Card view"}
+      = heroicon "squares-2x2", options: { class: "w-4 h-4" }
+    %label.view-toggle-btn{for: "view-toggle", data: { view: "table" }, title: "Table view"}
+      = heroicon "list-bullet", options: { class: "w-4 h-4" }
+  %label.btn.btn-ghost.btn-sm.btn-square{for: "sort-drawer", title: "Sort"}
+    = heroicon "bars-arrow-down", options: { class: "w-5 h-5" }
+  %label.btn.btn-ghost.btn-sm.btn-square{for: "filter-drawer", title: "Filter"}
+    = heroicon "funnel", options: { class: "w-5 h-5" }
+  - if policy(@leases.new).new?
+    = link_to new_lease_path, class: "btn btn-ghost btn-sm btn-square" do
+      = heroicon "plus", options: { class: "w-5 h-5" }
+
+.drawer.drawer-end
+  %input#sort-drawer.drawer-toggle{type: "checkbox"}
+  .drawer-content
+    .drawer.drawer-end
+      %input#filter-drawer.drawer-toggle{type: "checkbox"}
+      .drawer-content.flex.flex-col
+        = render_active_filters(@q)
+
+        -# Single markup - CSS handles card vs table display
+        .resource-list.lease-list
+          -# Table header (visible only in table view on desktop)
+          .resource-list-header.lease-list-header
+            .lease-col-property Property
+            .lease-col-tenant Tenant
+            .lease-col-dates Dates
+            .lease-col-details Rent
+            .lease-col-status Status
+            .lease-col-actions Actions
+
+          -# Lease items
+          - @leases.each do |lease|
+            - status = lease_status(lease)
+
+            .resource-item.lease-item{data: { controller: "clickable-row", clickable_row_url_value: lease_path(lease), action: "click->clickable-row#click" }}
+              .resource-col-header.lease-col-property
+                .resource-item-icon
+                  = heroicon "building-office-2", options: { class: "w-5 h-5" }
+                = link_to lease.property.name, lease, class: "resource-item-title"
+              .resource-col.lease-col-tenant
+                .resource-item-meta
+                  = heroicon "user", options: { class: "w-3.5 h-3.5 shrink-0 hidden-table" }
+                  %span= lease.tenant.name
+              .resource-col.lease-col-dates
+                .lease-item-dates
+                  .lease-item-date-range
+                    = heroicon "calendar", options: { class: "w-3.5 h-3.5 shrink-0 hidden-table" }
+                    %span= lease.start_date.strftime("%b %Y")
+                    %span.opacity-50 →
+                    %span= lease.end_date&.strftime("%b %Y") || "Ongoing"
+              .resource-col.lease-col-details
+                .lease-item-stats
+                  .lease-item-stat
+                    %span.lease-item-stat-label Rent
+                    %span.lease-item-stat-value= number_to_currency(lease.rent_amount, unit: "₹", precision: 0)
+                  .lease-item-stat
+                    %span.lease-item-stat-label Duration
+                    %span.lease-item-stat-value #{lease.duration_months} mo
+                .lease-item-details-compact
+                  %span.rent= number_to_currency(lease.rent_amount, unit: "₹", precision: 0)
+                  %span.duration #{lease.duration_months} months
+              .resource-col-flex.lease-col-status
+                %span.resource-badge{class: "resource-badge-#{status == 'active' ? 'success' : status == 'upcoming' ? 'info' : 'neutral'}"}= status.capitalize
+              .resource-col-actions.lease-col-actions
+                .resource-item-actions
+                  - if policy(lease).edit?
+                    = link_to edit_lease_path(lease), class: "btn btn-sm btn-ghost", aria: { label: "Edit lease for #{lease.property.name}" } do
+                      = heroicon "pencil-square", options: { class: "w-4 h-4" }
+                  - if policy(lease).destroy?
+                    = link_to lease, data: { turbo_method: :delete, turbo_confirm: 'Are you sure?' }, class: "btn btn-sm btn-ghost text-error", aria: { label: "Delete lease for #{lease.property.name}" } do
+                      = heroicon "trash", options: { class: "w-4 h-4" }
+
+        = paginate @leases
+
+      .drawer-side
+        %label.drawer-overlay{for: "filter-drawer", aria: { label: "close sidebar" }}
+        .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
+          %h3.text-lg.font-bold.mb-4 Filter Leases
+          = render "search"
+
+  .drawer-side
+    %label.drawer-overlay{for: "sort-drawer", aria: { label: "close sidebar" }}
+    .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
+      %h3.text-lg.font-bold.mb-4 Sort Leases
+      = render "sort"

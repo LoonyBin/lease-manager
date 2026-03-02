@@ -1,0 +1,17 @@
+= simple_form_for(payment) do |f|
+  = f.error_notification
+  = f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present?
+  = f.hidden_field :payment_type
+
+  = f.grid_inputs do
+    = f.association :lease, col: 4, collection: leases,
+                    label_method: ->(l) { "#{l.tenant.name} - #{l.property.name}" },
+                    label: "Lease (Tenant - Property)"
+    = f.input :date, as: :date, html5: true
+    = f.input :amount
+    = f.input :mode, col: 1, collection: Payment.modes.keys.map { |m| [m.humanize.titleize, m] }, include_blank: false
+    = f.input :reference_number, col: 3
+    = f.input :attachment, col: 4, as: :file, input_html: { accept: "image/*,.pdf" },
+              hint: "Attach screenshot, receipt or bank slip (optional)"
+
+  = f.form_actions

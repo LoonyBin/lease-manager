@@ -10,7 +10,6 @@ AllCops:
   NewCops: enable
   Exclude:
     - 'db/**/*'
-    - 'config/**/*'
     - 'bin/**/*'
     - 'node_modules/**/*'
     - 'tmp/**/*'
@@ -25,6 +24,7 @@ Style/StringLiterals:
 Metrics/BlockLength:
   Exclude:
     - "Guardfile"
+    - config/initializers/simple_form.rb
 
 Layout/LineLength:
   Max: 120
@@ -39,3 +39,7 @@ RSpec/InstanceVariable:
 RSpec/ImplicitSubject:
   EnforcedStyle: require_implicit
 
+Naming/PredicateMethod:
+  AllowedMethods:
+    - call
+    - method_missing

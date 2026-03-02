@@ -1,33 +1,104 @@
-.card.w-full.bg-base-100.shadow-xl
-  .card-body
-    .flex.justify-between.items-center.mb-4
-      %h2.card-title Invoices
+- content_for :title, "Invoices"
 
-    .overflow-x-auto
-      %table.table.table-zebra.w-full
-        %thead
-          %tr
-            %th Date
-            %th Number
-            %th Property
-            %th Tenant
-            %th Amount
-            %th Status
-            %th Actions
-        %tbody
+- content_for :page_actions do
+  -# View toggle (desktop only)
+  .view-toggle-group.hidden.lg:flex
+    %input#view-toggle.view-toggle-input{type: "checkbox", data: { controller: "view-toggle" }}
+    %label.view-toggle-btn{for: "view-toggle", data: { view: "card" }, title: "Card view"}
+      = heroicon "squares-2x2", options: { class: "w-4 h-4" }
+    %label.view-toggle-btn{for: "view-toggle", data: { view: "table" }, title: "Table view"}
+      = heroicon "list-bullet", options: { class: "w-4 h-4" }
+  %label.btn.btn-ghost.btn-sm.btn-square{for: "sort-drawer", title: "Sort"}
+    = heroicon "bars-arrow-down", options: { class: "w-5 h-5" }
+  %label.btn.btn-ghost.btn-sm.btn-square{for: "filter-drawer", title: "Filter"}
+    = heroicon "funnel", options: { class: "w-5 h-5" }
+  = link_to new_invoice_path, class: "btn btn-ghost btn-sm btn-square", title: "New Invoice" do
+    = heroicon "plus", options: { class: "w-5 h-5" }
+  = link_to new_invoice_path(invoice: { document_type: :credit_note }), class: "btn btn-ghost btn-sm btn-square", title: "New Credit Note" do
+    = heroicon "document-minus", options: { class: "w-5 h-5" }
+
+.drawer.drawer-end
+  %input#sort-drawer.drawer-toggle{type: "checkbox"}
+  .drawer-content
+    .drawer.drawer-end
+      %input#filter-drawer.drawer-toggle{type: "checkbox"}
+      .drawer-content.flex.flex-col
+        = render_active_filters(@q)
+
+        -# Single markup - CSS handles card vs table display
+        .resource-list.invoice-list
+          -# Table header (visible only in table view on desktop)
+          .resource-list-header.invoice-list-header
+            .invoice-col-number Invoice
+            .invoice-col-property Property
+            .invoice-col-tenant Tenant
+            .invoice-col-amount Amount
+            .invoice-col-status Status
+            .invoice-col-actions Actions
+
+          -# Invoice items
           - @invoices.each do |invoice|
-            %tr
-              %td= invoice.date.strftime("%b %Y")
-              %td
-                - if invoice.number.present?
-                  .badge.badge-outline= invoice.number
-                - else
-                  .badge.badge-ghost Draft
-              %td= invoice.lease.property.name
-              %td= invoice.lease.tenant.name
-              %td= number_to_currency(invoice.line_items.sum(:amount))
-              %td
-                %span{class: "badge badge-#{invoice.draft? ? 'ghost' : 'success'}"}
-                  = invoice.status.humanize
-              %td
-                = link_to "View", invoice_path(invoice), class: "btn btn-sm btn-ghost"
+            .resource-item.invoice-item{data: { controller: "clickable-row", clickable_row_url_value: invoice_path(invoice), action: "click->clickable-row#click" }}
+              .resource-col-header.invoice-col-number
+                .resource-item-icon
+                  - if invoice.credit_note?
+                    = heroicon "document-minus", options: { class: "w-5 h-5 text-error" }
+                  - else
+                    = heroicon "document", options: { class: "w-5 h-5" }
+                .invoice-item-header
+                  = link_to invoice_path(invoice), class: "resource-item-title" do
+                    - if invoice.credit_note?
+                      Credit Note
+                    - if invoice.number.present?
+                      = "##{invoice.number}"
+                    - elsif !invoice.credit_note?
+                      Draft
+                  .resource-item-subtitle= invoice.date.strftime("%b %Y")
+              .resource-col.invoice-col-property
+                .resource-item-meta
+                  = heroicon "building-office-2", options: { class: "w-3.5 h-3.5 shrink-0 hidden-table" }
+                  %span= invoice.lease.property.name
+              .resource-col.invoice-col-tenant
+                .resource-item-meta
+                  = heroicon "user", options: { class: "w-3.5 h-3.5 shrink-0 hidden-table" }
+                  %span= invoice.lease.tenant.name
+              .resource-col.invoice-col-amount
+                -# Card view: total with status badge
+                .invoice-item-amount
+                  %span.invoice-item-total
+                    - if invoice.credit_note?
+                      %span.text-error= "-#{number_to_currency(invoice.total_amount, unit: '₹', precision: 0)}"
+                    - else
+                      = number_to_currency(invoice.total_amount, unit: "₹", precision: 0)
+                  %span.invoice-item-status.resource-badge{class: "resource-badge-#{invoice.status == 'paid' ? 'success' : invoice.status == 'sent' ? 'info' : invoice.status == 'overdue' ? 'error' : 'neutral'}"}= invoice.status.humanize
+                -# Table view: compact amount
+                .invoice-item-amount-compact
+                  %span.amount
+                    - if invoice.credit_note?
+                      %span.text-error= "-#{number_to_currency(invoice.total_amount, unit: '₹', precision: 0)}"
+                    - else
+                      = number_to_currency(invoice.total_amount, unit: "₹", precision: 0)
+                  - if invoice.outstanding_amount > 0
+                    %span.balance= "#{number_to_currency(invoice.outstanding_amount, unit: '₹', precision: 0)} due"
+              .resource-col-flex.invoice-col-status
+                -# Table view only: status badge
+                %span.resource-badge{class: "resource-badge-#{invoice.status == 'paid' ? 'success' : invoice.status == 'sent' ? 'info' : invoice.status == 'overdue' ? 'error' : 'neutral'}"}= invoice.status.humanize
+              .resource-col-actions.invoice-col-actions
+                .resource-item-actions
+                  - if policy(invoice).edit?
+                    = link_to edit_invoice_path(invoice), class: "btn btn-sm btn-ghost", aria: { label: "Edit invoice #{invoice.number}" } do
+                      = heroicon "pencil-square", options: { class: "w-4 h-4" }
+
+        = paginate @invoices
+
+      .drawer-side
+        %label.drawer-overlay{for: "filter-drawer", aria: { label: "close sidebar" }}
+        .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
+          %h3.text-lg.font-bold.mb-4 Filter Invoices
+          = render "search"
+
+  .drawer-side
+    %label.drawer-overlay{for: "sort-drawer", aria: { label: "close sidebar" }}
+    .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
+      %h3.text-lg.font-bold.mb-4 Sort Invoices
+      = render "sort"

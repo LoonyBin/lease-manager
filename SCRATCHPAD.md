@@ -11,7 +11,10 @@
 - [x] Implement Payments Support
 
 # Current Goal
-- [x] Lease Taxes
+- [x] Ability to generate invoices and credit notes for security deposit on lease creation, renewal, and termination
+- [x] Review Navigation Bar Order
+
+
     - [x] Add `tax_name` and `tax_rate` to Lease
     - [x] Update InvoiceGenerator to create tax LineItems
     - [x] Display taxes on Invoice views
@@ -34,7 +37,13 @@
 - [ ] Lease Lifecycle
 - [ ] Lease Documents
 - [ ] Reconciliation
-- [ ] Reports
+- [x] Reports
+
+# Future TODO
+- [ ] Ability to generate invoices and credit notes for security deposit on lease creation, renewal, and termination
+- [ ] Google OIDC or OAuth
+- [ ] Mobile interface
+- [ ] Finding and setting up hosting for production
 
 # Blockers
 - None

@@ -2,8 +2,8 @@
 
 FactoryBot.define do
   factory :owner do
-    name { "John Smith Properties" }
-    address { "123 Business Rd, New York, NY" }
+    name { "#{Faker::Name.last_name} Properties LLC" }
+    address { Faker::Address.full_address }
     invoice_sequence { 0 }
   end
 end

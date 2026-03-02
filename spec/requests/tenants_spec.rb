@@ -3,6 +3,8 @@
 require "rails_helper"
 
 RSpec.describe "Tenants" do
+  before { sign_in_admin }
+
   describe "GET /tenants" do
     it "returns http success" do
       get tenants_path

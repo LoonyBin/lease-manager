@@ -1,17 +1,71 @@
-.card.w-96.bg-base-100.shadow-xl.mx-auto
-  .card-body
-    %h2.card-title Property Details
+- content_for :title, @property.name
 
-    %p
-      %strong Owner:
-      = @property.owner.name
-    %p
-      %strong Name:
-      = @property.name
-    %p
-      %strong Address:
-      = @property.address
+- content_for :page_actions do
+  - if policy(@property).edit?
+    = link_to edit_property_path(@property), class: "btn btn-ghost btn-sm btn-square", title: "Edit" do
+      = heroicon "pencil-square", options: { class: "w-5 h-5" }
+  - if policy(@property).destroy?
+    = button_to property_path(@property), method: :delete, class: "btn btn-ghost btn-sm btn-square text-error", data: { turbo_confirm: "Are you sure you want to delete this property?" }, title: "Delete" do
+      = heroicon "trash", options: { class: "w-5 h-5" }
+  %label.btn.btn-ghost.btn-sm.btn-square{for: "history-drawer", title: "History"}
+    = heroicon "clock", options: { class: "w-5 h-5" }
 
-    .card-actions.justify-end.mt-4
-      = link_to 'Edit', edit_property_path(@property), class: "btn btn-primary"
-      = link_to 'Back', properties_path, class: "btn btn-ghost"
+.drawer.drawer-end
+  %input#history-drawer.drawer-toggle{type: "checkbox"}
+  .drawer-content
+    .show-card
+      .show-section
+        .show-field
+          .show-field-label Owner
+          .show-field-value= link_to @property.owner.name, @property.owner, class: "link link-primary"
+        .show-field
+          .show-field-label Address
+          .show-field-value= @property.address
+        .show-field
+          .show-field-label Capacity
+          .show-field-value
+            = @property.capacity
+            = @property.unit.pluralize(@property.capacity)
+
+      - leased = @property.leases.active_at(Date.current).sum(:quantity)
+      - available = @property.capacity - leased
+      - occupancy = @property.capacity.positive? ? (leased.to_f / @property.capacity * 100).round : 0
+
+      .show-section
+        %h3.show-section-title Occupancy
+        .show-stats
+          .show-stat
+            .show-stat-value #{occupancy}%
+            .show-stat-label Occupied
+          .show-stat
+            .show-stat-value= leased
+            .show-stat-label Leased
+          .show-stat
+            .show-stat-value= available
+            .show-stat-label Available
+
+      .show-section
+        .show-section-header
+          %h3.show-section-title Leases
+          = link_to leases_path(q: { property_id_eq: @property.id }), class: "btn btn-ghost btn-xs", title: "View all" do
+            = heroicon "arrows-pointing-out", options: { class: "w-4 h-4" }
+
+        - active_leases = @property.leases.active_at(Date.current).includes(:tenant)
+        - if active_leases.any?
+          .show-list
+            - active_leases.each do |lease|
+              .show-list-item
+                .show-list-item-title= link_to lease.tenant.name, lease, class: "link link-primary"
+                .show-list-item-meta
+                  = lease.start_date.strftime("%b %Y")
+                  →
+                  = lease.end_date&.strftime("%b %Y") || "Ongoing"
+                .show-list-item-badge
+                  %span.resource-badge.resource-badge-success Active
+        - else
+          .show-empty No active leases
+
+  .drawer-side
+    %label.drawer-overlay{for: "history-drawer", aria: { label: "close sidebar" }}
+    .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
+      = render "shared/history_sidebar", item: @property

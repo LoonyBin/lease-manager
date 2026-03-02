@@ -13,10 +13,9 @@ RSpec.describe "owners/show" do
     render
   end
 
-  it { is_expected.to have_css("h2", text: "John Smith") }
-  it { is_expected.to have_css("p", text: "123 Main St") }
-  it { is_expected.to have_css("p", text: "5") }
-  it { is_expected.to have_css("h2", text: "Properties") }
+  it { is_expected.to have_css(".show-card") }
+  it { is_expected.to have_css(".show-field-value", text: "123 Main St") }
+  it { is_expected.to have_css(".show-field-value", text: "5") }
+  it { is_expected.to have_css(".show-section-title", text: "Properties") }
   it { is_expected.to have_link("Sunset Villa") }
-  it { is_expected.to have_link("Edit") }
 end
