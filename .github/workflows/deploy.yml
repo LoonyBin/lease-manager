@@ -1,13 +1,19 @@
 name: Deploy
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
     branches: [ main ]
+    types: [ completed ]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    needs: []
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     permissions:
       contents: read
       id-token: write
@@ -19,6 +25,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Authenticate to Google Cloud via WIF
         uses: google-github-actions/auth@v3
@@ -39,7 +47,7 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          IMAGE="${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/lease-manager-images/lease-manager:${{ github.sha }}"
+          IMAGE="${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/lease-manager-images/lease-manager:${{ github.event.workflow_run.head_sha }}"
           docker build --tag "${IMAGE}" .
           docker push "${IMAGE}"
 
@@ -54,7 +62,7 @@ jobs:
             -auto-approve \
             -var "project_id=${{ env.GCP_PROJECT_ID }}" \
             -var "region=${{ env.GCP_REGION }}" \
-            -var "image_tag=${{ github.sha }}" \
+            -var "image_tag=${{ github.event.workflow_run.head_sha }}" \
             -var "cloudflare_api_token=${{ secrets.CLOUDFLARE_API_TOKEN }}" \
             -var "cloudflare_account_id=${{ vars.CLOUDFLARE_ACCOUNT_ID }}" \
             -var "cloudflare_zone_id=${{ vars.CLOUDFLARE_ZONE_ID }}"
