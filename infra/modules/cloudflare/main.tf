@@ -1,3 +1,12 @@
+terraform {
+  required_providers {
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "~> 5.0"
+    }
+  }
+}
+
 resource "cloudflare_workers_script" "proxy" {
   account_id = var.cloudflare_account_id
   script_name = "lease-manager-proxy"
