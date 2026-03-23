@@ -149,6 +149,15 @@ module "app" {
   ]
 }
 
+module "cloudflare" {
+  source               = "./modules/cloudflare"
+  cloudflare_account_id = var.cloudflare_account_id
+  cloudflare_zone_id    = var.cloudflare_zone_id
+  cloud_run_host        = replace(module.app.cloud_run_url, "https://", "")
+
+  depends_on = [module.app]
+}
+
 module "scheduler" {
   source               = "./modules/scheduler"
   project_id           = var.project_id

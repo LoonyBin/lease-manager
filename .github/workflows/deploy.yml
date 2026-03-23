@@ -54,7 +54,10 @@ jobs:
             -auto-approve \
             -var "project_id=${{ env.GCP_PROJECT_ID }}" \
             -var "region=${{ env.GCP_REGION }}" \
-            -var "image_tag=${{ github.sha }}"
+            -var "image_tag=${{ github.sha }}" \
+            -var "cloudflare_api_token=${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -var "cloudflare_account_id=${{ vars.CLOUDFLARE_ACCOUNT_ID }}" \
+            -var "cloudflare_zone_id=${{ vars.CLOUDFLARE_ZONE_ID }}"
 
       - name: Run database migrations
         run: |
