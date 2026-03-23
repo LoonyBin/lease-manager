@@ -67,4 +67,5 @@ end
 
 gem "chartkick", "~> 5.2"
 gem "csv", "~> 3.3"
+gem "google-cloud-storage"
 gem "groupdate", "~> 6.7"

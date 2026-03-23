@@ -2,7 +2,7 @@
 
 require "active_support/core_ext/integer/time"
 
-Rails.application.configure do # rubocop:disable Metrics/BlockLength
+Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
   # Code is not reloaded between requests.
@@ -23,8 +23,8 @@ Rails.application.configure do # rubocop:disable Metrics/BlockLength
   # Enable serving of images, stylesheets, and JavaScripts from an asset server.
   # config.asset_host = "http://assets.example.com"
 
-  # Store uploaded files on the local file system (see config/storage.yml for options).
-  config.active_storage.service = :local
+  # Store uploaded files on Google Cloud Storage (see config/storage.yml for options).
+  config.active_storage.service = :google
 
   # Assume all access to the app is happening through a SSL-terminating reverse proxy.
   config.assume_ssl = true
@@ -83,9 +83,7 @@ Rails.application.configure do # rubocop:disable Metrics/BlockLength
   # Enable DNS rebinding protection and other `Host` header attacks.
   config.hosts = [
     ENV.fetch("APP_HOST", nil),
-    ENV.fetch("RAILWAY_PUBLIC_DOMAIN", nil),    # Railway-assigned domain
-    ENV.fetch("RAILWAY_PRIVATE_DOMAIN", nil),   # Railway internal domain
-    /.*\.railway\.app/ # Railway subdomains
+    /.*\.run\.app/ # Cloud Run subdomains
   ].compact
 
   # Skip DNS rebinding protection for the default health check endpoint.
