@@ -7,8 +7,9 @@ class LeasesController < ApplicationController
   end
 
   def show
-    @lease = Lease.includes(invoices: :line_items).find(params[:id])
+    @lease = Lease.find(params[:id])
     authorize @lease
+    @statement_entries = helpers.statement_entries(@lease.entries.initial.preload(:instrument))
   end
 
   def new
