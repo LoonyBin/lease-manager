@@ -66,4 +66,5 @@ group :test do
 end
 
 gem "chartkick", "~> 5.2"
+gem "google-cloud-storage"
 gem "groupdate", "~> 6.7"
