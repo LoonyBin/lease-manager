@@ -6,5 +6,5 @@
     .user-details
       .user-name= current_user.name
       .user-role= current_user.role.titleize
-- else
-  = button_to 'Login', '/auth/developer', method: :post, class: "btn btn-sm btn-primary", data: { turbo: false }
+- elsif controller_name != 'sessions'
+  = link_to 'Login', login_path, class: "btn btn-sm btn-primary"
