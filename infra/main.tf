@@ -136,8 +136,6 @@ module "app" {
   vpc_connector_id        = module.network.vpc_connector_id
   db_connection_name      = module.database.connection_name
   secret_rails_master_key = module.secrets.rails_master_key_id
-  secret_google_client_id = module.secrets.google_oauth_client_id_id
-  secret_google_client_secret = module.secrets.google_oauth_client_secret_id
   secret_database_url     = module.secrets.database_url_id
   gcs_bucket              = module.storage.bucket_name
 
@@ -162,8 +160,6 @@ module "scheduler" {
   vpc_connector_id     = module.network.vpc_connector_id
   db_connection_name   = module.database.connection_name
   secret_rails_master_key     = module.secrets.rails_master_key_id
-  secret_google_client_id     = module.secrets.google_oauth_client_id_id
-  secret_google_client_secret = module.secrets.google_oauth_client_secret_id
   secret_database_url         = module.secrets.database_url_id
   gcs_bucket                  = module.storage.bucket_name
 

@@ -30,14 +30,6 @@ locals {
       secret_id  = var.secret_rails_master_key
     },
     {
-      name       = "GOOGLE_CLIENT_ID"
-      secret_id  = var.secret_google_client_id
-    },
-    {
-      name       = "GOOGLE_CLIENT_SECRET"
-      secret_id  = var.secret_google_client_secret
-    },
-    {
       name       = "DATABASE_URL"
       secret_id  = var.secret_database_url
     },
@@ -91,26 +83,6 @@ resource "google_cloud_run_v2_service" "app" {
         value_source {
           secret_key_ref {
             secret  = var.secret_rails_master_key
-            version = "latest"
-          }
-        }
-      }
-
-      env {
-        name = "GOOGLE_CLIENT_ID"
-        value_source {
-          secret_key_ref {
-            secret  = var.secret_google_client_id
-            version = "latest"
-          }
-        }
-      }
-
-      env {
-        name = "GOOGLE_CLIENT_SECRET"
-        value_source {
-          secret_key_ref {
-            secret  = var.secret_google_client_secret
             version = "latest"
           }
         }
