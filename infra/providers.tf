@@ -10,6 +10,10 @@ terraform {
       source  = "hashicorp/random"
       version = "~> 3.6"
     }
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "~> 5.0"
+    }
   }
 
   backend "gcs" {
@@ -21,4 +25,8 @@ terraform {
 provider "google" {
   project = var.project_id
   region  = var.region
+}
+
+provider "cloudflare" {
+  api_token = var.cloudflare_api_token
 }
