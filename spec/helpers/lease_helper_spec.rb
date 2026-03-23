@@ -57,17 +57,18 @@ RSpec.describe LeaseHelper do
 
       it "accumulates running balance", :aggregate_failures do
         expect(lines.first.balance).to eq(1000) # invoice debit
-        expect(lines.last.balance).to eq(0)      # payment credit offsets
+        expect(lines.last.balance).to eq(0) # payment credit offsets
       end
 
-      it "identifies debits and credits correctly", :aggregate_failures do
+      it "identifies invoice line as debit", :aggregate_failures do
         invoice_line = lines.find { |l| l.instrument == invoice }
-        payment_line = lines.find { |l| l.instrument == payment }
-
         expect(invoice_line).to be_debit
         expect(invoice_line.debit_amount).to eq(1000)
         expect(invoice_line.credit_amount).to be_nil
+      end
 
+      it "identifies payment line as credit", :aggregate_failures do
+        payment_line = lines.find { |l| l.instrument == payment }
         expect(payment_line).not_to be_debit
         expect(payment_line.credit_amount).to eq(1000)
         expect(payment_line.debit_amount).to be_nil
@@ -75,36 +76,32 @@ RSpec.describe LeaseHelper do
     end
 
     context "with same-date entries" do
-      let!(:invoice) do
+      let(:invoice) do
         inv = create(:invoice, lease: lease, date: Date.new(2025, 2, 1), status: :draft)
         create(:line_item, invoice: inv, amount: 500, tax_rate: 0)
         inv.update!(status: :finalized)
         inv.reload
       end
 
-      let!(:credit_note) do
+      let(:credit_note) do
         cn = create(:invoice, :credit_note, lease: lease, date: Date.new(2025, 2, 1), status: :draft)
         create(:line_item, invoice: cn, amount: 100, tax_rate: 0)
         cn.update!(status: :finalized)
         cn.reload
       end
 
-      let!(:payment) do
+      let(:payment) do
         create(:payment, lease: lease, date: Date.new(2025, 2, 1), amount: 300, status: :confirmed)
       end
 
-      let(:entries) { lease.entries.initial.preload(:instrument) }
-      let(:lines) { helper.statement_entries(entries) }
+      let(:lines) do
+        invoice; credit_note; payment
+        helper.statement_entries(lease.entries.initial.preload(:instrument))
+      end
 
       it "sorts by type within same date: invoice, credit_note, payment, refund" do
-        instrument_types = lines.map { |l|
-          inst = l.instrument
-          case inst
-          when Invoice then inst.document_type
-          when Payment then inst.payment_type
-          end
-        }
-        expect(instrument_types).to eq(%w[invoice credit_note payment])
+        expect(lines.map { |l| l.instrument.is_a?(Invoice) ? l.instrument.document_type : l.instrument.payment_type })
+          .to eq(%w[invoice credit_note payment])
       end
     end
   end

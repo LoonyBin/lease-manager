@@ -27,18 +27,11 @@ RSpec.describe "leases/show" do
   context "with finalized invoices and payments" do
     let(:lease) { create(:lease) }
 
-    let!(:invoice) do
+    before do
       inv = create(:invoice, lease: lease, date: Date.new(2025, 1, 15), status: :draft)
       create(:line_item, invoice: inv, amount: 1000, tax_rate: 0)
       inv.update!(status: :finalized)
-      inv.reload
-    end
-
-    let!(:payment) do
       create(:payment, lease: lease, date: Date.new(2025, 1, 20), amount: 1000)
-    end
-
-    before do
       @lease = assign(:lease, lease)
       entries = lease.entries.initial.preload(:instrument)
       @statement_entries = assign(:statement_entries, view.statement_entries(entries))

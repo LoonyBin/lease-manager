@@ -3,10 +3,7 @@
 module LeaseHelper
   StatementLine = Data.define(:entry, :balance) do
     delegate :instrument, to: :entry
-
-    def date
-      instrument.date
-    end
+    delegate :date, to: :instrument
 
     def description
       case instrument
@@ -67,20 +64,8 @@ module LeaseHelper
   private_constant :TYPE_SORT_ORDER
 
   def statement_entries(entries)
-    sorted = entries.sort_by do |e|
-      instrument = e.instrument
-      type_key = case instrument
-                 when Invoice then %w[Invoice] + [instrument.document_type]
-                 when Payment then %w[Payment] + [instrument.payment_type]
-                 end
-      [instrument.date, TYPE_SORT_ORDER.fetch(type_key, 99), e.id]
-    end
-
-    running_balance = BigDecimal("0")
-    sorted.map do |e|
-      running_balance += e.amount
-      StatementLine.new(entry: e, balance: running_balance)
-    end
+    sorted = entries.sort_by { |e| sort_key_for(e) }
+    accumulate_balances(sorted)
   end
 
   def billable_months(lease)
@@ -96,5 +81,24 @@ module LeaseHelper
       current = current.next_month
     end
     months
+  end
+
+  private
+
+  def sort_key_for(entry)
+    instrument = entry.instrument
+    type_key = case instrument
+               when Invoice then ["Invoice", instrument.document_type]
+               when Payment then ["Payment", instrument.payment_type]
+               end
+    [instrument.date, TYPE_SORT_ORDER.fetch(type_key, 99), entry.id]
+  end
+
+  def accumulate_balances(entries)
+    running_balance = BigDecimal("0")
+    entries.map do |e|
+      running_balance += e.amount
+      StatementLine.new(entry: e, balance: running_balance)
+    end
   end
 end
