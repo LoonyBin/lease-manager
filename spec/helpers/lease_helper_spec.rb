@@ -95,7 +95,9 @@ RSpec.describe LeaseHelper do
       end
 
       let(:lines) do
-        invoice; credit_note; payment
+        invoice
+        credit_note
+        payment
         helper.statement_entries(lease.entries.initial.preload(:instrument))
       end
 
