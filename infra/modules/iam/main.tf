@@ -77,6 +77,12 @@ resource "google_project_iam_member" "cicd_tofu_editor" {
   member  = "serviceAccount:${google_service_account.cicd.email}"
 }
 
+resource "google_project_iam_member" "cicd_secret_manager_admin" {
+  project = var.project_id
+  role    = "roles/secretmanager.admin"
+  member  = "serviceAccount:${google_service_account.cicd.email}"
+}
+
 # Cloud Run SA: Cloud SQL client
 resource "google_project_iam_member" "cloud_run_sql_client" {
   project = var.project_id
