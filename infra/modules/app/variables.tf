@@ -38,16 +38,6 @@ variable "secret_rails_master_key" {
   type        = string
 }
 
-variable "secret_google_client_id" {
-  description = "Secret Manager resource ID for google-oauth-client-id"
-  type        = string
-}
-
-variable "secret_google_client_secret" {
-  description = "Secret Manager resource ID for google-oauth-client-secret"
-  type        = string
-}
-
 variable "secret_database_url" {
   description = "Secret Manager resource ID for database-url"
   type        = string
