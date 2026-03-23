@@ -2,11 +2,13 @@
 
 Rails.application.config.middleware.use OmniAuth::Builder do
   provider :developer if Rails.env.local?
-  if ENV["GOOGLE_CLIENT_ID"].present? && ENV["GOOGLE_CLIENT_SECRET"].present?
-    provider :google_oauth2, ENV.fetch("GOOGLE_CLIENT_ID"), ENV.fetch("GOOGLE_CLIENT_SECRET"), {
-      scope: "email, profile",
-      prompt: "select_account"
-    }
+  if Rails.application.credentials.dig(:google, :client_id).present?
+    provider :google_oauth2,
+             Rails.application.credentials.dig(:google, :client_id),
+             Rails.application.credentials.dig(:google, :client_secret), {
+               scope: "email, profile",
+               prompt: "select_account"
+             }
   end
 end
 
