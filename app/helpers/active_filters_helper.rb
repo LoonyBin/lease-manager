@@ -1,6 +1,10 @@
 # frozen_string_literal: true
 
 module ActiveFiltersHelper
+  SCOPE_LABELS = {
+    "by_status" => "Status"
+  }.freeze
+
   def render_active_filters(search)
     return unless params[:q]
 
@@ -32,7 +36,7 @@ module ActiveFiltersHelper
     column = klass.columns_hash[attribute.to_s]
     return format_date_value(value) if column && %i[date datetime].include?(column.type)
 
-    value
+    value.to_s.humanize
   end
 
   def format_enum_value(klass, attribute, value)
@@ -48,6 +52,8 @@ module ActiveFiltersHelper
   end
 
   def filter_label(key, base_attribute)
+    return SCOPE_LABELS[key.to_s] if SCOPE_LABELS.key?(key.to_s)
+
     label = base_attribute.humanize
     predicate = key.to_s.split("_").last
 

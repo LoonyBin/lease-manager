@@ -13,6 +13,48 @@ RSpec.describe "Leases" do
       get leases_path
       expect(response).to have_http_status(:success)
     end
+
+    context "when filtering by status" do
+      let!(:active_lease) { create(:lease, start_date: 1.month.ago.to_date, duration_months: 12) }
+      let!(:upcoming_lease) { create(:lease, start_date: 1.month.from_now.to_date, duration_months: 12) }
+      let!(:expired_lease) { create(:lease, start_date: 2.years.ago.to_date, duration_months: 6) }
+      let!(:terminated_lease) do
+        create(:lease, start_date: 6.months.ago.to_date, duration_months: 12,
+                       terminated_on: 3.months.ago.to_date)
+      end
+
+      it "returns only active leases when filtered by active" do
+        get leases_path, params: { q: { by_status: "active" } }
+        expect(response.body).to include(active_lease.id.to_s)
+        expect(response.body).not_to include(upcoming_lease.id.to_s)
+        expect(response.body).not_to include(expired_lease.id.to_s)
+        expect(response.body).not_to include(terminated_lease.id.to_s)
+      end
+
+      it "returns only upcoming leases when filtered by upcoming" do
+        get leases_path, params: { q: { by_status: "upcoming" } }
+        expect(response.body).to include(upcoming_lease.id.to_s)
+        expect(response.body).not_to include(active_lease.id.to_s)
+        expect(response.body).not_to include(expired_lease.id.to_s)
+        expect(response.body).not_to include(terminated_lease.id.to_s)
+      end
+
+      it "returns only expired leases when filtered by expired" do
+        get leases_path, params: { q: { by_status: "expired" } }
+        expect(response.body).to include(expired_lease.id.to_s)
+        expect(response.body).not_to include(active_lease.id.to_s)
+        expect(response.body).not_to include(upcoming_lease.id.to_s)
+        expect(response.body).not_to include(terminated_lease.id.to_s)
+      end
+
+      it "returns only terminated leases when filtered by terminated" do
+        get leases_path, params: { q: { by_status: "terminated" } }
+        expect(response.body).to include(terminated_lease.id.to_s)
+        expect(response.body).not_to include(active_lease.id.to_s)
+        expect(response.body).not_to include(upcoming_lease.id.to_s)
+        expect(response.body).not_to include(expired_lease.id.to_s)
+      end
+    end
   end
 
   describe "GET /leases/new" do
