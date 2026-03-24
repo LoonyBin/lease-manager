@@ -6,8 +6,7 @@ RSpec.describe "reports/outstanding" do
   subject { Capybara.string(rendered) }
 
   before do
-    invoice = create(:invoice, status: :finalized, number: "INV-001")
-    create(:line_item, invoice: invoice, amount: 1000)
+    invoice = create(:invoice, :with_balance, balance_amount: 1000, status: :finalized, number: "INV-001")
     assign(:outstanding_invoices, [invoice])
     assign(:total_outstanding, 1000)
     render

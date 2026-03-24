@@ -254,6 +254,64 @@ RSpec.describe Lease do
     end
   end
 
+  describe "#recalculate_cached_balance!" do
+    let(:lease) { create(:lease) }
+
+    it "sets cached_balance to 0 when there are no invoices" do
+      lease.recalculate_cached_balance!
+      expect(lease.reload.cached_balance).to eq(0)
+    end
+
+    context "with finalized, sent, and partially_paid invoices" do
+      before do
+        create(:invoice, :with_balance, balance_amount: 500, lease: lease, status: :finalized)
+        create(:invoice, :with_balance, balance_amount: 300, lease: lease, status: :sent)
+        create(:invoice, :with_balance, balance_amount: 200, lease: lease, status: :partially_paid)
+      end
+
+      it "sums balances for all unsettled invoices" do
+        lease.recalculate_cached_balance!
+        expect(lease.reload.cached_balance).to eq(1000)
+      end
+    end
+
+    context "with a paid invoice alongside a finalized one" do
+      before do
+        create(:invoice, :with_balance, balance_amount: 500, lease: lease, status: :finalized)
+        create(:invoice, :with_balance, balance_amount: 0, lease: lease, status: :paid)
+      end
+
+      it "excludes paid invoices" do
+        lease.recalculate_cached_balance!
+        expect(lease.reload.cached_balance).to eq(500)
+      end
+    end
+
+    context "with a cancelled invoice alongside a finalized one" do
+      before do
+        create(:invoice, :with_balance, balance_amount: 500, lease: lease, status: :finalized)
+        create(:invoice, :with_balance, balance_amount: 400, lease: lease, status: :cancelled)
+      end
+
+      it "excludes cancelled invoices" do
+        lease.recalculate_cached_balance!
+        expect(lease.reload.cached_balance).to eq(500)
+      end
+    end
+
+    context "with a credit note" do
+      before do
+        create(:invoice, :with_balance, balance_amount: 1000, lease: lease, status: :finalized)
+        create(:invoice, :credit_note, :with_balance, balance_amount: -200, lease: lease, status: :finalized)
+      end
+
+      it "incorporates credit note balances (negative)" do
+        lease.recalculate_cached_balance!
+        expect(lease.reload.cached_balance).to eq(800)
+      end
+    end
+  end
+
   describe "after_create callback" do
     let(:old_lease) do
       create(:lease,
