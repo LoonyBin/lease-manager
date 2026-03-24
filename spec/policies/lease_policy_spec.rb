@@ -22,6 +22,28 @@ RSpec.describe LeasePolicy do
     it { is_expected.to permit_actions(%i[index show create new update edit destroy]) }
   end
 
+  context "when user is an owner but the lease is new (unpersisted)" do
+    subject { described_class.new(user, Lease.new) }
+
+    let(:owner) { create(:owner) }
+
+    before { create(:user_association, user: user, associable: owner) }
+
+    it { is_expected.to permit_actions(%i[new create]) }
+  end
+
+  context "when user is an owner but the property_id belongs to another owner" do
+    let(:other_property) { create(:property) }
+
+    subject { described_class.new(user, Lease.new(property_id: other_property.id)) }
+
+    let(:owner) { create(:owner) }
+
+    before { create(:user_association, user: user, associable: owner) }
+
+    it { is_expected.to forbid_actions(%i[create new]) }
+  end
+
   context "when user is associated with the lease's tenant" do
     before do
       create(:user_association, user: user, associable: lease.tenant)
