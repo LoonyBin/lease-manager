@@ -1151,8 +1151,8 @@ body.versions [data-nav="versions"] {
 /* Property: Name | Address | Capacity | Actions */
 .property-list { --cols: 1fr 1.5fr 12rem 8rem; }
 
-/* Lease: Property | Tenant | Dates | Details | Status | Actions */
-.lease-list { --cols: 1.5fr 1fr 1fr 1fr 0.75fr 6rem; }
+/* Lease: Property | Tenant | Dates | Details | Balance | Status | Actions */
+.lease-list { --cols: 1.5fr 1fr 1fr 1fr 0.75fr 0.75fr 6rem; }
 
 /* Invoice: Number | Tenant | Amount | Status | Actions */
 .invoice-list { --cols: 1.5fr 1fr 1.5fr 1fr 0.75fr 6rem; }
@@ -1180,7 +1180,7 @@ body.versions [data-nav="versions"] {
 
   body:has(#view-toggle:checked) .lease-list-header,
   body:has(#view-toggle:checked) .lease-item {
-    grid-template-columns: var(--cols, 1.5fr 1fr 1fr 1fr 0.75fr 6rem);
+    grid-template-columns: var(--cols, 1.5fr 1fr 1fr 1fr 0.75fr 0.75fr 6rem);
   }
 
   body:has(#view-toggle:checked) .invoice-list-header,
