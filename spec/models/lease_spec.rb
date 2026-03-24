@@ -200,6 +200,64 @@ RSpec.describe Lease do
     end
   end
 
+  describe ".by_status" do
+    let!(:active_lease) do
+      create(:lease, start_date: 1.month.ago.to_date, duration_months: 12)
+    end
+    let!(:upcoming_lease) do
+      create(:lease, start_date: 1.month.from_now.to_date, duration_months: 12)
+    end
+    let!(:expired_lease) do
+      create(:lease, start_date: 2.years.ago.to_date, duration_months: 6)
+    end
+    let!(:terminated_lease) do
+      create(:lease, start_date: 6.months.ago.to_date, duration_months: 12,
+                     terminated_on: 3.months.ago.to_date)
+    end
+
+    describe "active" do
+      subject { described_class.by_status("active") }
+
+      it { is_expected.to include(active_lease) }
+      it { is_expected.not_to include(upcoming_lease) }
+      it { is_expected.not_to include(expired_lease) }
+      it { is_expected.not_to include(terminated_lease) }
+    end
+
+    describe "upcoming" do
+      subject { described_class.by_status("upcoming") }
+
+      it { is_expected.to include(upcoming_lease) }
+      it { is_expected.not_to include(active_lease) }
+      it { is_expected.not_to include(expired_lease) }
+      it { is_expected.not_to include(terminated_lease) }
+    end
+
+    describe "expired" do
+      subject { described_class.by_status("expired") }
+
+      it { is_expected.to include(expired_lease) }
+      it { is_expected.not_to include(active_lease) }
+      it { is_expected.not_to include(upcoming_lease) }
+      it { is_expected.not_to include(terminated_lease) }
+    end
+
+    describe "terminated" do
+      subject { described_class.by_status("terminated") }
+
+      it { is_expected.to include(terminated_lease) }
+      it { is_expected.not_to include(active_lease) }
+      it { is_expected.not_to include(upcoming_lease) }
+      it { is_expected.not_to include(expired_lease) }
+    end
+
+    describe "unknown status" do
+      it "returns no records" do
+        expect(described_class.by_status("invalid")).to be_empty
+      end
+    end
+  end
+
   describe "after_create callback" do
     let(:old_lease) do
       create(:lease,
