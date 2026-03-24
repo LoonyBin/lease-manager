@@ -10,7 +10,7 @@ class LeasePolicy < ApplicationPolicy
   end
 
   def create?
-    admin? || owner_user?
+    admin? || owner_for_create?
   end
 
   def update?
@@ -27,6 +27,13 @@ class LeasePolicy < ApplicationPolicy
     return false unless record.persisted? && record.property_id
 
     user.owners.exists?(id: record.property.owner_id)
+  end
+
+  def owner_for_create?
+    return user.owners.exists? if record.property_id.blank?
+
+    owner_id = Property.where(id: record.property_id).pick(:owner_id)
+    owner_id && user.owners.exists?(id: owner_id)
   end
 
   def tenant_user?

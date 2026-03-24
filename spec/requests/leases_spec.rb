@@ -146,6 +146,54 @@ RSpec.describe "Leases" do
     end
   end
 
+  context "when signed in as an owner" do
+    let(:owner) { create(:owner) }
+    let!(:owned_property) { create(:property, owner: owner) }
+
+    let(:normal_user) { create(:user) }
+
+    before do
+      sign_in_as(normal_user)
+      create(:user_association, user: normal_user, associable: owner)
+    end
+
+    describe "GET /leases/new" do
+      it "returns http success" do
+        get new_lease_path
+        expect(response).to have_http_status(:success)
+      end
+    end
+
+    describe "POST /leases" do
+      let(:tenant) { create(:tenant) }
+      let(:valid_lease_params) do
+        {
+          property_id: owned_property.id,
+          tenant_id: tenant.id,
+          start_date: "2025-01-01",
+          duration_months: 12,
+          rent_amount: 1000,
+          security_deposit_value: 2,
+          enhancement_period_months: 12,
+          enhancement_amount: "5.0",
+          enhancement_type: "percentage"
+        }
+      end
+
+      it "creates a lease on an owned property" do
+        expect do
+          post leases_path, params: { lease: valid_lease_params }
+        end.to change(Lease, :count).by(1)
+      end
+
+      it "is forbidden for a property not owned by the user" do
+        other_property = create(:property)
+        post leases_path, params: { lease: { property_id: other_property.id } }
+        expect(response).to have_http_status(:forbidden).or redirect_to(root_path)
+      end
+    end
+  end
+
   describe "renewal flow" do
     let!(:old_lease) do
       create(:lease, start_date: 1.year.ago.to_date, duration_months: 12, rent_amount: 1000,
