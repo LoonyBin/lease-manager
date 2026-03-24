@@ -16,6 +16,7 @@ RSpec.describe "leases/show" do
   it { is_expected.to match(/12 months/) }
   it { is_expected.to match(/₹1,000/) }
   it { is_expected.to have_text("#{@lease.quantity} #{@lease.property.unit}") }
+  it { is_expected.to have_text(@lease.property_schedule) }
 
   it "renders the Statement heading" do
     expect(rendered).to have_css("h3", text: "Statement")
