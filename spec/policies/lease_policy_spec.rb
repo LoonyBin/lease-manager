@@ -33,10 +33,9 @@ RSpec.describe LeasePolicy do
   end
 
   context "when user is an owner but the property_id belongs to another owner" do
-    let(:other_property) { create(:property) }
-
     subject { described_class.new(user, Lease.new(property_id: other_property.id)) }
 
+    let(:other_property) { create(:property) }
     let(:owner) { create(:owner) }
 
     before { create(:user_association, user: user, associable: owner) }
