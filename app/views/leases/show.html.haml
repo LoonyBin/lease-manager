@@ -47,6 +47,9 @@
           .show-field
             .show-field-label Qty
             .show-field-value= "#{@lease.quantity} #{@lease.property.unit}"
+          .show-field.col-span-full
+            .show-field-label Property Schedule
+            .show-field-value.whitespace-pre-wrap= @lease.property_schedule
 
       .show-section
         %h3.show-section-title Financials
