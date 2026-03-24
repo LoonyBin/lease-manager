@@ -16,4 +16,21 @@ RSpec.describe "leases/new" do
   it { is_expected.to have_field("lease[duration_months]") }
   it { is_expected.to have_field("lease[rent_amount]") }
   it { is_expected.to have_field("lease[security_deposit_value]") }
+
+  context "when property_id is pre-populated" do
+    let(:property) { create(:property) }
+
+    before do
+      assign(:lease, Lease.new(property: property))
+      render
+    end
+
+    it "does not show the property select dropdown" do
+      expect(subject).not_to have_select("lease[property_id]")
+    end
+
+    it "shows a hidden field with the property_id" do
+      expect(subject).to have_css("input[type='hidden'][name='lease[property_id]']", visible: :hidden)
+    end
+  end
 end

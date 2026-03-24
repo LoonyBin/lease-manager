@@ -17,7 +17,7 @@ class LeasesController < ApplicationController
       old_lease = Lease.find(params[:renewed_from_id])
       @lease = Lease.build_renewal(old_lease)
     else
-      @lease = Lease.new
+      @lease = Lease.new(new_lease_prepopulate_params)
     end
     authorize @lease
   end
@@ -56,6 +56,10 @@ class LeasesController < ApplicationController
   end
 
   private
+
+  def new_lease_prepopulate_params
+    params.permit(lease: [:property_id])[:lease] || {}
+  end
 
   def lease_params
     params.expect(lease: [:property_id, :tenant_id, :start_date, :duration_months, :rent_amount,

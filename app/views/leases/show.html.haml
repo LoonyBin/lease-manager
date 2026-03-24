@@ -2,6 +2,30 @@
   = "#{@lease.property.name} → #{@lease.tenant.name}"
 
 - content_for :page_actions do
+  -# Create shortcut dropdown
+  - if policy(Invoice.new(lease: @lease)).create? || policy(Payment.new(lease: @lease)).create?
+    .dropdown.dropdown-end
+      %div{tabindex: 0, role: "button", class: "btn btn-ghost btn-sm btn-square", title: "Create"}
+        = heroicon "plus", options: { class: "w-5 h-5" }
+      %ul{tabindex: 0, class: "dropdown-content menu bg-base-100 rounded-box z-1 w-52 p-2 shadow-sm"}
+        - if policy(Invoice.new(lease: @lease)).create?
+          %li
+            = link_to new_invoice_path(invoice: { lease_id: @lease.id }) do
+              = heroicon "document-text", options: { class: "w-4 h-4" }
+              New Invoice
+          %li
+            = link_to new_invoice_path(invoice: { lease_id: @lease.id, document_type: :credit_note }) do
+              = heroicon "document-minus", options: { class: "w-4 h-4" }
+              New Credit Note
+        - if policy(Payment.new(lease: @lease)).create?
+          %li
+            = link_to new_payment_path(payment: { lease_id: @lease.id }) do
+              = heroicon "banknotes", options: { class: "w-4 h-4" }
+              Record Payment
+          %li
+            = link_to new_payment_path(payment: { lease_id: @lease.id, payment_type: :refund }) do
+              = heroicon "arrow-uturn-left", options: { class: "w-4 h-4" }
+              Record Refund
   -# Special actions first
   - if policy(@lease).new? && !@lease.terminated_on
     = link_to new_lease_path(renewed_from_id: @lease.id), class: "btn btn-ghost btn-sm btn-square text-success", title: "Renew" do

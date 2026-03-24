@@ -57,6 +57,16 @@ RSpec.describe "Payments" do
     end
   end
 
+  describe "GET /payments/new with lease pre-populated" do
+    before { sign_in_admin }
+
+    it "returns success with readonly lease field", :aggregate_failures do
+      get new_payment_path(payment: { lease_id: lease.id })
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include(lease.tenant.name)
+    end
+  end
+
   describe "GET /payments/new (refund)" do
     before { sign_in_admin }
 
