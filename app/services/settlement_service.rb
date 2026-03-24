@@ -12,38 +12,20 @@ class SettlementService
       end
     end
 
-    # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
     def settle(credit:, debit:, amount:)
-      raise ArgumentError, "Amount must be positive" unless amount.positive?
-      raise ArgumentError, "Insufficient credit balance" if amount > credit.balance.abs
-      raise ArgumentError, "Insufficient debit balance" if amount > debit.balance.abs
+      validate_settlement!(credit: credit, debit: debit, amount: amount)
 
       transaction_id = SecureRandom.uuid
 
       ActiveRecord::Base.transaction do
-        # Credit entry: positive (uses up credit, moves toward 0)
-        Entry.create!(
-          lease: credit.lease,
-          instrument: credit,
-          amount: amount,
-          transaction_id: transaction_id
-        )
-
-        # Debit entry: negative (pays down debt, moves toward 0)
-        Entry.create!(
-          lease: debit.lease,
-          instrument: debit,
-          amount: -amount,
-          transaction_id: transaction_id
-        )
-
+        create_entry(instrument: credit, amount: amount, transaction_id: transaction_id)
+        create_entry(instrument: debit, amount: -amount, transaction_id: transaction_id)
         credit.recalculate_balance!
         debit.recalculate_balance!
       end
 
       transaction_id
     end
-    # rubocop:enable Metrics/AbcSize, Metrics/MethodLength
 
     def readjust(lease)
       old_balance = lease.entries.sum(:amount)
@@ -61,6 +43,16 @@ class SettlementService
     end
 
     private
+
+    def validate_settlement!(credit:, debit:, amount:)
+      raise ArgumentError, "Amount must be positive" unless amount.positive?
+      raise ArgumentError, "Insufficient credit balance" if amount > credit.balance.abs
+      raise ArgumentError, "Insufficient debit balance" if amount > debit.balance.abs
+    end
+
+    def create_entry(instrument:, amount:, transaction_id:)
+      Entry.create!(lease: instrument.lease, instrument: instrument, amount: amount, transaction_id: transaction_id)
+    end
 
     def clear_settlements(lease)
       lease.entries.settlements.delete_all

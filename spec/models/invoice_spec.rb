@@ -230,7 +230,7 @@ RSpec.describe Invoice do
 
     context "when draft" do
       it "does not change status" do
-        invoice.update_column(:status, described_class.statuses[:draft]) # rubocop:disable Rails/SkipsModelValidations -- Test setup
+        invoice.update_column(:status, described_class.statuses[:draft]) # rubocop:disable Rails/SkipsModelValidations
         invoice.update_status_from_balance!
 
         expect(invoice.reload.status).to eq("draft")
@@ -239,7 +239,7 @@ RSpec.describe Invoice do
 
     context "when cancelled" do
       it "does not change status" do
-        invoice.update_column(:status, described_class.statuses[:cancelled]) # rubocop:disable Rails/SkipsModelValidations -- Test setup
+        invoice.update_column(:status, described_class.statuses[:cancelled]) # rubocop:disable Rails/SkipsModelValidations
         invoice.update_status_from_balance!
 
         expect(invoice.reload.status).to eq("cancelled")

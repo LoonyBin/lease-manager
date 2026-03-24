@@ -5,9 +5,6 @@ require "rails_helper"
 RSpec.describe "Leases" do
   before { sign_in_admin }
 
-  let(:property) { create(:property) }
-  let(:tenant) { create(:tenant) }
-
   describe "GET /leases" do
     it "returns http success" do
       get leases_path
@@ -23,7 +20,7 @@ RSpec.describe "Leases" do
                        terminated_on: 3.months.ago.to_date)
       end
 
-      it "returns only active leases when filtered by active" do
+      it "returns only active leases when filtered by active", :aggregate_failures do
         get leases_path, params: { q: { by_status: "active" } }
         expect(response.body).to include(active_lease.id.to_s)
         expect(response.body).not_to include(upcoming_lease.id.to_s)
@@ -31,7 +28,7 @@ RSpec.describe "Leases" do
         expect(response.body).not_to include(terminated_lease.id.to_s)
       end
 
-      it "returns only upcoming leases when filtered by upcoming" do
+      it "returns only upcoming leases when filtered by upcoming", :aggregate_failures do
         get leases_path, params: { q: { by_status: "upcoming" } }
         expect(response.body).to include(upcoming_lease.id.to_s)
         expect(response.body).not_to include(active_lease.id.to_s)
@@ -39,7 +36,7 @@ RSpec.describe "Leases" do
         expect(response.body).not_to include(terminated_lease.id.to_s)
       end
 
-      it "returns only expired leases when filtered by expired" do
+      it "returns only expired leases when filtered by expired", :aggregate_failures do
         get leases_path, params: { q: { by_status: "expired" } }
         expect(response.body).to include(expired_lease.id.to_s)
         expect(response.body).not_to include(active_lease.id.to_s)
@@ -47,7 +44,7 @@ RSpec.describe "Leases" do
         expect(response.body).not_to include(terminated_lease.id.to_s)
       end
 
-      it "returns only terminated leases when filtered by terminated" do
+      it "returns only terminated leases when filtered by terminated", :aggregate_failures do
         get leases_path, params: { q: { by_status: "terminated" } }
         expect(response.body).to include(terminated_lease.id.to_s)
         expect(response.body).not_to include(active_lease.id.to_s)
@@ -79,6 +76,9 @@ RSpec.describe "Leases" do
   end
 
   describe "POST /leases" do
+    let(:property) { create(:property) }
+    let(:tenant) { create(:tenant) }
+
     context "with valid parameters" do
       let(:valid_attributes) do
         {

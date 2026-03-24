@@ -50,17 +50,13 @@ RSpec.describe Lease do
         expect(lease).to be_valid
       end
 
-      it "considers existing leases with overlapping future lease" do # rubocop:disable RSpec/ExampleLength
+      it "is invalid when overlapping lease reduces available capacity", :aggregate_failures do
         create(:lease, property: property, quantity: 5, start_date: 6.months.from_now, duration_months: 6)
+        lease.assign_attributes(quantity: 6, duration_months: 12)
 
-        lease.quantity = 6
-        lease.duration_months = 12
-
-        aggregate_failures do
-          expect(lease).not_to be_valid
-          expect(lease.errors[:quantity])
-            .to include("exceeds available capacity of 5 Units during the lease period")
-        end
+        expect(lease).not_to be_valid
+        expect(lease.errors[:quantity])
+          .to include("exceeds available capacity of 5 Units during the lease period")
       end
     end
 

@@ -40,51 +40,46 @@ RSpec.describe "settlements:readjust", type: :task do # -- Rake task spec
     expect { Rake::Task["settlements:readjust"].invoke }.to raise_error(SystemExit)
   end
 
-  # rubocop:disable RSpec/ExampleLength, RSpec/MultipleExpectations -- Integration test
-  it "re-adjusts settlements for the given lease" do
-    older_invoice = create_invoice(amount: 100, date: 2.months.ago)
-    newer_invoice = create_invoice(amount: 100, date: 1.month.ago)
-    payment = create_payment_record(amount: 150)
+  context "with corrupted settlements" do
+    let!(:older_invoice) { create_invoice(amount: 100, date: 2.months.ago) }
+    let!(:newer_invoice) { create_invoice(amount: 100, date: 1.month.ago) }
+    let!(:payment) { create_payment_record(amount: 150) }
 
-    # Verify initial auto-settle state
-    expect(older_invoice.reload.balance).to eq(0)
-    expect(newer_invoice.reload.balance).to eq(50)
-    expect(payment.reload.balance).to eq(0)
+    before do
+      older_invoice.entries.settlements.destroy_all
+      older_invoice.recalculate_balance!
+      ENV["LEASE_ID"] = lease.id.to_s
+    end
 
-    # Manually corrupt settlements by deleting some entries
-    older_invoice.entries.settlements.destroy_all
-    older_invoice.recalculate_balance!
+    it "re-adjusts settlements for the given lease" do
+      expect { Rake::Task["settlements:readjust"].invoke }.to output(/Readjusted settlements/).to_stdout
+    end
 
-    # Now older_invoice has balance 100 (unsettled) — inconsistent state
-    expect(older_invoice.reload.balance).to eq(100)
-
-    ENV["LEASE_ID"] = lease.id.to_s
-    expect { Rake::Task["settlements:readjust"].invoke }.to output(/Readjusted settlements/).to_stdout
-
-    # After readjust, settlements should be back to correct state
-    expect(older_invoice.reload.balance).to eq(0)
-    expect(newer_invoice.reload.balance).to eq(50)
-    expect(payment.reload.balance).to eq(0)
+    it "restores correct balances", :aggregate_failures do
+      Rake::Task["settlements:readjust"].invoke
+      expect(older_invoice.reload.balance).to eq(0)
+      expect(newer_invoice.reload.balance).to eq(50)
+      expect(payment.reload.balance).to eq(0)
+    end
   end
 
-  it "preserves total balance across readjustment" do
-    create_invoice(amount: 500, date: 2.months.ago)
-    create_payment_record(amount: 300, date: 1.month.ago)
+  context "with valid settlements" do
+    before do
+      create_invoice(amount: 500, date: 2.months.ago)
+      create_payment_record(amount: 300, date: 1.month.ago)
+      ENV["LEASE_ID"] = lease.id.to_s
+    end
 
-    total_before = lease.entries.sum(:amount)
-
-    ENV["LEASE_ID"] = lease.id.to_s
-    expect { Rake::Task["settlements:readjust"].invoke }.to output.to_stdout
-
-    expect(lease.entries.sum(:amount)).to eq(total_before)
+    it "preserves total balance across readjustment", :aggregate_failures do
+      total_before = lease.entries.sum(:amount)
+      expect { Rake::Task["settlements:readjust"].invoke }.to output.to_stdout
+      expect(lease.entries.sum(:amount)).to eq(total_before)
+    end
   end
 
   it "handles lease with no settlements gracefully" do
-    # Draft invoice — won't create entries
     create(:invoice, lease: lease, date: Time.zone.today, status: :draft)
-
     ENV["LEASE_ID"] = lease.id.to_s
     expect { Rake::Task["settlements:readjust"].invoke }.to output(/Readjusted settlements/).to_stdout
   end
-  # rubocop:enable RSpec/ExampleLength, RSpec/MultipleExpectations
 end
