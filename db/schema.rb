@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_10_081557) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_24_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -78,6 +78,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_10_081557) do
     t.text "property_schedule"
     t.integer "quantity", default: 1, null: false
     t.bigint "renewed_from_id"
+    t.decimal "cached_balance", precision: 10, scale: 2, default: "0.0", null: false
     t.decimal "rent_amount"
     t.integer "security_deposit_type", default: 0, null: false
     t.decimal "security_deposit_value", precision: 12, scale: 2

@@ -22,34 +22,34 @@ RSpec.describe "Leases" do
 
       it "returns only active leases when filtered by active", :aggregate_failures do
         get leases_path, params: { q: { by_status: "active" } }
-        expect(response.body).to include(active_lease.id.to_s)
-        expect(response.body).not_to include(upcoming_lease.id.to_s)
-        expect(response.body).not_to include(expired_lease.id.to_s)
-        expect(response.body).not_to include(terminated_lease.id.to_s)
+        expect(response.body).to include(lease_path(active_lease))
+        expect(response.body).not_to include(lease_path(upcoming_lease))
+        expect(response.body).not_to include(lease_path(expired_lease))
+        expect(response.body).not_to include(lease_path(terminated_lease))
       end
 
       it "returns only upcoming leases when filtered by upcoming", :aggregate_failures do
         get leases_path, params: { q: { by_status: "upcoming" } }
-        expect(response.body).to include(upcoming_lease.id.to_s)
-        expect(response.body).not_to include(active_lease.id.to_s)
-        expect(response.body).not_to include(expired_lease.id.to_s)
-        expect(response.body).not_to include(terminated_lease.id.to_s)
+        expect(response.body).to include(lease_path(upcoming_lease))
+        expect(response.body).not_to include(lease_path(active_lease))
+        expect(response.body).not_to include(lease_path(expired_lease))
+        expect(response.body).not_to include(lease_path(terminated_lease))
       end
 
       it "returns only expired leases when filtered by expired", :aggregate_failures do
         get leases_path, params: { q: { by_status: "expired" } }
-        expect(response.body).to include(expired_lease.id.to_s)
-        expect(response.body).not_to include(active_lease.id.to_s)
-        expect(response.body).not_to include(upcoming_lease.id.to_s)
-        expect(response.body).not_to include(terminated_lease.id.to_s)
+        expect(response.body).to include(lease_path(expired_lease))
+        expect(response.body).not_to include(lease_path(active_lease))
+        expect(response.body).not_to include(lease_path(upcoming_lease))
+        expect(response.body).not_to include(lease_path(terminated_lease))
       end
 
       it "returns only terminated leases when filtered by terminated", :aggregate_failures do
         get leases_path, params: { q: { by_status: "terminated" } }
-        expect(response.body).to include(terminated_lease.id.to_s)
-        expect(response.body).not_to include(active_lease.id.to_s)
-        expect(response.body).not_to include(upcoming_lease.id.to_s)
-        expect(response.body).not_to include(expired_lease.id.to_s)
+        expect(response.body).to include(lease_path(terminated_lease))
+        expect(response.body).not_to include(lease_path(active_lease))
+        expect(response.body).not_to include(lease_path(upcoming_lease))
+        expect(response.body).not_to include(lease_path(expired_lease))
       end
     end
   end

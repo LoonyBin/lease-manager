@@ -50,6 +50,12 @@ class Lease < ApplicationRecord
   validates :duration_months, presence: true, numericality: { only_integer: true, greater_than: 0 }
   validate :termination_date_after_start_date
 
+  # rubocop:disable Rails/SkipsModelValidations -- Intentionally skip callbacks to avoid infinite loops
+  def recalculate_cached_balance!
+    update_column(:cached_balance, invoices.unsettled.sum(:balance))
+  end
+  # rubocop:enable Rails/SkipsModelValidations
+
   def end_date
     return terminated_on if terminated_on.present?
     return nil unless start_date && duration_months

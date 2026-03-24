@@ -32,6 +32,7 @@
             .lease-col-tenant Tenant
             .lease-col-dates Dates
             .lease-col-details Rent
+            .lease-col-balance Balance
             .lease-col-status Status
             .lease-col-actions Actions
 
@@ -66,6 +67,8 @@
                 .lease-item-details-compact
                   %span.rent= number_to_currency(lease.rent_amount, unit: "₹", precision: 0)
                   %span.duration #{lease.duration_months} months
+              .resource-col.lease-col-balance
+                %span{class: ("text-error" if lease.cached_balance > 0)}= number_to_currency(lease.cached_balance, unit: "₹", precision: 0)
               .resource-col-flex.lease-col-status
                 %span.resource-badge{class: "resource-badge-#{status == 'active' ? 'success' : status == 'upcoming' ? 'info' : 'neutral'}"}= status.capitalize
               .resource-col-actions.lease-col-actions
