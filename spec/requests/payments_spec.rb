@@ -23,6 +23,40 @@ RSpec.describe "Payments" do
     end
   end
 
+  describe "GET /payments/new lease dropdown filtering" do
+    before do
+      sign_in_admin
+      create(:lease, tenant: active_tenant,
+                     start_date: 3.months.ago.to_date, duration_months: 24,
+                     cached_balance: 0)
+      create(:lease, tenant: balance_tenant,
+                     start_date: 3.years.ago.to_date, duration_months: 6,
+                     cached_balance: 500)
+      create(:lease, tenant: excluded_tenant,
+                     start_date: 3.years.ago.to_date, duration_months: 6,
+                     cached_balance: 0)
+    end
+
+    let(:active_tenant) { create(:tenant, name: "Active Tenant") }
+    let(:balance_tenant) { create(:tenant, name: "Balance Tenant") }
+    let(:excluded_tenant) { create(:tenant, name: "Excluded Tenant") }
+
+    it "includes active leases with zero balance" do
+      get new_payment_path
+      expect(response.body).to include("Active Tenant")
+    end
+
+    it "includes inactive leases with outstanding balance" do
+      get new_payment_path
+      expect(response.body).to include("Balance Tenant")
+    end
+
+    it "excludes inactive leases with no balance" do
+      get new_payment_path
+      expect(response.body).not_to include("Excluded Tenant")
+    end
+  end
+
   describe "GET /payments/new (refund)" do
     before { sign_in_admin }
 
