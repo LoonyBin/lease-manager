@@ -95,6 +95,13 @@ RSpec.describe "Leases" do
         expect(response).to redirect_to(lease_path(lease))
       end
     end
+
+    context "when updating quantity" do
+      it "updates the quantity" do
+        patch lease_path(lease), params: { lease: { quantity: 2 } }
+        expect(lease.reload.quantity).to eq(2)
+      end
+    end
   end
 
   describe "renewal flow" do
