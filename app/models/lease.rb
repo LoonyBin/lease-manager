@@ -7,7 +7,7 @@ class Lease < ApplicationRecord
 
   VALID_STATUSES = %w[active expired terminated upcoming].freeze
 
-  scope :by_status, ->(status) {
+  scope :by_status, lambda { |status|
     case status.to_s
     when "terminated"
       where.not(terminated_on: nil)

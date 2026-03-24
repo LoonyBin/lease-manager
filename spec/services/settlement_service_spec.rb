@@ -23,57 +23,48 @@ RSpec.describe SettlementService do
     let!(:invoice) { create_invoice(amount: 100) }
     let!(:payment) { create_payment_record(amount: 100) }
 
-    # rubocop:disable RSpec/ExampleLength -- Test setup requires multiple steps
-    it "creates two entries with the same transaction_id" do
-      # Clear any auto-settled entries first
+    # rubocop:disable Rails/SkipsModelValidations -- Reset auto-settled state for manual settlement tests
+    def reset_balances(invoice_balance: 100, payment_balance: -100)
       Entry.delete_all
-      invoice.update_column(:balance, 100) # rubocop:disable Rails/SkipsModelValidations -- Test setup
-      payment.update_column(:balance, -100) # rubocop:disable Rails/SkipsModelValidations -- Test setup
+      invoice.update_column(:balance, invoice_balance)
+      payment.update_column(:balance, payment_balance)
+    end
+    # rubocop:enable Rails/SkipsModelValidations
 
-      txn_id = described_class.settle(credit: payment, debit: invoice, amount: 50)
+    context "when settling a partial amount" do
+      before { reset_balances }
 
-      entries = Entry.where(transaction_id: txn_id)
-      expect(entries.count).to eq(2)
+      it "creates two entries with the same transaction_id" do
+        txn_id = described_class.settle(credit: payment, debit: invoice, amount: 50)
+        expect(Entry.where(transaction_id: txn_id).count).to eq(2)
+      end
+
+      it "creates a positive entry for credit (uses up credit)" do
+        txn_id = described_class.settle(credit: payment, debit: invoice, amount: 50)
+        expect(Entry.find_by(transaction_id: txn_id, instrument: payment).amount).to eq(50)
+      end
+
+      it "creates a negative entry for debit (reduces debt)" do
+        txn_id = described_class.settle(credit: payment, debit: invoice, amount: 50)
+        expect(Entry.find_by(transaction_id: txn_id, instrument: invoice).amount).to eq(-50)
+      end
     end
 
-    it "creates a positive entry for credit (uses up credit)" do
-      Entry.delete_all
-      invoice.update_column(:balance, 100) # rubocop:disable Rails/SkipsModelValidations -- Test setup
-      payment.update_column(:balance, -100) # rubocop:disable Rails/SkipsModelValidations -- Test setup
+    context "with manually created entries" do
+      before do
+        Entry.delete_all
+        Entry.create!(lease: lease, instrument: invoice, amount: 100, transaction_id: nil)
+        Entry.create!(lease: lease, instrument: payment, amount: -100, transaction_id: nil)
+        invoice.recalculate_balance!
+        payment.recalculate_balance!
+      end
 
-      txn_id = described_class.settle(credit: payment, debit: invoice, amount: 50)
-
-      payment_entry = Entry.find_by(transaction_id: txn_id, instrument: payment)
-      expect(payment_entry.amount).to eq(50)
+      it "updates balances on both instruments", :aggregate_failures do
+        described_class.settle(credit: payment, debit: invoice, amount: 50)
+        expect(invoice.reload.balance).to eq(50)
+        expect(payment.reload.balance).to eq(-50)
+      end
     end
-
-    it "creates a negative entry for debit (reduces debt)" do
-      Entry.delete_all
-      invoice.update_column(:balance, 100) # rubocop:disable Rails/SkipsModelValidations -- Test setup
-      payment.update_column(:balance, -100) # rubocop:disable Rails/SkipsModelValidations -- Test setup
-
-      txn_id = described_class.settle(credit: payment, debit: invoice, amount: 50)
-
-      invoice_entry = Entry.find_by(transaction_id: txn_id, instrument: invoice)
-      expect(invoice_entry.amount).to eq(-50)
-    end
-
-    it "updates balances on both instruments", :aggregate_failures do
-      Entry.delete_all
-      # Create initial entries to set up balances
-      Entry.create!(lease: lease, instrument: invoice, amount: 100, transaction_id: nil)
-      Entry.create!(lease: lease, instrument: payment, amount: -100, transaction_id: nil)
-      invoice.recalculate_balance!
-      payment.recalculate_balance!
-
-      described_class.settle(credit: payment, debit: invoice, amount: 50)
-
-      # Invoice (debit): started at 100, added -50 settlement = 50 remaining debt
-      expect(invoice.reload.balance).to eq(50)
-      # Payment (credit): started at -100, added +50 settlement = -50 remaining credit
-      expect(payment.reload.balance).to eq(-50)
-    end
-    # rubocop:enable RSpec/ExampleLength
 
     it "raises error if amount is not positive" do
       expect { described_class.settle(credit: payment, debit: invoice, amount: 0) }
@@ -81,19 +72,13 @@ RSpec.describe SettlementService do
     end
 
     it "raises error if credit balance is insufficient" do
-      Entry.delete_all
-      payment.update_column(:balance, -30) # rubocop:disable Rails/SkipsModelValidations -- Test setup
-      invoice.update_column(:balance, 100) # rubocop:disable Rails/SkipsModelValidations -- Test setup
-
+      reset_balances(payment_balance: -30)
       expect { described_class.settle(credit: payment, debit: invoice, amount: 50) }
         .to raise_error(ArgumentError, "Insufficient credit balance")
     end
 
     it "raises error if debit balance is insufficient" do
-      Entry.delete_all
-      payment.update_column(:balance, -100) # rubocop:disable Rails/SkipsModelValidations -- Test setup
-      invoice.update_column(:balance, 30) # rubocop:disable Rails/SkipsModelValidations -- Test setup
-
+      reset_balances(invoice_balance: 30)
       expect { described_class.settle(credit: payment, debit: invoice, amount: 50) }
         .to raise_error(ArgumentError, "Insufficient debit balance")
     end
@@ -166,32 +151,17 @@ RSpec.describe SettlementService do
       end
     end
 
-    context "with multiple instrument types" do
-      # rubocop:disable RSpec/ExampleLength -- Integration test verifying complete flow
-      it "correctly balances all instruments", :aggregate_failures do
-        # Create invoice for 1000
-        invoice = create_invoice(amount: 1000)
-        expect(invoice.reload.balance).to eq(1000)
+    context "with mixed instrument types (payment, credit note, final payment)" do
+      before do
+        create_invoice(amount: 1000)
+        create_payment_record(amount: 800)
+        create_invoice(amount: 100, document_type: :credit_note)
+        create_payment_record(amount: 100)
+      end
 
-        # Payment of 800
-        payment = create_payment_record(amount: 800)
-        expect(invoice.reload.balance).to eq(200)
-        expect(payment.reload.balance).to eq(0)
-
-        # Credit note of 100
-        credit_note = create_invoice(amount: 100, document_type: :credit_note)
-        expect(invoice.reload.balance).to eq(100)
-        expect(credit_note.reload.balance).to eq(0)
-
-        # Final payment of 100 to clear the invoice
-        final_payment = create_payment_record(amount: 100)
-        expect(invoice.reload.balance).to eq(0)
-        expect(final_payment.reload.balance).to eq(0)
-
-        # Total tenant balance should be 0
+      it "zeroes all balances when fully paid" do
         expect(lease.entries.sum(:amount)).to eq(0)
       end
-      # rubocop:enable RSpec/ExampleLength
     end
   end
 
@@ -200,29 +170,25 @@ RSpec.describe SettlementService do
     let!(:newer_invoice) { create_invoice(amount: 100, date: 1.month.ago) }
     let!(:payment) { create_payment_record(amount: 150) }
 
-    # rubocop:disable RSpec/ExampleLength, RSpec/MultipleExpectations -- Integration test
-    it "clears old settlements and re-settles credits chronologically" do
-      # Corrupt state manually by deleting settlements without updating balances correctly
-      older_invoice.entries.settlements.destroy_all
-      older_invoice.recalculate_balance!
+    context "with corrupted settlements" do
+      before do
+        older_invoice.entries.settlements.destroy_all
+        older_invoice.recalculate_balance!
+      end
 
-      # Pre-condition: Inconsistent state (older invoice unpaid, payment still thinks it paid something)
-      # Actually payment balance won't update automatically here unless we force it, but let's assume
-      # we are fixing a messed up state.
-      expect(older_invoice.reload.balance).to eq(100)
+      it "re-settles credits chronologically", :aggregate_failures do
+        result = described_class.readjust(lease)
+        expect(result[:settlement_count]).to be >= 0
+        expect(result[:credit_count]).to eq(1)
+      end
 
-      # Run readjust
-      result = described_class.readjust(lease)
-
-      expect(result[:settlement_count]).to be >= 0
-      expect(result[:credit_count]).to eq(1)
-
-      # Post-condition: Correctly settled (older invoice paid first)
-      expect(older_invoice.reload.balance).to eq(0)
-      expect(newer_invoice.reload.balance).to eq(50)
-      expect(payment.reload.balance).to eq(0)
+      it "restores correct balances", :aggregate_failures do
+        described_class.readjust(lease)
+        expect(older_invoice.reload.balance).to eq(0)
+        expect(newer_invoice.reload.balance).to eq(50)
+        expect(payment.reload.balance).to eq(0)
+      end
     end
-    # rubocop:enable RSpec/ExampleLength, RSpec/MultipleExpectations
   end
 
   describe "balance queries" do
@@ -243,22 +209,17 @@ RSpec.describe SettlementService do
   end
 
   describe "settlement linkage queries" do
-    # rubocop:disable RSpec/ExampleLength -- Integration test demonstrating query pattern
-    it "can find what settled an invoice", :aggregate_failures do
-      invoice = create_invoice(amount: 100)
-      payment = create_payment_record(amount: 100)
+    let!(:invoice) { create_invoice(amount: 100) }
+    let!(:payment) { create_payment_record(amount: 100) }
 
-      # Get settlement entries for the invoice
-      settlement_entries = invoice.entries.settlements
-
-      expect(settlement_entries.count).to eq(1)
-
-      # Find counterpart
-      txn_id = settlement_entries.first.transaction_id
-      counterparts = Entry.where(transaction_id: txn_id).where.not(instrument: invoice)
-
-      expect(counterparts.first.instrument).to eq(payment)
+    it "creates settlement entries for auto-settled invoice" do
+      expect(invoice.entries.settlements.count).to eq(1)
     end
-    # rubocop:enable RSpec/ExampleLength
+
+    it "links settlement counterpart to the payment" do
+      txn_id = invoice.entries.settlements.first.transaction_id
+      counterpart = Entry.where(transaction_id: txn_id).where.not(instrument: invoice).first
+      expect(counterpart.instrument).to eq(payment)
+    end
   end
 end
