@@ -69,6 +69,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_24_000001) do
   end
 
   create_table "leases", force: :cascade do |t|
+    t.decimal "cached_balance", precision: 10, scale: 2, default: "0.0", null: false
     t.datetime "created_at", null: false
     t.integer "duration_months"
     t.decimal "enhancement_amount", precision: 10, scale: 2
@@ -78,7 +79,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_24_000001) do
     t.text "property_schedule"
     t.integer "quantity", default: 1, null: false
     t.bigint "renewed_from_id"
-    t.decimal "cached_balance", precision: 10, scale: 2, default: "0.0", null: false
     t.decimal "rent_amount"
     t.integer "security_deposit_type", default: 0, null: false
     t.decimal "security_deposit_value", precision: 12, scale: 2
