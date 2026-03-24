@@ -44,6 +44,9 @@
           .show-field
             .show-field-label Duration
             .show-field-value= pluralize(@lease.duration_months, "month")
+          .show-field
+            .show-field-label Qty
+            .show-field-value= "#{@lease.quantity} #{@lease.property.unit}"
 
       .show-section
         %h3.show-section-title Financials
