@@ -2,20 +2,23 @@
 
 class BankStatementsController < ApplicationController
   def index
-    @bank_statements = BankStatement.order(uploaded_at: :desc)
+    @bank_statements = policy_scope(BankStatement).order(uploaded_at: :desc)
   end
 
   def show
     @bank_statement = BankStatement.find(params[:id])
+    authorize @bank_statement
     @transactions = @bank_statement.bank_transactions.includes(:matched_payment)
   end
 
   def new
     @bank_statement = BankStatement.new
+    authorize @bank_statement
   end
 
   def create
     @bank_statement = BankStatement.new(bank_statement_params)
+    authorize @bank_statement
     @bank_statement.uploaded_at = Time.current
     @bank_statement.filename = params[:bank_statement][:file]&.original_filename
 

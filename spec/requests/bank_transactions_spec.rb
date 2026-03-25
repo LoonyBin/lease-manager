@@ -3,6 +3,8 @@
 require "rails_helper"
 
 RSpec.describe "BankTransactions" do
+  before { sign_in_admin }
+
   let(:bank_statement) { create(:bank_statement) }
   let(:transaction) { create(:bank_transaction, bank_statement: bank_statement) }
 

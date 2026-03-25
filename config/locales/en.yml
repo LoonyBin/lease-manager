@@ -2,6 +2,16 @@
 en:
   authorization:
     not_authorized: You are not authorized to perform this action.
+  bank_statements:
+    create:
+      success: Bank statement uploaded and processed.
+  bank_transactions:
+    confirm:
+      success: Match confirmed.
+    reject:
+      success: Match rejected.
+    rematch:
+      success: Transaction reset for re-matching.
   helpers:
     links:
       clear: Clear
@@ -56,16 +66,6 @@ en:
       success: Tenant was successfully destroyed.
     update:
       success: Tenant was successfully updated.
-  bank_statements:
-    create:
-      success: "Bank statement uploaded and processed."
-  bank_transactions:
-    confirm:
-      success: "Match confirmed."
-    reject:
-      success: "Match rejected."
-    rematch:
-      success: "Transaction reset for re-matching."
   user_associations:
     create:
       success: Association was successfully added.

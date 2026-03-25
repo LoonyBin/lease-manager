@@ -3,6 +3,8 @@
 require "rails_helper"
 
 RSpec.describe "BankStatements" do
+  before { sign_in_admin }
+
   describe "GET /bank_statements" do
     it "returns http success" do
       get bank_statements_path
