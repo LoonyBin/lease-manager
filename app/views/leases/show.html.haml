@@ -5,9 +5,9 @@
   -# Create shortcut dropdown
   - if policy(Invoice.new(lease: @lease)).create? || policy(Payment.new(lease: @lease)).create?
     .dropdown.dropdown-end
-      %div{tabindex: 0, role: "button", class: "btn btn-ghost btn-sm btn-square", title: "Create"}
+      .btn.btn-ghost.btn-sm.btn-square{tabindex: 0, role: "button", title: "Create"}
         = heroicon "plus", options: { class: "w-5 h-5" }
-      %ul{tabindex: 0, class: "dropdown-content menu bg-base-100 rounded-box z-1 w-52 p-2 shadow-sm"}
+      %ul.dropdown-content.menu.bg-base-100.rounded-box.z-1.w-52.p-2.shadow-sm{tabindex: 0}
         - if policy(Invoice.new(lease: @lease)).create?
           %li
             = link_to new_invoice_path(invoice: { lease_id: @lease.id }) do

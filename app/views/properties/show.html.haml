@@ -4,9 +4,9 @@
   -# Create shortcut dropdown
   - if policy(Lease.new(property: @property)).create?
     .dropdown.dropdown-end
-      %div{tabindex: 0, role: "button", class: "btn btn-ghost btn-sm btn-square", title: "Create"}
+      .btn.btn-ghost.btn-sm.btn-square{tabindex: 0, role: "button", title: "Create"}
         = heroicon "plus", options: { class: "w-5 h-5" }
-      %ul{tabindex: 0, class: "dropdown-content menu bg-base-100 rounded-box z-1 w-52 p-2 shadow-sm"}
+      %ul.dropdown-content.menu.bg-base-100.rounded-box.z-1.w-52.p-2.shadow-sm{tabindex: 0}
         %li
           = link_to new_lease_path(lease: { property_id: @property.id }) do
             = heroicon "key", options: { class: "w-4 h-4" }

@@ -57,27 +57,27 @@ RSpec.describe "leases/show" do
     end
   end
 
-  context "create shortcut dropdown" do
-    subject { Capybara.string(rendered) }
+  context "with create shortcut dropdown" do
+    subject { Capybara.string(view.content_for(:page_actions)) }
 
     it "renders the + dropdown button" do
-      expect(subject).to have_css(".dropdown")
+      is_expected.to have_css(".dropdown")
     end
 
     it "includes a New Invoice link" do
-      expect(subject).to have_link("New Invoice")
+      is_expected.to have_link("New Invoice")
     end
 
     it "includes a New Credit Note link" do
-      expect(subject).to have_link("New Credit Note")
+      is_expected.to have_link("New Credit Note")
     end
 
     it "includes a Record Payment link" do
-      expect(subject).to have_link("Record Payment")
+      is_expected.to have_link("Record Payment")
     end
 
     it "includes a Record Refund link" do
-      expect(subject).to have_link("Record Refund")
+      is_expected.to have_link("Record Refund")
     end
   end
 end

@@ -230,4 +230,3 @@ RSpec.describe "Leases" do
     end
   end
 end
-

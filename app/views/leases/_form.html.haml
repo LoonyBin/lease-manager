@@ -8,11 +8,7 @@
       %span Renewing lease ##{f.object.renewed_from_id}
 
   = f.grid_inputs do
-    - if f.object.property_id?
-      = f.input :property, col: 4, readonly: true
-      = f.input :property_id, as: :hidden
-    - else
-      = f.association :property, collection: policy_scope(Property).order(:name)
+    = f.association :property, presettable: true, collection: policy_scope(Property).order(:name)
     = f.association :tenant
 
     = f.input :quantity, hint: "Amount of property capacity to lease. Available: #{lease.property&.available_capacity || 'N/A'}"
