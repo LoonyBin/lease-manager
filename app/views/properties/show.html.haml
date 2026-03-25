@@ -1,6 +1,16 @@
 - content_for :title, @property.name
 
 - content_for :page_actions do
+  -# Create shortcut dropdown
+  - if policy(Lease.new(property: @property)).create?
+    .dropdown.dropdown-end
+      .btn.btn-ghost.btn-sm.btn-square{tabindex: 0, role: "button", title: "Create"}
+        = heroicon "plus", options: { class: "w-5 h-5" }
+      %ul.dropdown-content.menu.bg-base-100.rounded-box.z-1.w-52.p-2.shadow-sm{tabindex: 0}
+        %li
+          = link_to new_lease_path(lease: { property_id: @property.id }) do
+            = heroicon "key", options: { class: "w-4 h-4" }
+            New Lease
   - if policy(@property).edit?
     = link_to edit_property_path(@property), class: "btn btn-ghost btn-sm btn-square", title: "Edit" do
       = heroicon "pencil-square", options: { class: "w-5 h-5" }

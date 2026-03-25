@@ -73,6 +73,16 @@ RSpec.describe "Leases" do
         expect(response.body).to include("Renewing lease ##{old_lease.id}")
       end
     end
+
+    context "with property_id pre-populated" do
+      let(:property) { create(:property) }
+
+      it "returns success with readonly property field", :aggregate_failures do
+        get new_lease_path(lease: { property_id: property.id })
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include(property.name)
+      end
+    end
   end
 
   describe "POST /leases" do
