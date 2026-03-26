@@ -78,6 +78,11 @@ RSpec.describe Lease do
       it "is invalid when inherit? and renewed_from is absent" do
         lease = build(:lease, enhancement_type: :inherit, enhancement_amount: nil, renewed_from: nil)
         expect(lease).not_to be_valid
+      end
+
+      it "sets an error on renewed_from when inherit? and renewed_from is absent" do
+        lease = build(:lease, enhancement_type: :inherit, enhancement_amount: nil, renewed_from: nil)
+        lease.valid?
         expect(lease.errors[:renewed_from]).to be_present
       end
 
@@ -189,7 +194,7 @@ RSpec.describe Lease do
     end
 
     context "with :inherit type" do
-      let(:lease_1) do
+      let(:root_lease) do
         create(:lease,
                start_date: Date.new(2023, 1, 1),
                rent_amount: 1000,
@@ -198,36 +203,36 @@ RSpec.describe Lease do
                enhancement_type: :percentage)
       end
 
-      let(:lease_2) do
+      let(:child_lease) do
         build(:lease,
               start_date: Date.new(2023, 12, 1),
               rent_amount: 1100,
               enhancement_period_months: 12,
               enhancement_amount: nil,
               enhancement_type: :inherit,
-              renewed_from: lease_1).tap(&:save!)
+              renewed_from: root_lease).tap(&:save!)
       end
 
-      let(:lease_3) do
+      let(:grandchild_lease) do
         build(:lease,
               start_date: Date.new(2024, 11, 1),
               rent_amount: 1210,
               enhancement_period_months: 12,
               enhancement_amount: nil,
               enhancement_type: :inherit,
-              renewed_from: lease_2).tap(&:save!)
+              renewed_from: child_lease).tap(&:save!)
       end
 
       it "delegates to parent lease" do
-        expect(lease_2.current_rent_at(Date.new(2024, 1, 1))).to eq(1100)
+        expect(child_lease.current_rent_at(Date.new(2024, 1, 1))).to eq(1100)
       end
 
       it "delegates through the chain (grandparent)" do
-        expect(lease_3.current_rent_at(Date.new(2025, 1, 1))).to eq(1210.0)
+        expect(grandchild_lease.current_rent_at(Date.new(2025, 1, 1))).to eq(1210.0)
       end
 
       it "delegates mid-period through the chain" do
-        expect(lease_3.current_rent_at(Date.new(2024, 3, 1))).to eq(1100)
+        expect(grandchild_lease.current_rent_at(Date.new(2024, 3, 1))).to eq(1100)
       end
 
       it "falls back to rent_amount when renewed_from is absent" do
