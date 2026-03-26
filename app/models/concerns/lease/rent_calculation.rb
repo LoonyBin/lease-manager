@@ -5,18 +5,21 @@ class Lease
     extend ActiveSupport::Concern
 
     included do
-      enum :enhancement_type, { percentage: 0, fixed: 1 }
+      enum :enhancement_type, { percentage: 0, fixed: 1, inherit: 2 }
       enum :security_deposit_type, { months: 0, fixed: 1 }, prefix: :security_deposit
 
       validates :rent_amount, presence: true, numericality: { greater_than: 0 }
       validates :enhancement_period_months, presence: true, numericality: { only_integer: true, greater_than: 0 }
       validates :security_deposit_value, presence: true,
                                          numericality: { greater_than_or_equal_to: 0 }
-      validates :enhancement_amount, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
+      validates :enhancement_amount, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true,
+                                       unless: :inherit?
+      validates :renewed_from, presence: true, if: :inherit?
       validates :tax_rate, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }, allow_nil: true
     end
 
     def current_rent_at(date)
+      return renewed_from.current_rent_at(date) if inherit? && renewed_from.present?
       return rent_amount if date < start_date
 
       months_elapsed = ((date.year * 12) + date.month) - ((start_date.year * 12) + start_date.month)

@@ -60,6 +60,40 @@ RSpec.describe Lease do
       end
     end
 
+    describe "enhancement_amount with :inherit type" do
+      it "is valid when inherit? and enhancement_amount is nil" do
+        parent = create(:lease)
+        lease = build(:lease, enhancement_type: :inherit, enhancement_amount: nil, renewed_from: parent)
+        expect(lease).to be_valid
+      end
+
+      it "is invalid when percentage? and enhancement_amount is nil" do
+        lease = build(:lease, enhancement_type: :percentage, enhancement_amount: nil)
+        # nil passes allow_nil, so check the numericality does not reject nil
+        expect(lease).to be_valid
+      end
+    end
+
+    describe ":inherit requires renewed_from" do
+      it "is invalid when inherit? and renewed_from is absent" do
+        lease = build(:lease, enhancement_type: :inherit, enhancement_amount: nil, renewed_from: nil)
+        expect(lease).not_to be_valid
+        expect(lease.errors[:renewed_from]).to be_present
+      end
+
+      it "is valid when inherit? and renewed_from is present" do
+        parent = create(:lease)
+        lease = build(:lease, enhancement_type: :inherit, enhancement_amount: nil, renewed_from: parent)
+        expect(lease).to be_valid
+      end
+
+      it "does not require renewed_from when percentage?" do
+        lease = build(:lease, enhancement_type: :percentage, renewed_from: nil)
+        lease.valid?
+        expect(lease.errors[:renewed_from]).to be_empty
+      end
+    end
+
     describe "#termination_date_after_start_date" do
       let(:lease) { build(:lease, start_date: Time.zone.today, terminated_on: Date.yesterday) }
 
@@ -153,6 +187,56 @@ RSpec.describe Lease do
       lease.update(enhancement_type: :fixed, enhancement_amount: 100)
       expect(lease.current_rent_at(Date.new(2024, 1, 1))).to eq(1100)
     end
+
+    context "with :inherit type" do
+      let(:lease_1) do
+        create(:lease,
+               start_date: Date.new(2023, 1, 1),
+               rent_amount: 1000,
+               enhancement_period_months: 12,
+               enhancement_amount: 10.0,
+               enhancement_type: :percentage)
+      end
+
+      let(:lease_2) do
+        build(:lease,
+              start_date: Date.new(2023, 12, 1),
+              rent_amount: 1100,
+              enhancement_period_months: 12,
+              enhancement_amount: nil,
+              enhancement_type: :inherit,
+              renewed_from: lease_1).tap(&:save!)
+      end
+
+      let(:lease_3) do
+        build(:lease,
+              start_date: Date.new(2024, 11, 1),
+              rent_amount: 1210,
+              enhancement_period_months: 12,
+              enhancement_amount: nil,
+              enhancement_type: :inherit,
+              renewed_from: lease_2).tap(&:save!)
+      end
+
+      it "delegates to parent lease" do
+        expect(lease_2.current_rent_at(Date.new(2024, 1, 1))).to eq(1100)
+      end
+
+      it "delegates through the chain (grandparent)" do
+        expect(lease_3.current_rent_at(Date.new(2025, 1, 1))).to eq(1210.0)
+      end
+
+      it "delegates mid-period through the chain" do
+        expect(lease_3.current_rent_at(Date.new(2024, 3, 1))).to eq(1100)
+      end
+
+      it "falls back to rent_amount when renewed_from is absent" do
+        orphan = build(:lease, enhancement_type: :inherit, enhancement_amount: nil, renewed_from: nil)
+        # bypass the validation to test the guard in current_rent_at
+        allow(orphan).to receive(:renewed_from).and_return(nil)
+        expect(orphan.current_rent_at(orphan.start_date)).to eq(orphan.rent_amount)
+      end
+    end
   end
 
   describe ".build_renewal" do
@@ -193,6 +277,14 @@ RSpec.describe Lease do
 
     it "does not persist the new lease" do
       expect(new_lease).not_to be_persisted
+    end
+
+    it "sets enhancement_type to :inherit" do
+      expect(new_lease.enhancement_type).to eq("inherit")
+    end
+
+    it "clears enhancement_amount" do
+      expect(new_lease.enhancement_amount).to be_nil
     end
   end
 
