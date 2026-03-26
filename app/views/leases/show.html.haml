@@ -92,7 +92,10 @@
           .show-field
             .show-field-label Enhancement
             .show-field-value
-              - if @lease.enhancement_amount.present?
+              - if @lease.inherit?
+                Inherited from
+                = link_to "previous lease", @lease.renewed_from, class: "link link-primary"
+              - elsif @lease.enhancement_amount.present?
                 = @lease.enhancement_amount
                 = @lease.percentage? ? "%" : "₹"
                 every #{@lease.enhancement_period_months} months

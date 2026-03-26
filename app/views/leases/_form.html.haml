@@ -33,11 +33,18 @@
           = f.object.security_deposit_months? ? "\u00d7 months" : "\u20b9"
 
     = f.input :enhancement_amount, as: :string do
-      .join.w-full.flex{data: {controller: "enhancement-toggle"}}
-        = f.input_field :enhancement_amount, class: "input input-bordered join-item w-full"
-        = f.hidden_field :enhancement_type, value: f.object.enhancement_type || "percentage", data: { enhancement_toggle_target: "typeInput" }
+      .join.w-full.flex{data: {controller: "enhancement-toggle", renewed_from_id: f.object.renewed_from_id}}
+        = f.input_field :enhancement_amount, class: "input input-bordered join-item w-full",
+                        data: { enhancement_toggle_target: "amountInput" }
+        = f.hidden_field :enhancement_type, value: f.object.enhancement_type || (f.object.renewed_from_id ? "inherit" : "percentage"),
+                         data: { enhancement_toggle_target: "typeInput" }
         %button.btn.join-item{type: "button", data: { action: "click->enhancement-toggle#toggle", enhancement_toggle_target: "buttonLabel" }}
-          = f.object.percentage? ? "%" : "₹"
+          - if f.object.inherit?
+            = "\u{1F517}"
+          - elsif f.object.percentage?
+            = "%"
+          - else
+            ₹
     = f.input :enhancement_period_months
 
     = f.input :tax_rate, placeholder: "e.g., 18"
