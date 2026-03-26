@@ -3,10 +3,10 @@ import { Controller } from "@hotwired/stimulus"
 const CYCLE_ALL = ["percentage", "fixed", "inherit"]
 const CYCLE_NO_INHERIT = ["percentage", "fixed"]
 
-const LABELS = { percentage: "%", fixed: "₹", inherit: "Inherit" }
+const LABELS = { percentage: "%", fixed: "₹", inherit: "\u{1F517}" }
 
 export default class extends Controller {
-        static targets = ["typeInput", "buttonLabel", "amountWrapper"]
+        static targets = ["typeInput", "buttonLabel", "amountInput"]
 
         connect() {
                 this.applyState(this.typeInputTarget.value || "percentage")
@@ -28,9 +28,11 @@ export default class extends Controller {
                 this.buttonLabelTarget.textContent = LABELS[type] || type
 
                 if (type === "inherit") {
-                        this.amountWrapperTarget.classList.add("hidden")
+                        this.amountInputTarget.disabled = true
+                        this.amountInputTarget.placeholder = "Inherit"
                 } else {
-                        this.amountWrapperTarget.classList.remove("hidden")
+                        this.amountInputTarget.disabled = false
+                        this.amountInputTarget.placeholder = ""
                 }
         }
 
