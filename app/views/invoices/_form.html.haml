@@ -5,11 +5,7 @@
 
   = f.grid_inputs do
     - if f.object.new_record?
-      - if f.object.lease_id?
-        = f.input :lease, col: 4, readonly: true
-        = f.input :lease_id, as: :hidden
-      - else
-        = f.association :lease, col: 4, collection: leases, label_method: ->(l) { "#{l.tenant.name} - #{l.property.name}" }, label: "Lease (Tenant - Property)"
+      = f.association :lease, presettable: true, col: 4, collection: leases, label_method: ->(l) { "#{l.tenant.name} - #{l.property.name}" }, label: "Lease (Tenant - Property)"
     = f.input :date, as: :date, html5: true
     = f.input :status, collection: Invoice.statuses.keys, include_blank: false
 

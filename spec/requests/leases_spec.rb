@@ -5,13 +5,52 @@ require "rails_helper"
 RSpec.describe "Leases" do
   before { sign_in_admin }
 
-  let(:property) { create(:property) }
-  let(:tenant) { create(:tenant) }
-
   describe "GET /leases" do
     it "returns http success" do
       get leases_path
       expect(response).to have_http_status(:success)
+    end
+
+    context "when filtering by status" do
+      let!(:active_lease) { create(:lease, start_date: 1.month.ago.to_date, duration_months: 12) }
+      let!(:upcoming_lease) { create(:lease, start_date: 1.month.from_now.to_date, duration_months: 12) }
+      let!(:expired_lease) { create(:lease, start_date: 2.years.ago.to_date, duration_months: 6) }
+      let!(:terminated_lease) do
+        create(:lease, start_date: 6.months.ago.to_date, duration_months: 12,
+                       terminated_on: 3.months.ago.to_date)
+      end
+
+      it "returns only active leases when filtered by active", :aggregate_failures do
+        get leases_path, params: { q: { by_status: "active" } }
+        expect(response.body).to include(lease_path(active_lease))
+        expect(response.body).not_to include(lease_path(upcoming_lease))
+        expect(response.body).not_to include(lease_path(expired_lease))
+        expect(response.body).not_to include(lease_path(terminated_lease))
+      end
+
+      it "returns only upcoming leases when filtered by upcoming", :aggregate_failures do
+        get leases_path, params: { q: { by_status: "upcoming" } }
+        expect(response.body).to include(lease_path(upcoming_lease))
+        expect(response.body).not_to include(lease_path(active_lease))
+        expect(response.body).not_to include(lease_path(expired_lease))
+        expect(response.body).not_to include(lease_path(terminated_lease))
+      end
+
+      it "returns only expired leases when filtered by expired", :aggregate_failures do
+        get leases_path, params: { q: { by_status: "expired" } }
+        expect(response.body).to include(lease_path(expired_lease))
+        expect(response.body).not_to include(lease_path(active_lease))
+        expect(response.body).not_to include(lease_path(upcoming_lease))
+        expect(response.body).not_to include(lease_path(terminated_lease))
+      end
+
+      it "returns only terminated leases when filtered by terminated", :aggregate_failures do
+        get leases_path, params: { q: { by_status: "terminated" } }
+        expect(response.body).to include(lease_path(terminated_lease))
+        expect(response.body).not_to include(lease_path(active_lease))
+        expect(response.body).not_to include(lease_path(upcoming_lease))
+        expect(response.body).not_to include(lease_path(expired_lease))
+      end
     end
   end
 
@@ -34,9 +73,22 @@ RSpec.describe "Leases" do
         expect(response.body).to include("Renewing lease ##{old_lease.id}")
       end
     end
+
+    context "with property_id pre-populated" do
+      let(:property) { create(:property) }
+
+      it "returns success with readonly property field", :aggregate_failures do
+        get new_lease_path(lease: { property_id: property.id })
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include(property.name)
+      end
+    end
   end
 
   describe "POST /leases" do
+    let(:property) { create(:property) }
+    let(:tenant) { create(:tenant) }
+
     context "with valid parameters" do
       let(:valid_attributes) do
         {
@@ -93,6 +145,61 @@ RSpec.describe "Leases" do
       it "redirects to the lease" do
         patch lease_path(lease), params: { lease: { terminated_on: termination_date } }
         expect(response).to redirect_to(lease_path(lease))
+      end
+    end
+
+    context "when updating quantity" do
+      it "updates the quantity" do
+        patch lease_path(lease), params: { lease: { quantity: 2 } }
+        expect(lease.reload.quantity).to eq(2)
+      end
+    end
+  end
+
+  context "when signed in as an owner" do
+    let(:owner) { create(:owner) }
+    let!(:owned_property) { create(:property, owner: owner) }
+
+    let(:normal_user) { create(:user) }
+
+    before do
+      sign_in_as(normal_user)
+      create(:user_association, user: normal_user, associable: owner)
+    end
+
+    describe "GET /leases/new" do
+      it "returns http success" do
+        get new_lease_path
+        expect(response).to have_http_status(:success)
+      end
+    end
+
+    describe "POST /leases" do
+      let(:tenant) { create(:tenant) }
+      let(:valid_lease_params) do
+        {
+          property_id: owned_property.id,
+          tenant_id: tenant.id,
+          start_date: "2025-01-01",
+          duration_months: 12,
+          rent_amount: 1000,
+          security_deposit_value: 2,
+          enhancement_period_months: 12,
+          enhancement_amount: "5.0",
+          enhancement_type: "percentage"
+        }
+      end
+
+      it "creates a lease on an owned property" do
+        expect do
+          post leases_path, params: { lease: valid_lease_params }
+        end.to change(Lease, :count).by(1)
+      end
+
+      it "is forbidden for a property not owned by the user" do
+        other_property = create(:property)
+        post leases_path, params: { lease: { property_id: other_property.id } }
+        expect(response).to have_http_status(:forbidden).or redirect_to(root_path)
       end
     end
   end

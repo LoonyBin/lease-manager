@@ -2,8 +2,11 @@
 
 source "https://rubygems.org"
 
+gem "aws-sdk-s3"
 gem "bootsnap", require: false
+gem "chartkick", "~> 5.2"
 gem "dartsass-rails"
+gem "groupdate", "~> 6.7"
 gem "haml-rails"
 gem "heroicons"
 gem "image_processing", "~> 1.2"
@@ -19,7 +22,7 @@ gem "pg", "~> 1.1"
 gem "propshaft"
 gem "puma", ">= 5.0"
 gem "pundit"
-gem "rails", "~> 8.1.2"
+gem "rails", "~> 8.1.3"
 gem "ransack"
 gem "simple_form", "~> 5.4"
 gem "solid_cable"
@@ -65,7 +68,4 @@ group :test do
   gem "simplecov", require: false
 end
 
-gem "chartkick", "~> 5.2"
 gem "csv", "~> 3.3"
-gem "google-cloud-storage"
-gem "groupdate", "~> 6.7"

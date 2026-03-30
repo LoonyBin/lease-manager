@@ -7,8 +7,9 @@ class LeasesController < ApplicationController
   end
 
   def show
-    @lease = Lease.includes(invoices: :line_items).find(params[:id])
+    @lease = Lease.find(params[:id])
     authorize @lease
+    @statement_entries = helpers.statement_entries(@lease.entries.initial.preload(:instrument))
   end
 
   def new
@@ -16,7 +17,7 @@ class LeasesController < ApplicationController
       old_lease = Lease.find(params[:renewed_from_id])
       @lease = Lease.build_renewal(old_lease)
     else
-      @lease = Lease.new
+      @lease = Lease.new(new_lease_prepopulate_params)
     end
     authorize @lease
   end
@@ -56,10 +57,14 @@ class LeasesController < ApplicationController
 
   private
 
+  def new_lease_prepopulate_params
+    params.permit(lease: [:property_id])[:lease] || {}
+  end
+
   def lease_params
     params.expect(lease: [:property_id, :tenant_id, :start_date, :duration_months, :rent_amount,
                           :security_deposit_value, :security_deposit_type, :enhancement_period_months,
                           :enhancement_amount, :enhancement_type, :tax_name, :tax_rate, :terminated_on,
-                          :renewed_from_id, :property_schedule, { documents: [] }])
+                          :renewed_from_id, :property_schedule, :quantity, { documents: [] }])
   end
 end

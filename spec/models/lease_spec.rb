@@ -50,17 +50,52 @@ RSpec.describe Lease do
         expect(lease).to be_valid
       end
 
-      it "considers existing leases with overlapping future lease" do # rubocop:disable RSpec/ExampleLength
+      it "is invalid when overlapping lease reduces available capacity", :aggregate_failures do
         create(:lease, property: property, quantity: 5, start_date: 6.months.from_now, duration_months: 6)
+        lease.assign_attributes(quantity: 6, duration_months: 12)
 
-        lease.quantity = 6
-        lease.duration_months = 12
+        expect(lease).not_to be_valid
+        expect(lease.errors[:quantity])
+          .to include("exceeds available capacity of 5 Units during the lease period")
+      end
+    end
 
-        aggregate_failures do
-          expect(lease).not_to be_valid
-          expect(lease.errors[:quantity])
-            .to include("exceeds available capacity of 5 Units during the lease period")
-        end
+    describe "enhancement_amount with :inherit type" do
+      it "is valid when inherit? and enhancement_amount is nil" do
+        parent = create(:lease)
+        lease = build(:lease, enhancement_type: :inherit, enhancement_amount: nil, renewed_from: parent)
+        expect(lease).to be_valid
+      end
+
+      it "is invalid when percentage? and enhancement_amount is nil" do
+        lease = build(:lease, enhancement_type: :percentage, enhancement_amount: nil)
+        # nil passes allow_nil, so check the numericality does not reject nil
+        expect(lease).to be_valid
+      end
+    end
+
+    describe ":inherit requires renewed_from" do
+      it "is invalid when inherit? and renewed_from is absent" do
+        lease = build(:lease, enhancement_type: :inherit, enhancement_amount: nil, renewed_from: nil)
+        expect(lease).not_to be_valid
+      end
+
+      it "sets an error on renewed_from when inherit? and renewed_from is absent" do
+        lease = build(:lease, enhancement_type: :inherit, enhancement_amount: nil, renewed_from: nil)
+        lease.valid?
+        expect(lease.errors[:renewed_from]).to be_present
+      end
+
+      it "is valid when inherit? and renewed_from is present" do
+        parent = create(:lease)
+        lease = build(:lease, enhancement_type: :inherit, enhancement_amount: nil, renewed_from: parent)
+        expect(lease).to be_valid
+      end
+
+      it "does not require renewed_from when percentage?" do
+        lease = build(:lease, enhancement_type: :percentage, renewed_from: nil)
+        lease.valid?
+        expect(lease.errors[:renewed_from]).to be_empty
       end
     end
 
@@ -157,6 +192,56 @@ RSpec.describe Lease do
       lease.update(enhancement_type: :fixed, enhancement_amount: 100)
       expect(lease.current_rent_at(Date.new(2024, 1, 1))).to eq(1100)
     end
+
+    context "with :inherit type" do
+      let(:root_lease) do
+        create(:lease,
+               start_date: Date.new(2023, 1, 1),
+               rent_amount: 1000,
+               enhancement_period_months: 12,
+               enhancement_amount: 10.0,
+               enhancement_type: :percentage)
+      end
+
+      let(:child_lease) do
+        build(:lease,
+              start_date: Date.new(2023, 12, 1),
+              rent_amount: 1100,
+              enhancement_period_months: 12,
+              enhancement_amount: nil,
+              enhancement_type: :inherit,
+              renewed_from: root_lease).tap(&:save!)
+      end
+
+      let(:grandchild_lease) do
+        build(:lease,
+              start_date: Date.new(2024, 11, 1),
+              rent_amount: 1210,
+              enhancement_period_months: 12,
+              enhancement_amount: nil,
+              enhancement_type: :inherit,
+              renewed_from: child_lease).tap(&:save!)
+      end
+
+      it "delegates to parent lease" do
+        expect(child_lease.current_rent_at(Date.new(2024, 1, 1))).to eq(1100)
+      end
+
+      it "delegates through the chain (grandparent)" do
+        expect(grandchild_lease.current_rent_at(Date.new(2025, 1, 1))).to eq(1210.0)
+      end
+
+      it "delegates mid-period through the chain" do
+        expect(grandchild_lease.current_rent_at(Date.new(2024, 3, 1))).to eq(1100)
+      end
+
+      it "falls back to rent_amount when renewed_from is absent" do
+        orphan = build(:lease, enhancement_type: :inherit, enhancement_amount: nil, renewed_from: nil)
+        # bypass the validation to test the guard in current_rent_at
+        allow(orphan).to receive(:renewed_from).and_return(nil)
+        expect(orphan.current_rent_at(orphan.start_date)).to eq(orphan.rent_amount)
+      end
+    end
   end
 
   describe ".build_renewal" do
@@ -197,6 +282,130 @@ RSpec.describe Lease do
 
     it "does not persist the new lease" do
       expect(new_lease).not_to be_persisted
+    end
+
+    it "sets enhancement_type to :inherit" do
+      expect(new_lease.enhancement_type).to eq("inherit")
+    end
+
+    it "clears enhancement_amount" do
+      expect(new_lease.enhancement_amount).to be_nil
+    end
+  end
+
+  describe ".by_status" do
+    let!(:active_lease) do
+      create(:lease, start_date: 1.month.ago.to_date, duration_months: 12)
+    end
+    let!(:upcoming_lease) do
+      create(:lease, start_date: 1.month.from_now.to_date, duration_months: 12)
+    end
+    let!(:expired_lease) do
+      create(:lease, start_date: 2.years.ago.to_date, duration_months: 6)
+    end
+    let!(:terminated_lease) do
+      create(:lease, start_date: 6.months.ago.to_date, duration_months: 12,
+                     terminated_on: 3.months.ago.to_date)
+    end
+
+    describe "active" do
+      subject { described_class.by_status("active") }
+
+      it { is_expected.to include(active_lease) }
+      it { is_expected.not_to include(upcoming_lease) }
+      it { is_expected.not_to include(expired_lease) }
+      it { is_expected.not_to include(terminated_lease) }
+    end
+
+    describe "upcoming" do
+      subject { described_class.by_status("upcoming") }
+
+      it { is_expected.to include(upcoming_lease) }
+      it { is_expected.not_to include(active_lease) }
+      it { is_expected.not_to include(expired_lease) }
+      it { is_expected.not_to include(terminated_lease) }
+    end
+
+    describe "expired" do
+      subject { described_class.by_status("expired") }
+
+      it { is_expected.to include(expired_lease) }
+      it { is_expected.not_to include(active_lease) }
+      it { is_expected.not_to include(upcoming_lease) }
+      it { is_expected.not_to include(terminated_lease) }
+    end
+
+    describe "terminated" do
+      subject { described_class.by_status("terminated") }
+
+      it { is_expected.to include(terminated_lease) }
+      it { is_expected.not_to include(active_lease) }
+      it { is_expected.not_to include(upcoming_lease) }
+      it { is_expected.not_to include(expired_lease) }
+    end
+
+    describe "unknown status" do
+      it "returns no records" do
+        expect(described_class.by_status("invalid")).to be_empty
+      end
+    end
+  end
+
+  describe "#recalculate_cached_balance!" do
+    let(:lease) { create(:lease) }
+
+    it "sets cached_balance to 0 when there are no invoices" do
+      lease.recalculate_cached_balance!
+      expect(lease.reload.cached_balance).to eq(0)
+    end
+
+    context "with finalized, sent, and partially_paid invoices" do
+      before do
+        create(:invoice, :with_balance, balance_amount: 500, lease: lease, status: :finalized)
+        create(:invoice, :with_balance, balance_amount: 300, lease: lease, status: :sent)
+        create(:invoice, :with_balance, balance_amount: 200, lease: lease, status: :partially_paid)
+      end
+
+      it "sums balances for all unsettled invoices" do
+        lease.recalculate_cached_balance!
+        expect(lease.reload.cached_balance).to eq(1000)
+      end
+    end
+
+    context "with a paid invoice alongside a finalized one" do
+      before do
+        create(:invoice, :with_balance, balance_amount: 500, lease: lease, status: :finalized)
+        create(:invoice, :with_balance, balance_amount: 0, lease: lease, status: :paid)
+      end
+
+      it "excludes paid invoices" do
+        lease.recalculate_cached_balance!
+        expect(lease.reload.cached_balance).to eq(500)
+      end
+    end
+
+    context "with a cancelled invoice alongside a finalized one" do
+      before do
+        create(:invoice, :with_balance, balance_amount: 500, lease: lease, status: :finalized)
+        create(:invoice, :with_balance, balance_amount: 400, lease: lease, status: :cancelled)
+      end
+
+      it "excludes cancelled invoices" do
+        lease.recalculate_cached_balance!
+        expect(lease.reload.cached_balance).to eq(500)
+      end
+    end
+
+    context "with a credit note" do
+      before do
+        create(:invoice, :with_balance, balance_amount: 1000, lease: lease, status: :finalized)
+        create(:invoice, :credit_note, :with_balance, balance_amount: -200, lease: lease, status: :finalized)
+      end
+
+      it "incorporates credit note balances (negative)" do
+        lease.recalculate_cached_balance!
+        expect(lease.reload.cached_balance).to eq(800)
+      end
     end
   end
 

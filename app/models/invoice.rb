@@ -58,6 +58,7 @@ class Invoice < ApplicationRecord
   def recalculate_balance!
     update_column(:balance, entries.sum(:amount))
     update_status_from_balance!
+    lease.recalculate_cached_balance!
   end
 
   def update_status_from_balance!

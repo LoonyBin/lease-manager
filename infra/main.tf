@@ -136,8 +136,6 @@ module "app" {
   vpc_connector_id        = module.network.vpc_connector_id
   db_connection_name      = module.database.connection_name
   secret_rails_master_key = module.secrets.rails_master_key_id
-  secret_google_client_id = module.secrets.google_oauth_client_id_id
-  secret_google_client_secret = module.secrets.google_oauth_client_secret_id
   secret_database_url     = module.secrets.database_url_id
   gcs_bucket              = module.storage.bucket_name
 
@@ -151,6 +149,15 @@ module "app" {
   ]
 }
 
+module "cloudflare" {
+  source               = "./modules/cloudflare"
+  cloudflare_account_id = var.cloudflare_account_id
+  cloudflare_zone_id    = var.cloudflare_zone_id
+  cloud_run_host        = replace(module.app.cloud_run_url, "https://", "")
+
+  depends_on = [module.app]
+}
+
 module "scheduler" {
   source               = "./modules/scheduler"
   project_id           = var.project_id
@@ -162,8 +169,6 @@ module "scheduler" {
   vpc_connector_id     = module.network.vpc_connector_id
   db_connection_name   = module.database.connection_name
   secret_rails_master_key     = module.secrets.rails_master_key_id
-  secret_google_client_id     = module.secrets.google_oauth_client_id_id
-  secret_google_client_secret = module.secrets.google_oauth_client_secret_id
   secret_database_url         = module.secrets.database_url_id
   gcs_bucket                  = module.storage.bucket_name
 

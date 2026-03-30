@@ -11,7 +11,8 @@ RSpec.describe "leases/edit" do
   end
 
   it { is_expected.to have_css("form[action='#{lease_path(@lease)}'][method='post']") }
-  it { is_expected.to have_select("lease[property_id]") }
+  it { is_expected.to have_field("lease[property]", type: "text", disabled: false) }
+  it { is_expected.to have_field("lease[property_id]", type: "hidden", visible: :hidden) }
   it { is_expected.to have_select("lease[tenant_id]") }
   it { is_expected.to have_field("lease[duration_months]") }
   it { is_expected.to have_field("lease[rent_amount]") }

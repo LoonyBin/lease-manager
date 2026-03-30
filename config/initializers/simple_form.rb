@@ -124,4 +124,5 @@ end
 Rails.application.config.after_initialize do
   SimpleForm::FormBuilder.include(SimpleForm::Extensions)
   SimpleForm::FormBuilder.prepend(SimpleForm::ColSpan)
+  SimpleForm::FormBuilder.prepend(SimpleForm::PresettableAssociation)
 end

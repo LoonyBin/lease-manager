@@ -15,7 +15,7 @@ class PaymentsController < ApplicationController
   def new
     @payment = Payment.new(payment_params)
     authorize @payment
-    @leases = policy_scope(Lease).includes(:property, :tenant)
+    @leases = filtered_leases
   end
 
   def create
@@ -25,7 +25,7 @@ class PaymentsController < ApplicationController
     if @payment.save
       redirect_to payments_path, notice: t(".success")
     else
-      @leases = policy_scope(Lease).includes(:property, :tenant)
+      @leases = filtered_leases
       render :new, status: :unprocessable_content
     end
   end
@@ -42,6 +42,12 @@ class PaymentsController < ApplicationController
   end
 
   private
+
+  def filtered_leases
+    active = policy_scope(Lease).by_status("active")
+    with_bal = policy_scope(Lease).where("cached_balance > 0")
+    active.or(with_bal).includes(:property, :tenant)
+  end
 
   def payment_params
     params.permit(payment: %i[lease_id date amount mode reference_number attachment payment_type])[:payment]

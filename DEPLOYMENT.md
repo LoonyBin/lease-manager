@@ -32,8 +32,7 @@ GCS Bucket
 - [`gcloud` CLI](https://cloud.google.com/sdk/docs/install) installed and authenticated
 - [`tofu` (OpenTofu)](https://opentofu.org/docs/intro/install/) >= 1.9 installed
 - GCP billing account ID
-- Google OAuth credentials (client ID + secret) from [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
-- `config/master.key` from the existing Rails credentials
+- `config/master.key` from the existing Rails credentials (includes Google OAuth credentials)
 
 ---
 
@@ -98,19 +97,14 @@ tofu apply \
 After `tofu apply` creates the secret resources, populate the manually-managed secrets:
 
 ```bash
-# Rails master key
+# Rails master key (encrypts credentials including Google OAuth client ID/secret)
 echo -n "$(cat config/master.key)" | \
   gcloud secrets versions add rails-master-key --data-file=-
-
-# Google OAuth credentials
-echo -n "YOUR_OAUTH_CLIENT_ID" | \
-  gcloud secrets versions add google-oauth-client-id --data-file=-
-
-echo -n "YOUR_OAUTH_CLIENT_SECRET" | \
-  gcloud secrets versions add google-oauth-client-secret --data-file=-
 ```
 
 `database-url` is fully Tofu-managed — no manual action needed.
+
+> **Note:** Google OAuth credentials (client ID + secret) are stored in Rails encrypted credentials, decrypted at boot via `RAILS_MASTER_KEY`. They no longer need separate Secret Manager entries.
 
 ---
 

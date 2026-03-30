@@ -5,6 +5,34 @@ class Lease < ApplicationRecord
   include Lease::Renewable
   include Lease::CapacityCheck
 
+  VALID_STATUSES = %w[active expired terminated upcoming].freeze
+
+  scope :by_status, lambda { |status|
+    case status.to_s
+    when "terminated"
+      where.not(terminated_on: nil)
+    when "expired"
+      where(terminated_on: nil)
+        .where.not(duration_months: nil)
+        .where("start_date + (duration_months * interval '1 month') < CURRENT_DATE")
+    when "active"
+      where(terminated_on: nil)
+        .where("start_date <= CURRENT_DATE")
+        .where(
+          "duration_months IS NULL OR start_date + (duration_months * interval '1 month') >= CURRENT_DATE"
+        )
+    when "upcoming"
+      where(terminated_on: nil)
+        .where("start_date > CURRENT_DATE")
+    else
+      none
+    end
+  }
+
+  def self.ransackable_scopes(*)
+    %i[by_status]
+  end
+
   belongs_to :property
   belongs_to :tenant
   has_many :invoices, dependent: :destroy
@@ -21,6 +49,12 @@ class Lease < ApplicationRecord
   validates :start_date, presence: true
   validates :duration_months, presence: true, numericality: { only_integer: true, greater_than: 0 }
   validate :termination_date_after_start_date
+
+  # rubocop:disable Rails/SkipsModelValidations -- Intentionally skip callbacks to avoid infinite loops
+  def recalculate_cached_balance!
+    update_column(:cached_balance, invoices.unsettled.sum(:balance))
+  end
+  # rubocop:enable Rails/SkipsModelValidations
 
   def end_date
     return terminated_on if terminated_on.present?
