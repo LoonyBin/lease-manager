@@ -2,8 +2,11 @@
 
 source "https://rubygems.org"
 
+gem "aws-sdk-s3"
 gem "bootsnap", require: false
+gem "chartkick", "~> 5.2"
 gem "dartsass-rails"
+gem "groupdate", "~> 6.7"
 gem "haml-rails"
 gem "heroicons"
 gem "image_processing", "~> 1.2"
@@ -64,7 +67,3 @@ group :test do
   gem "shoulda-matchers"
   gem "simplecov", require: false
 end
-
-gem "chartkick", "~> 5.2"
-gem "google-cloud-storage"
-gem "groupdate", "~> 6.7"

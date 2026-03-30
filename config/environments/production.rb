@@ -24,7 +24,7 @@ Rails.application.configure do
   # config.asset_host = "http://assets.example.com"
 
   # Store uploaded files on Google Cloud Storage (see config/storage.yml for options).
-  config.active_storage.service = :google
+  config.active_storage.service = :b2
 
   # Assume all access to the app is happening through a SSL-terminating reverse proxy.
   config.assume_ssl = ENV.fetch("FORCE_SSL", "true") == "true"
@@ -82,8 +82,7 @@ Rails.application.configure do
 
   # Enable DNS rebinding protection and other `Host` header attacks.
   config.hosts = [
-    ENV.fetch("APP_HOST", nil),
-    /.*\.run\.app/ # Cloud Run subdomains
+    ENV.fetch("APP_HOST", nil)
   ].compact
 
   # Skip DNS rebinding protection for the default health check endpoint.
