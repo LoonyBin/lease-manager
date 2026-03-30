@@ -1,0 +1,8 @@
+{
+  "name": "lease-manager",
+  "scripts": {
+    "dokku": {
+      "predeploy": "bundle exec rails db:prepare"
+    }
+  }
+}

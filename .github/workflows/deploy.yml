@@ -14,66 +14,24 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    permissions:
-      contents: read
-      id-token: write
-
-    env:
-      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
-      GCP_REGION: ${{ vars.GCP_REGION }}
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
 
-      - name: Authenticate to Google Cloud via WIF
-        uses: google-github-actions/auth@v3
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.9.0
         with:
-          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
-          service_account: ${{ vars.CICD_SERVICE_ACCOUNT }}
+          ssh-private-key: ${{ secrets.DOKKU_SSH_PRIVATE_KEY }}
 
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v3
+      - name: Add Dokku host to known_hosts
+        run: ssh-keyscan -H 91.98.73.173 >> ~/.ssh/known_hosts
 
-      - name: Configure Docker for Artifact Registry
-        run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
-
-      - name: Set up OpenTofu
-        uses: opentofu/setup-opentofu@v2
-        with:
-          tofu_version: "1.9"
-
-      - name: Build and push Docker image
-        run: |
-          IMAGE="${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/lease-manager-images/lease-manager:${{ github.event.workflow_run.head_sha }}"
-          docker build --tag "${IMAGE}" .
-          docker push "${IMAGE}"
-
-      - name: Tofu init
-        working-directory: infra
-        run: tofu init
-
-      - name: Tofu apply
-        working-directory: infra
-        run: |
-          tofu apply \
-            -auto-approve \
-            -var "project_id=${{ env.GCP_PROJECT_ID }}" \
-            -var "region=${{ env.GCP_REGION }}" \
-            -var "image_tag=${{ github.event.workflow_run.head_sha }}" \
-            -var "cloudflare_api_token=${{ secrets.CLOUDFLARE_API_TOKEN }}" \
-            -var "cloudflare_account_id=${{ vars.CLOUDFLARE_ACCOUNT_ID }}" \
-            -var "cloudflare_zone_id=${{ vars.CLOUDFLARE_ZONE_ID }}"
-
-      - name: Run database migrations
-        run: |
-          gcloud run jobs execute lease-manager-migrate \
-            --region="${{ env.GCP_REGION }}" \
-            --wait
+      - name: Deploy to Dokku
+        run: git push dokku@91.98.73.173:lease-manager HEAD:refs/heads/main --force
 
       - name: Smoke test
-        run: |
-          URL=$(cd infra && tofu output -raw cloud_run_url)
-          curl --fail --silent --show-error "${URL}/up"
+        run: curl --fail --silent --show-error --max-time 30 https://lease-manager.loonyb.in/up
