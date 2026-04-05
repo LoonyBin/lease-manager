@@ -1,0 +1,64 @@
+- content_for :title, "Invoice Audit"
+
+- content_for :page_actions do
+  = link_to invoices_path, class: "btn btn-ghost btn-sm gap-2" do
+    = heroicon "arrow-left", options: { class: "w-4 h-4" }
+    Back to Invoices
+
+- if @missing_invoices.empty?
+  .alert.alert-success.shadow-lg.mb-6
+    = heroicon "check-circle", options: { class: "w-6 h-6 shrink-0" }
+    %span All invoices are up to date. No missing rental invoices found.
+- else
+  .card.bg-base-100.shadow-xl{data: { controller: "audit" }}
+    .card-body
+      .flex.flex-wrap.justify-between.items-start.gap-4.mb-4
+        %div
+          %h2.card-title Invoice Audit
+          %p{class: "text-base-content/60 text-sm"} The following rental invoice months were never generated. Select the ones you want to create as drafts.
+        .flex.items-center.gap-3
+          %span.text-sm{class: "text-base-content/60"}
+            %span{data: { "audit-target": "count" }}
+              = @missing_invoices.size
+            missing
+            = "invoice".pluralize(@missing_invoices.size)
+            found
+
+      .flex.flex-wrap.gap-3.mb-4
+        %label.flex.items-center.gap-2.cursor-pointer
+          %input.checkbox.checkbox-sm{type: "checkbox", checked: true, data: { action: "change->audit#toggleAll", "audit-target": "selectAll" }}
+          %span.text-sm Select all / Deselect all
+
+        %button.btn.btn-primary.btn-sm{
+          data: { action: "click->audit#generateDrafts", "audit-target": "generateButton" }
+        }
+          = heroicon "bolt", options: { class: "w-4 h-4" }
+          Generate Drafts
+
+      .overflow-x-auto
+        %table.table.table-zebra.table-sm
+          %thead
+            %tr
+              %th.w-8
+              %th Month
+              %th Property
+              %th Tenant
+              %th.text-right Expected Rent
+              %th.w-32 Status
+          %tbody{data: { "audit-target": "tableBody" }}
+            - @missing_invoices.each do |item|
+              %tr{data: { "audit-target": "row", "lease-id": item.lease.id, date: item.date.iso8601 }}
+                %td
+                  %input.checkbox.checkbox-sm{
+                    type: "checkbox",
+                    checked: true,
+                    data: { action: "change->audit#toggle", "audit-target": "checkbox" }
+                  }
+                %td.font-medium= item.date.strftime("%B %Y")
+                %td= item.property.name
+                %td= item.tenant.name
+                %td.text-right= number_to_currency(item.expected_amount, unit: "₹", precision: 0)
+                %td
+                  %span.text-sm{class: "text-base-content/40", data: { "audit-target": "rowStatus" }} —
+
+      .mt-4{data: { "audit-target": "summary" }, class: "hidden"}

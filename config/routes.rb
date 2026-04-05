@@ -6,7 +6,11 @@ Rails.application.routes.draw do
   resources :properties
   resources :tenants
   resources :owners
-  resources :invoices, except: %i[destroy]
+  resources :invoices, except: %i[destroy] do
+    collection do
+      get :audit
+    end
+  end
   resources :users
   resources :user_associations, only: %i[create destroy]
 

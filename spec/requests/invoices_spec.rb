@@ -73,6 +73,38 @@ RSpec.describe "Invoices" do
     end
   end
 
+  describe "GET /invoices/audit" do
+    it "returns http success" do
+      get audit_invoices_path
+      expect(response).to have_http_status(:success)
+    end
+
+    context "when there are missing invoices" do
+      let(:today) { Date.current }
+      let!(:lease) { create(:lease, start_date: today - 1.month, duration_months: 12) }
+
+      it "displays missing invoices in the page" do
+        get audit_invoices_path
+        expect(response.body).to include(lease.tenant.name)
+      end
+    end
+  end
+
+  describe "POST /invoices (JSON)" do
+    let(:lease) { create(:lease) }
+    let(:params) do
+      { invoice: { lease_id: lease.id, date: Date.current.beginning_of_month.iso8601,
+                   status: "draft", document_type: "invoice" } }
+    end
+
+    it "creates a draft invoice with line items and returns JSON", :aggregate_failures do
+      post invoices_path(format: :json), params: params, as: :json
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body["status"]).to eq("draft")
+      expect(Invoice.find(response.parsed_body["id"]).line_items).to be_present
+    end
+  end
+
   describe "PATCH /invoices/:id" do
     context "with valid params" do
       let(:invoice) { create(:invoice) }

@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class InvoicesController < ApplicationController
+  respond_to :html, :json
+
   def index
     @q = policy_scope(Invoice).ransack(params[:q])
     @q.sorts = "date desc" if @q.sorts.empty?
@@ -23,16 +25,17 @@ class InvoicesController < ApplicationController
     authorize @invoice
   end
 
-  def create
-    @invoice = Invoice.new(invoice_params)
-    authorize @invoice
+  def audit
+    authorize Invoice, :index?
+    @missing_invoices = MissingInvoiceDetector.new.call
+  end
 
-    if @invoice.save
-      redirect_to @invoice, notice: t(".success")
-    else
-      @leases = policy_scope(Lease).includes(:property, :tenant) unless @invoice.lease_id?
-      render :new, status: :unprocessable_content
-    end
+  def create
+    @invoice = ::InvoiceGenerator.new(Invoice.new(invoice_params)).call
+    authorize @invoice
+    @invoice.save unless @invoice.persisted?
+    @leases = policy_scope(Lease).includes(:property, :tenant) unless @invoice.persisted? || @invoice.lease_id?
+    respond_with @invoice
   end
 
   def update
