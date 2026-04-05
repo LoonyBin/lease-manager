@@ -17,6 +17,10 @@ export default class extends Controller {
     this.updateGenerateButton()
   }
 
+  toggle() {
+    this.updateGenerateButton()
+  }
+
   updateGenerateButton() {
     if (!this.hasGenerateButtonTarget) return
     const anyChecked = this.checkboxTargets.some(cb => cb.checked)
