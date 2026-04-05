@@ -13,8 +13,7 @@
   %label.btn.btn-ghost.btn-sm.btn-square{for: "filter-drawer", title: "Filter"}
     = heroicon "funnel", options: { class: "w-5 h-5" }
   = link_to audit_invoices_path, class: "btn btn-ghost btn-sm", title: "Audit" do
-    = heroicon "magnifying-glass", options: { class: "w-5 h-5" }
-    Audit
+    = heroicon "cube-transparent", options: { class: "w-5 h-5" }
   = link_to new_invoice_path, class: "btn btn-ghost btn-sm btn-square", title: "New Invoice" do
     = heroicon "plus", options: { class: "w-5 h-5" }
   = link_to new_invoice_path(invoice: { document_type: :credit_note }), class: "btn btn-ghost btn-sm btn-square", title: "New Credit Note" do
