@@ -101,10 +101,7 @@ RSpec.describe "Invoices" do
       post invoices_path(format: :json), params: params, as: :json
       expect(response).to have_http_status(:success)
       expect(response.parsed_body["status"]).to eq("draft")
-      expect(response.parsed_body["id"]).to be_present
-
-      invoice = Invoice.find(response.parsed_body["id"])
-      expect(invoice.line_items).to be_present
+      expect(Invoice.find(response.parsed_body["id"]).line_items).to be_present
     end
   end
 
