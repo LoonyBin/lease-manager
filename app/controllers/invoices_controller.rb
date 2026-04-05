@@ -31,9 +31,9 @@ class InvoicesController < ApplicationController
   end
 
   def create
-    @invoice = Invoice.new(invoice_params)
+    @invoice = ::InvoiceGenerator.new(Invoice.new(invoice_params)).call
     authorize @invoice
-    @invoice.save
+    @invoice.save unless @invoice.persisted?
     @leases = policy_scope(Lease).includes(:property, :tenant) unless @invoice.persisted? || @invoice.lease_id?
     respond_with @invoice
   end

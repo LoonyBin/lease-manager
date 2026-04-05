@@ -97,11 +97,14 @@ RSpec.describe "Invoices" do
                    status: "draft", document_type: "invoice" } }
     end
 
-    it "creates a draft invoice and returns JSON", :aggregate_failures do
+    it "creates a draft invoice with line items and returns JSON", :aggregate_failures do
       post invoices_path(format: :json), params: params, as: :json
       expect(response).to have_http_status(:success)
       expect(response.parsed_body["status"]).to eq("draft")
       expect(response.parsed_body["id"]).to be_present
+
+      invoice = Invoice.find(response.parsed_body["id"])
+      expect(invoice.line_items).to be_present
     end
   end
 
