@@ -35,16 +35,6 @@
               .show-field-label Date
               .show-field-value= @payment.date.strftime("%B %d, %Y")
             .show-field
-              .show-field-label Amount
-              .show-field-value.font-bold= number_to_currency(@payment.amount, unit: "₹", precision: 0)
-            .show-field
-              .show-field-label Mode
-              .show-field-value= @payment.mode.humanize.titleize
-            - if @payment.reference_number.present?
-              .show-field
-                .show-field-label Reference
-                .show-field-value= @payment.reference_number
-            .show-field
               .show-field-label Status
               .show-field-value
                 - if @payment.draft?
@@ -65,6 +55,19 @@
           %p.text-xs.opacity-50.mt-1
             Lease:
             = "#{@payment.lease.start_date.strftime('%b %Y')} → #{@payment.lease.end_date&.strftime('%b %Y') || 'Ongoing'}"
+
+      .show-section
+        .flex.flex-wrap.gap-x-8.gap-y-4
+          .show-field
+            .show-field-label Mode
+            .show-field-value= @payment.mode.humanize.titleize
+          - if @payment.reference_number.present?
+            .show-field
+              .show-field-label Reference
+              .show-field-value= @payment.reference_number
+          .show-field.ml-auto.text-right
+            .show-field-label Amount
+            .show-field-value.font-bold= number_to_currency(@payment.amount, unit: "₹", precision: 0)
 
       - if @payment.attachment.attached?
         .show-section
