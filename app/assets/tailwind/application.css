@@ -1772,3 +1772,50 @@ body.versions [data-nav="versions"] {
     text-align: left;
   }
 }
+
+/* ==========================================================================
+   Print Styles — Invoice & Payment show pages
+   ========================================================================== */
+
+@media print {
+  /* Page setup */
+  @page { margin: 1.5cm; size: A4 portrait; }
+
+  /* Global reset */
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { background: white !important; }
+
+  /* Hide UI chrome */
+  .app-header,
+  .drawer-side,
+  #nav-drawer,
+  #history-drawer,
+  label[for="history-drawer"],
+  .alert { display: none !important; }
+
+  /* Layout — make drawer-content fill the page */
+  .drawer { display: block !important; }
+  .drawer-content { width: 100% !important; display: block !important; }
+  .app-main { padding: 0 !important; background: white !important; min-height: unset !important; }
+  .page-content { padding: 0 !important; }
+
+  /* Show-card / section cleanup */
+  .show-card {
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    break-inside: avoid;
+  }
+  .show-section { border-bottom: 1px solid #ccc !important; }
+  .overflow-x-auto { overflow: visible !important; }
+
+  /* Typography — ensure contrast */
+  .show-field-label { color: #555 !important; }
+  .show-field-value { color: #000 !important; }
+  a { color: inherit !important; text-decoration: none !important; }
+
+  /* Table print rules */
+  table { width: 100% !important; border-collapse: collapse; }
+  thead { display: table-header-group; }
+  tr { break-inside: avoid; }
+}
