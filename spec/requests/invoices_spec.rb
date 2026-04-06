@@ -85,7 +85,7 @@ RSpec.describe "Invoices" do
 
       it "displays missing invoices in the page" do
         get audit_invoices_path
-        expect(response.body).to include(lease.tenant.name)
+        expect(response.body).to include(CGI.escapeHTML(lease.tenant.name))
       end
     end
   end
