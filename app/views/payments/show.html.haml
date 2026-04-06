@@ -29,8 +29,11 @@
             %p.text-xs.opacity-50= @payment.lease.property.name
           .show-invoice-meta
             .show-field
-              .show-field-label= @payment.refund? ? "Refund #" : "Payment #"
-              .show-field-value= @payment.id
+              .show-field-label
+                %span.font-bold.text-lg= @payment.refund? ? "Refund" : "Payment"
+              .show-field-value
+                %span #
+                = @payment.id
             .show-field
               .show-field-label Date
               .show-field-value= @payment.date.strftime("%B %d, %Y")

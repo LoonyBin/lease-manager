@@ -30,8 +30,10 @@
             %p.text-xs.opacity-50= @invoice.lease.property.name
           .show-invoice-meta
             .show-field
-              .show-field-label= @invoice.credit_note? ? "Credit Note #" : "Invoice #"
+              .show-field-label
+                %span.font-bold.text-lg= @invoice.credit_note? ? "Credit Note" : "Invoice"
               .show-field-value
+                %span #
                 - if @invoice.number.present?
                   = @invoice.number
                 - else
