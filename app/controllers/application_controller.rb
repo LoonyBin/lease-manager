@@ -39,5 +39,4 @@ class ApplicationController < ActionController::Base
   def user_not_authorized
     redirect_back_or_to root_path, alert: t("authorization.not_authorized")
   end
-
 end

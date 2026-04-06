@@ -129,7 +129,6 @@ RSpec.describe "Payments" do
         post payments_path, params: valid_params
         expect(response).to redirect_to(payments_path)
       end
-
     end
 
     context "when owner creates payment" do
