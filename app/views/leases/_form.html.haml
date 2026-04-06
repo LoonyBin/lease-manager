@@ -52,6 +52,7 @@
 
     - if f.object.terminated_on.present?
       = f.input :terminated_on, col: 4, as: :date, html5: true
+      = f.input :archived_at, col: 4, as: :date, html5: true, hint: "Set to archive this lease for historical reference only."
 
     = f.input :documents, col: 4, as: :file, input_html: { multiple: true },
               label: "Upload Documents (PDF, images)", hint: "You can select multiple files"

@@ -2,7 +2,9 @@
 
 class LeasesController < ApplicationController
   def index
-    @q = policy_scope(Lease).ransack(params[:q])
+    base_scope = policy_scope(Lease)
+    base_scope = base_scope.not_archived unless params.dig(:q, :by_status) == "archived"
+    @q = base_scope.ransack(params[:q])
     @leases = @q.result.page(params[:page]).per(20)
   end
 
@@ -65,6 +67,6 @@ class LeasesController < ApplicationController
     params.expect(lease: [:property_id, :tenant_id, :start_date, :duration_months, :rent_amount,
                           :security_deposit_value, :security_deposit_type, :enhancement_period_months,
                           :enhancement_amount, :enhancement_type, :tax_name, :tax_rate, :terminated_on,
-                          :renewed_from_id, :property_schedule, :quantity, { documents: [] }])
+                          :archived_at, :renewed_from_id, :property_schedule, :quantity, { documents: [] }])
   end
 end

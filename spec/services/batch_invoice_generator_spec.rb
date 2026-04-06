@@ -26,6 +26,18 @@ RSpec.describe BatchInvoiceGenerator do
       expect(Invoice.joins(:line_items).where(lease: future_lease, line_items: { category: "rent" })).to be_empty
     end
 
+    context "when a lease is archived (terminated with archived_at set)" do
+      let!(:archived_lease) do
+        create(:lease, start_date: date - 2.months, duration_months: 12,
+                       terminated_on: date - 1.month, archived_at: date - 1.week)
+      end
+
+      it "does not create invoices for archived leases" do
+        generate_invoices
+        expect(Invoice.joins(:line_items).where(lease: archived_lease, line_items: { category: "rent" })).to be_empty
+      end
+    end
+
     context "when rental invoice already exists" do
       before do
         invoice = create(:invoice, lease: active_lease, date: date.beginning_of_month)

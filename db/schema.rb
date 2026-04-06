@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_24_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_06_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -69,6 +69,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_24_000001) do
   end
 
   create_table "leases", force: :cascade do |t|
+    t.datetime "archived_at"
     t.decimal "cached_balance", precision: 10, scale: 2, default: "0.0", null: false
     t.datetime "created_at", null: false
     t.integer "duration_months"
@@ -88,6 +89,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_24_000001) do
     t.bigint "tenant_id", null: false
     t.date "terminated_on"
     t.datetime "updated_at", null: false
+    t.index ["archived_at"], name: "index_leases_on_archived_at"
     t.index ["property_id"], name: "index_leases_on_property_id"
     t.index ["renewed_from_id"], name: "index_leases_on_renewed_from_id"
     t.index ["tenant_id"], name: "index_leases_on_tenant_id"

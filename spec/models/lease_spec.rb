@@ -307,6 +307,10 @@ RSpec.describe Lease do
       create(:lease, start_date: 6.months.ago.to_date, duration_months: 12,
                      terminated_on: 3.months.ago.to_date)
     end
+    let!(:archived_lease) do
+      create(:lease, start_date: 6.months.ago.to_date, duration_months: 12,
+                     terminated_on: 3.months.ago.to_date, archived_at: 1.month.ago)
+    end
 
     describe "active" do
       subject { described_class.by_status("active") }
@@ -342,12 +346,67 @@ RSpec.describe Lease do
       it { is_expected.not_to include(active_lease) }
       it { is_expected.not_to include(upcoming_lease) }
       it { is_expected.not_to include(expired_lease) }
+      it { is_expected.not_to include(archived_lease) }
+    end
+
+    describe "archived" do
+      subject { described_class.by_status("archived") }
+
+      it { is_expected.to include(archived_lease) }
+      it { is_expected.not_to include(active_lease) }
+      it { is_expected.not_to include(upcoming_lease) }
+      it { is_expected.not_to include(expired_lease) }
+      it { is_expected.not_to include(terminated_lease) }
     end
 
     describe "unknown status" do
       it "returns no records" do
         expect(described_class.by_status("invalid")).to be_empty
       end
+    end
+  end
+
+  describe ".not_archived" do
+    let!(:regular_lease) { create(:lease) }
+    let!(:archived_lease) do
+      create(:lease, start_date: 6.months.ago.to_date, duration_months: 12,
+                     terminated_on: 3.months.ago.to_date, archived_at: 1.month.ago)
+    end
+
+    it "includes non-archived leases" do
+      expect(described_class.not_archived).to include(regular_lease)
+    end
+
+    it "excludes archived leases" do
+      expect(described_class.not_archived).not_to include(archived_lease)
+    end
+  end
+
+  describe "#archived?" do
+    it "returns false when archived_at is nil" do
+      expect(build(:lease, archived_at: nil)).not_to be_archived
+    end
+
+    it "returns true when archived_at is set" do
+      lease = build(:lease, terminated_on: Date.new(2025, 2, 1), archived_at: 1.day.ago)
+      expect(lease).to be_archived
+    end
+  end
+
+  describe "archived_at validation" do
+    it "is invalid when archived_at is set on a non-terminated lease" do
+      lease = build(:lease, archived_at: 1.day.ago)
+      lease.valid?
+      expect(lease.errors[:archived_at]).to be_present
+    end
+
+    it "is valid when archived_at is set on a terminated lease" do
+      lease = build(:lease, terminated_on: Date.new(2025, 2, 1), archived_at: 1.day.ago)
+      expect(lease).to be_valid
+    end
+
+    it "is valid when archived_at is nil on any lease" do
+      expect(build(:lease, archived_at: nil)).to be_valid
     end
   end
 
