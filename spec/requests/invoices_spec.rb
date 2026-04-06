@@ -52,15 +52,36 @@ RSpec.describe "Invoices" do
   end
 
   describe "POST /invoices" do
-    context "with document_type credit_note" do
-      let(:lease) { create(:lease) }
+    let(:lease) { create(:lease) }
+    let(:valid_params) do
+      { invoice: { lease_id: lease.id, date: Date.current.beginning_of_month.iso8601,
+                   status: "draft", document_type: "invoice" } }
+    end
 
+    context "with document_type credit_note" do
       it "creates a credit note", :aggregate_failures do
         params = { invoice: { lease_id: lease.id, date: Date.current, document_type: "credit_note",
                               line_items_attributes: { "0" => { name: "Refund", amount: 500, tax_rate: 0,
                                                                 category: "other" } } } }
         expect { post invoices_path, params: params }.to change(Invoice, :count).by(1)
         expect(Invoice.last).to be_credit_note
+      end
+    end
+
+    context "with return_to param" do
+      it "redirects to return_to path on success" do
+        post invoices_path, params: valid_params.merge(return_to: lease_path(lease))
+        expect(response).to redirect_to(lease_path(lease))
+      end
+
+      it "redirects to new invoice by default (no return_to)" do
+        post invoices_path, params: valid_params
+        expect(response).to redirect_to(invoice_path(Invoice.last))
+      end
+
+      it "ignores external return_to and falls back to invoice show" do
+        post invoices_path, params: valid_params.merge(return_to: "http://evil.com/steal")
+        expect(response).to redirect_to(invoice_path(Invoice.last))
       end
     end
   end

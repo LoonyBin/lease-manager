@@ -125,8 +125,18 @@ RSpec.describe "Payments" do
         expect(payment.balance).to eq(-100)
       end
 
-      it "redirects to the payments list" do
+      it "redirects to the payments list by default" do
         post payments_path, params: valid_params
+        expect(response).to redirect_to(payments_path)
+      end
+
+      it "redirects to return_to path when provided" do
+        post payments_path, params: valid_params.merge(return_to: lease_path(lease))
+        expect(response).to redirect_to(lease_path(lease))
+      end
+
+      it "ignores external return_to and falls back to payments list" do
+        post payments_path, params: valid_params.merge(return_to: "http://evil.com/steal")
         expect(response).to redirect_to(payments_path)
       end
     end
@@ -172,7 +182,7 @@ RSpec.describe "Payments" do
         expect(payment.balance).to eq(0)
       end
 
-      it "redirects to the payments list" do
+      it "redirects to the payments list by default" do
         post payments_path, params: valid_params
         expect(response).to redirect_to(payments_path)
       end

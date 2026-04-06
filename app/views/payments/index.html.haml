@@ -13,9 +13,9 @@
   %label.btn.btn-ghost.btn-sm.btn-square{for: "filter-drawer", title: "Filter"}
     = heroicon "funnel", options: { class: "w-5 h-5" }
   - if policy(@payments.new).new?
-    = link_to new_payment_path, class: "btn btn-ghost btn-sm btn-square", title: "Record Payment" do
+    = link_to new_payment_path(return_to: request.fullpath), class: "btn btn-ghost btn-sm btn-square", title: "Record Payment" do
       = heroicon "plus", options: { class: "w-5 h-5" }
-    = link_to new_payment_path(payment: { payment_type: :refund }), class: "btn btn-ghost btn-sm btn-square", title: "Record Refund" do
+    = link_to new_payment_path(payment: { payment_type: :refund }, return_to: request.fullpath), class: "btn btn-ghost btn-sm btn-square", title: "Record Refund" do
       = heroicon "arrow-uturn-left", options: { class: "w-5 h-5" }
 
 .drawer.drawer-end
