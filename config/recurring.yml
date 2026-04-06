@@ -15,4 +15,4 @@ production:
     schedule: every hour at minute 12
   generate_monthly_invoices:
     command: "GenerateInvoicesJob.perform_later"
-    schedule: on the 1st of every month at 00:05
+    schedule: "5 0 1 * *"
