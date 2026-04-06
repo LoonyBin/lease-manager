@@ -1,5 +1,5 @@
 - content_for :title do
-  = link_to "‹", :back, class: "opacity-40 hover:opacity-100 mr-1 font-normal no-underline"
+  %button{type: "button", data: { controller: "back", action: "click->back#go" }, class: "opacity-40 hover:opacity-100 mr-1 font-normal cursor-pointer bg-transparent border-0 p-0"} ‹
   = "#{@lease.property.name} → #{@lease.tenant.name}"
 
 - content_for :page_actions do
