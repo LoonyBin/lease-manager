@@ -63,7 +63,7 @@ RSpec.describe "Payments" do
     it "returns success with readonly lease field", :aggregate_failures do
       get new_payment_path(payment: { lease_id: lease.id })
       expect(response).to have_http_status(:success)
-      expect(response.body).to include(lease.tenant.name)
+      expect(response.body).to include(CGI.escapeHTML(lease.tenant.name))
     end
   end
 
