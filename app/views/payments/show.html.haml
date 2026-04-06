@@ -22,13 +22,45 @@
   .drawer-content
     .show-card
       .show-section
-        .show-grid
-          .show-field
-            .show-field-label Amount
-            .show-field-value.text-2xl.font-bold= number_to_currency(@payment.amount, unit: "₹", precision: 0)
-          .show-field
-            .show-field-label Date
-            .show-field-value= @payment.date.strftime("%B %d, %Y")
+        .show-invoice-header
+          .show-invoice-from
+            %h3.font-bold.text-lg= @payment.lease.property.owner.name
+            %p.text-sm.opacity-70= @payment.lease.property.owner.address
+            %p.text-xs.opacity-50= @payment.lease.property.name
+          .show-invoice-meta
+            .show-field
+              .show-field-label
+                %span.font-bold.text-lg= @payment.refund? ? "Refund" : "Payment"
+              .show-field-value
+                %span #
+                = @payment.id
+            .show-field
+              .show-field-label Date
+              .show-field-value= @payment.date.strftime("%B %d, %Y")
+            .show-field
+              .show-field-label Status
+              .show-field-value
+                - if @payment.draft?
+                  %span.resource-badge.resource-badge-warning Draft
+                - elsif @payment.rejected?
+                  %span.resource-badge.resource-badge-error Rejected
+                - elsif @payment.confirmed?
+                  %span.resource-badge.resource-badge-info Confirmed
+                - else
+                  %span.resource-badge.resource-badge-success= @payment.status.humanize
+
+      .show-section
+        %h3.show-section-title= @payment.refund? ? "Refunded To" : "Received From"
+        .show-field-value
+          %p.font-medium= @payment.lease.tenant.name
+          %p.text-sm.opacity-70= @payment.lease.tenant.email
+          %p.text-sm.opacity-70= @payment.lease.tenant.phone_number
+          %p.text-xs.opacity-50.mt-1
+            Lease:
+            = "#{@payment.lease.start_date.strftime('%b %Y')} → #{@payment.lease.end_date&.strftime('%b %Y') || 'Ongoing'}"
+
+      .show-section
+        .flex.flex-wrap.gap-x-8.gap-y-4
           .show-field
             .show-field-label Mode
             .show-field-value= @payment.mode.humanize.titleize
@@ -36,15 +68,9 @@
             .show-field
               .show-field-label Reference
               .show-field-value= @payment.reference_number
-          .show-field
-            .show-field-label Property
-            .show-field-value= link_to @payment.lease.property.name, @payment.lease.property, class: "link link-primary"
-          .show-field
-            .show-field-label Tenant
-            .show-field-value= link_to @payment.lease.tenant.name, @payment.lease.tenant, class: "link link-primary"
-          .show-field
-            .show-field-label Lease
-            .show-field-value= link_to "#{@payment.lease.start_date.strftime('%b %Y')} → #{@payment.lease.end_date&.strftime('%b %Y') || 'Ongoing'}", @payment.lease, class: "link link-primary"
+          .show-field.ml-auto.text-right
+            .show-field-label Amount
+            .show-field-value.font-bold= number_to_currency(@payment.amount, unit: "₹", precision: 0)
 
       - if @payment.attachment.attached?
         .show-section
@@ -67,7 +93,7 @@
       - if @payment.confirmed_or_later?
         .show-section
           .show-section-header
-            %h3.show-section-title= @payment.refund? ? "Settlement Status" : "Allocation Status"
+            %h3.show-section-title= @payment.refund? ? "Applied To" : "Allocated To"
             - if @payment.fully_allocated?
               %span.resource-badge.resource-badge-success Fully Allocated
             - else
@@ -79,13 +105,13 @@
               %table.table.w-full
                 %thead
                   %tr
-                    %th= @payment.refund? ? "Credit Note" : "Invoice"
+                    %th.w-full= @payment.refund? ? "Credit Note" : "Invoice"
                     %th Date
                     %th.text-right Amount
                 %tbody
                   - invoice_entries.each do |entry|
                     - invoice = entry.instrument
-                    %tr.hover
+                    %tr
                       %td
                         = link_to invoice_path(invoice), class: "link link-hover font-medium" do
                           - if invoice.number.present?
@@ -94,10 +120,14 @@
                             Draft
                       %td= invoice.date.strftime("%b %Y")
                       %td.text-right.font-medium= number_to_currency(entry.amount.abs, unit: "₹", precision: 0)
-                  %tfoot
-                    %tr.font-bold
-                      %td{colspan: 2} Total Allocated
-                      %td.text-right= number_to_currency(invoice_entries.sum { |e| e.amount.abs }, unit: "₹", precision: 0)
+                %tfoot
+                  %tr
+                    %th.text-right{colspan: 2} Total Allocated
+                    %th.text-right= number_to_currency(invoice_entries.sum { |e| e.amount.abs }, unit: "₹", precision: 0)
+                  - if !@payment.fully_allocated?
+                    %tr.text-warning
+                      %th.text-right{colspan: 2} Unallocated
+                      %th.text-right= number_to_currency(@payment.balance.abs, unit: "₹", precision: 0)
           - else
             .show-empty
               No invoices have been allocated to this payment yet.
