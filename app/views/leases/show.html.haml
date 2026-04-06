@@ -37,6 +37,13 @@
   - if policy(@lease).update? && !@lease.terminated_on
     %label.btn.btn-ghost.btn-sm.btn-square.text-error{for: "terminate-modal", title: "Terminate"}
       = heroicon "x-circle", options: { class: "w-5 h-5" }
+  - if policy(@lease).update? && @lease.terminated_on
+    - if @lease.archived?
+      = button_to lease_path(@lease), method: :patch, params: { lease: { archived_at: "" } }, class: "btn btn-ghost btn-sm btn-square", title: "Unarchive" do
+        = heroicon "archive-box-arrow-down", options: { class: "w-5 h-5" }
+    - else
+      = button_to lease_path(@lease), method: :patch, params: { lease: { archived_at: Date.today } }, class: "btn btn-ghost btn-sm btn-square", title: "Archive" do
+        = heroicon "archive-box", options: { class: "w-5 h-5" }
   - if policy(@lease).destroy?
     = button_to lease_path(@lease), method: :delete, class: "btn btn-ghost btn-sm btn-square text-error", data: { turbo_confirm: "Are you sure you want to delete this lease?" }, title: "Delete" do
       = heroicon "trash", options: { class: "w-5 h-5" }
