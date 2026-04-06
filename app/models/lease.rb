@@ -5,12 +5,16 @@ class Lease < ApplicationRecord
   include Lease::Renewable
   include Lease::CapacityCheck
 
-  VALID_STATUSES = %w[active expired terminated upcoming].freeze
+  VALID_STATUSES = %w[active expired terminated upcoming archived].freeze
+
+  scope :not_archived, -> { where(archived_at: nil) }
 
   scope :by_status, lambda { |status|
     case status.to_s
+    when "archived"
+      where.not(archived_at: nil)
     when "terminated"
-      where.not(terminated_on: nil)
+      where.not(terminated_on: nil).where(archived_at: nil)
     when "expired"
       where(terminated_on: nil)
         .where.not(duration_months: nil)
@@ -49,12 +53,17 @@ class Lease < ApplicationRecord
   validates :start_date, presence: true
   validates :duration_months, presence: true, numericality: { only_integer: true, greater_than: 0 }
   validate :termination_date_after_start_date
+  validates :archived_at, absence: true, unless: :terminated_on?
 
   # rubocop:disable Rails/SkipsModelValidations -- Intentionally skip callbacks to avoid infinite loops
   def recalculate_cached_balance!
     update_column(:cached_balance, invoices.unsettled.sum(:balance))
   end
   # rubocop:enable Rails/SkipsModelValidations
+
+  def archived?
+    archived_at.present?
+  end
 
   def end_date
     return terminated_on if terminated_on.present?

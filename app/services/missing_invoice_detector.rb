@@ -18,7 +18,7 @@ class MissingInvoiceDetector
 
   def non_upcoming_leases
     upcoming_ids = Lease.by_status("upcoming").select(:id)
-    Lease.where.not(id: upcoming_ids).includes(:property, :tenant)
+    Lease.not_archived.where.not(id: upcoming_ids).includes(:property, :tenant)
   end
 
   def missing_for_lease(lease, existing)

@@ -19,6 +19,10 @@ RSpec.describe "Leases" do
         create(:lease, start_date: 6.months.ago.to_date, duration_months: 12,
                        terminated_on: 3.months.ago.to_date)
       end
+      let!(:archived_lease) do
+        create(:lease, start_date: 8.months.ago.to_date, duration_months: 12,
+                       terminated_on: 5.months.ago.to_date, archived_at: 4.months.ago)
+      end
 
       it "returns only active leases when filtered by active", :aggregate_failures do
         get leases_path, params: { q: { by_status: "active" } }
@@ -47,9 +51,30 @@ RSpec.describe "Leases" do
       it "returns only terminated leases when filtered by terminated", :aggregate_failures do
         get leases_path, params: { q: { by_status: "terminated" } }
         expect(response.body).to include(lease_path(terminated_lease))
+        expect(response.body).not_to include(lease_path(active_lease), lease_path(upcoming_lease),
+                                             lease_path(expired_lease), lease_path(archived_lease))
+      end
+
+      it "returns only archived leases when filtered by archived", :aggregate_failures do
+        get leases_path, params: { q: { by_status: "archived" } }
+        expect(response.body).to include(lease_path(archived_lease))
         expect(response.body).not_to include(lease_path(active_lease))
         expect(response.body).not_to include(lease_path(upcoming_lease))
-        expect(response.body).not_to include(lease_path(expired_lease))
+        expect(response.body).not_to include(lease_path(terminated_lease))
+      end
+    end
+
+    context "when no status filter is set" do
+      let!(:active_lease) { create(:lease, start_date: 1.month.ago.to_date, duration_months: 12) }
+      let!(:archived_lease) do
+        create(:lease, start_date: 8.months.ago.to_date, duration_months: 12,
+                       terminated_on: 5.months.ago.to_date, archived_at: 4.months.ago)
+      end
+
+      it "excludes archived leases by default", :aggregate_failures do
+        get leases_path
+        expect(response.body).to include(lease_path(active_lease))
+        expect(response.body).not_to include(lease_path(archived_lease))
       end
     end
   end
@@ -152,6 +177,36 @@ RSpec.describe "Leases" do
       it "updates the quantity" do
         patch lease_path(lease), params: { lease: { quantity: 2 } }
         expect(lease.reload.quantity).to eq(2)
+      end
+    end
+
+    context "when archiving a terminated lease" do
+      let(:terminated_lease) do
+        create(:lease, start_date: 6.months.ago.to_date, duration_months: 12,
+                       terminated_on: 3.months.ago.to_date)
+      end
+      let(:archive_date) { 2.months.ago.to_date }
+
+      it "sets archived_at on the lease" do
+        patch lease_path(terminated_lease), params: { lease: { archived_at: archive_date } }
+        expect(terminated_lease.reload.archived_at.to_date).to eq(archive_date)
+      end
+
+      it "redirects to the lease" do
+        patch lease_path(terminated_lease), params: { lease: { archived_at: archive_date } }
+        expect(response).to redirect_to(lease_path(terminated_lease))
+      end
+    end
+
+    context "when unarchiving a lease" do
+      let(:archived_lease) do
+        create(:lease, start_date: 6.months.ago.to_date, duration_months: 12,
+                       terminated_on: 3.months.ago.to_date, archived_at: 2.months.ago)
+      end
+
+      it "clears archived_at" do
+        patch lease_path(archived_lease), params: { lease: { archived_at: "" } }
+        expect(archived_lease.reload.archived_at).to be_nil
       end
     end
   end

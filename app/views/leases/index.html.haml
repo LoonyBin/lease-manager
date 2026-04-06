@@ -24,6 +24,11 @@
       .drawer-content.flex.flex-col
         = render_active_filters(@q)
 
+        - unless params.dig(:q, :by_status) == "archived"
+          .alert.alert-info.mb-2.text-sm.py-2
+            Archived leases are hidden.
+            = link_to "Show archived", leases_path(q: { by_status: "archived" }), class: "link font-medium"
+
         -# Single markup - CSS handles card vs table display
         .resource-list.lease-list
           -# Table header (visible only in table view on desktop)
@@ -70,7 +75,12 @@
               .resource-col.lease-col-balance
                 %span{class: ("text-error" if lease.cached_balance > 0)}= number_to_currency(lease.cached_balance, unit: "₹", precision: 0)
               .resource-col-flex.lease-col-status
-                %span.resource-badge{class: "resource-badge-#{status == 'active' ? 'success' : status == 'upcoming' ? 'info' : 'neutral'}"}= status.capitalize
+                - badge_variant = case status
+                - when "active" then "success"
+                - when "upcoming" then "info"
+                - when "archived" then "ghost"
+                - else "neutral"
+                %span.resource-badge{class: "resource-badge-#{badge_variant}"}= status.capitalize
               .resource-col-actions.lease-col-actions
                 .resource-item-actions
                   - if policy(lease).edit?

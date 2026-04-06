@@ -68,6 +68,17 @@ RSpec.describe MissingInvoiceDetector do
       end
     end
 
+    context "when a lease is archived" do
+      let!(:archived_lease) do
+        create(:lease, start_date: today - 6.months, duration_months: 12,
+                       terminated_on: today - 2.months, archived_at: today - 1.month)
+      end
+
+      it "excludes archived leases" do
+        expect(result.map(&:lease)).not_to include(archived_lease)
+      end
+    end
+
     context "when there are no missing invoices" do
       let!(:lease) { create(:lease, start_date: today.beginning_of_month, duration_months: 12) }
 
