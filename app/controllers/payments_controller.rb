@@ -23,7 +23,7 @@ class PaymentsController < ApplicationController
     authorize @payment
 
     if @payment.save
-      redirect_to safe_return_to(params[:return_to], fallback: payments_path), notice: t(".success")
+      redirect_to payments_path, notice: t(".success")
     else
       @leases = filtered_leases
       render :new, status: :unprocessable_content

@@ -2,7 +2,6 @@
   = f.error_notification
   = f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present?
   = f.hidden_field :payment_type
-  = hidden_field_tag :return_to, params[:return_to]
 
   = f.grid_inputs do
     = f.association :lease, presettable: true, col: 4, collection: leases,

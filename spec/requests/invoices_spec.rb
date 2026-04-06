@@ -68,21 +68,9 @@ RSpec.describe "Invoices" do
       end
     end
 
-    context "with return_to param" do
-      it "redirects to return_to path on success" do
-        post invoices_path, params: valid_params.merge(return_to: lease_path(lease))
-        expect(response).to redirect_to(lease_path(lease))
-      end
-
-      it "redirects to new invoice by default (no return_to)" do
-        post invoices_path, params: valid_params
-        expect(response).to redirect_to(invoice_path(Invoice.last))
-      end
-
-      it "ignores external return_to and falls back to invoice show" do
-        post invoices_path, params: valid_params.merge(return_to: "http://evil.com/steal")
-        expect(response).to redirect_to(invoice_path(Invoice.last))
-      end
+    it "redirects to the new invoice on success" do
+      post invoices_path, params: valid_params
+      expect(response).to redirect_to(invoice_path(Invoice.last))
     end
   end
 

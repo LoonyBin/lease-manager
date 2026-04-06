@@ -52,8 +52,7 @@ class InvoicesController < ApplicationController
   def respond_to_create
     respond_to do |format|
       if @invoice.persisted?
-        url = safe_return_to(params[:return_to], fallback: invoice_path(@invoice))
-        format.html { redirect_to url, notice: t("invoices.create.success") }
+        format.html { redirect_to invoice_path(@invoice), notice: t("invoices.create.success") }
         format.json { render json: @invoice }
       else
         respond_to_create_failure(format)
