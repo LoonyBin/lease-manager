@@ -52,15 +52,18 @@ class InvoicesController < ApplicationController
   def respond_to_create
     respond_to do |format|
       if @invoice.persisted?
-        redirect_path = safe_return_to(params[:return_to], fallback: invoice_path(@invoice))
-        format.html { redirect_to redirect_path, notice: t("invoices.create.success") }
+        format.html { redirect_to safe_return_to(params[:return_to], fallback: invoice_path(@invoice)), notice: t("invoices.create.success") }
         format.json { render json: @invoice }
       else
-        @leases = policy_scope(Lease).includes(:property, :tenant) unless @invoice.lease_id?
-        format.html { render :new, status: :unprocessable_content }
-        format.json { render json: @invoice.errors, status: :unprocessable_content }
+        respond_to_create_failure(format)
       end
     end
+  end
+
+  def respond_to_create_failure(format)
+    @leases = policy_scope(Lease).includes(:property, :tenant) unless @invoice.lease_id?
+    format.html { render :new, status: :unprocessable_content }
+    format.json { render json: @invoice.errors, status: :unprocessable_content }
   end
 
   def invoice_params
