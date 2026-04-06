@@ -34,17 +34,7 @@ class InvoicesController < ApplicationController
     @invoice = ::InvoiceGenerator.new(Invoice.new(invoice_params)).call
     authorize @invoice
     @invoice.save unless @invoice.persisted?
-
-    respond_to do |format|
-      if @invoice.persisted?
-        format.html { redirect_to safe_return_to(params[:return_to], fallback: invoice_path(@invoice)), notice: t(".success") }
-        format.json { render json: @invoice }
-      else
-        @leases = policy_scope(Lease).includes(:property, :tenant) unless @invoice.lease_id?
-        format.html { render :new, status: :unprocessable_content }
-        format.json { render json: @invoice.errors, status: :unprocessable_entity }
-      end
-    end
+    respond_to_create
   end
 
   def update
@@ -58,6 +48,20 @@ class InvoicesController < ApplicationController
   end
 
   private
+
+  def respond_to_create
+    respond_to do |format|
+      if @invoice.persisted?
+        redirect_path = safe_return_to(params[:return_to], fallback: invoice_path(@invoice))
+        format.html { redirect_to redirect_path, notice: t("invoices.create.success") }
+        format.json { render json: @invoice }
+      else
+        @leases = policy_scope(Lease).includes(:property, :tenant) unless @invoice.lease_id?
+        format.html { render :new, status: :unprocessable_content }
+        format.json { render json: @invoice.errors, status: :unprocessable_content }
+      end
+    end
+  end
 
   def invoice_params
     params.permit(invoice: [:lease_id, :date, :status, :document_type,

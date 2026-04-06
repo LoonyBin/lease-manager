@@ -42,6 +42,7 @@ class ApplicationController < ActionController::Base
 
   def safe_return_to(url, fallback:)
     return fallback if url.blank?
+
     uri = URI.parse(url)
     uri.host.nil? ? url : fallback
   rescue URI::InvalidURIError
