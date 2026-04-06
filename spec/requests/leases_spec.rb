@@ -80,7 +80,7 @@ RSpec.describe "Leases" do
       it "returns success with readonly property field", :aggregate_failures do
         get new_lease_path(lease: { property_id: property.id })
         expect(response).to have_http_status(:success)
-        expect(response.body).to include(property.name)
+        expect(response.body).to include(CGI.escapeHTML(property.name))
       end
     end
   end

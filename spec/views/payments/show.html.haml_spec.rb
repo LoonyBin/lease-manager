@@ -11,7 +11,7 @@ RSpec.describe "payments/show" do
   end
 
   it { is_expected.to match(/₹5,000/) }
-  it { is_expected.to match(/#{@payment.lease.property.name}/) }
-  it { is_expected.to match(/#{@payment.lease.tenant.name}/) }
+  it { is_expected.to have_text(@payment.lease.property.name) }
+  it { is_expected.to have_text(@payment.lease.tenant.name) }
   it { is_expected.to match(/Allocation Status/) }
 end
