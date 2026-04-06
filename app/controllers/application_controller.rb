@@ -12,7 +12,7 @@ class ApplicationController < ActionController::Base
 
   rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
 
-  helper_method :current_user, :logged_in?
+  helper_method :current_user, :logged_in?, :safe_return_to
 
   private
 
@@ -38,5 +38,13 @@ class ApplicationController < ActionController::Base
 
   def user_not_authorized
     redirect_back_or_to root_path, alert: t("authorization.not_authorized")
+  end
+
+  def safe_return_to(url, fallback:)
+    return fallback if url.blank?
+    uri = URI.parse(url)
+    uri.host.nil? ? url : fallback
+  rescue URI::InvalidURIError
+    fallback
   end
 end

@@ -6,6 +6,8 @@ en:
     links:
       clear: Clear
   invoices:
+    create:
+      success: Invoice was successfully created.
     update:
       success: Invoice was successfully updated.
   leases:

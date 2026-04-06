@@ -1,4 +1,5 @@
 - content_for :title do
+  = link_to "‹", :back, class: "opacity-40 hover:opacity-100 mr-1 font-normal no-underline"
   = "#{@lease.property.name} → #{@lease.tenant.name}"
 
 - content_for :page_actions do
@@ -10,20 +11,20 @@
       %ul.dropdown-content.menu.bg-base-100.rounded-box.z-1.w-52.p-2.shadow-sm{tabindex: 0}
         - if policy(Invoice.new(lease: @lease)).create?
           %li
-            = link_to new_invoice_path(invoice: { lease_id: @lease.id }) do
+            = link_to new_invoice_path(invoice: { lease_id: @lease.id }, return_to: request.fullpath) do
               = heroicon "document-text", options: { class: "w-4 h-4" }
               New Invoice
           %li
-            = link_to new_invoice_path(invoice: { lease_id: @lease.id, document_type: :credit_note }) do
+            = link_to new_invoice_path(invoice: { lease_id: @lease.id, document_type: :credit_note }, return_to: request.fullpath) do
               = heroicon "document-minus", options: { class: "w-4 h-4" }
               New Credit Note
         - if policy(Payment.new(lease: @lease)).create?
           %li
-            = link_to new_payment_path(payment: { lease_id: @lease.id }) do
+            = link_to new_payment_path(payment: { lease_id: @lease.id }, return_to: request.fullpath) do
               = heroicon "banknotes", options: { class: "w-4 h-4" }
               Record Payment
           %li
-            = link_to new_payment_path(payment: { lease_id: @lease.id, payment_type: :refund }) do
+            = link_to new_payment_path(payment: { lease_id: @lease.id, payment_type: :refund }, return_to: request.fullpath) do
               = heroicon "arrow-uturn-left", options: { class: "w-4 h-4" }
               Record Refund
   -# Special actions first
