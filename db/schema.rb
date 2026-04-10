@@ -42,6 +42,28 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_06_000001) do
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
+  create_table "bank_statements", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "filename"
+    t.integer "status", default: 0
+    t.datetime "updated_at", null: false
+    t.datetime "uploaded_at"
+  end
+
+  create_table "bank_transactions", force: :cascade do |t|
+    t.decimal "amount", precision: 10, scale: 2
+    t.bigint "bank_statement_id", null: false
+    t.datetime "created_at", null: false
+    t.date "date"
+    t.string "description"
+    t.bigint "matched_payment_id"
+    t.string "reference"
+    t.integer "status", default: 0
+    t.datetime "updated_at", null: false
+    t.index ["bank_statement_id"], name: "index_bank_transactions_on_bank_statement_id"
+    t.index ["matched_payment_id"], name: "index_bank_transactions_on_matched_payment_id"
+  end
+
   create_table "entries", force: :cascade do |t|
     t.decimal "amount", precision: 10, scale: 2, null: false
     t.datetime "created_at", null: false
@@ -114,6 +136,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_06_000001) do
     t.string "invoice_prefix"
     t.integer "invoice_sequence", default: 0
     t.string "name"
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "payment_allocations", force: :cascade do |t|
+    t.decimal "amount", precision: 10, scale: 2, null: false
+    t.datetime "created_at", null: false
+    t.bigint "invoice_id", null: false
+    t.bigint "payment_id", null: false
     t.datetime "updated_at", null: false
   end
 
@@ -308,6 +338,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_06_000001) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "bank_transactions", "bank_statements"
+  add_foreign_key "bank_transactions", "payments", column: "matched_payment_id"
   add_foreign_key "entries", "leases"
   add_foreign_key "invoices", "leases"
   add_foreign_key "leases", "leases", column: "renewed_from_id"
