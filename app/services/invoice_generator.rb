@@ -25,6 +25,7 @@ class InvoiceGenerator
     Invoice.new(
       lease: @lease,
       date: @date,
+      due_date: @date + @lease.payment_due_in,
       status: :draft
     )
   end

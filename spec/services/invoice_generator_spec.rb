@@ -18,6 +18,34 @@ RSpec.describe InvoiceGenerator do
                                               status: "draft", lease: lease)
     end
 
+    it "sets due_date based on lease payment_due_in duration" do
+      lease.update!(payment_due_in: 9.days)
+      invoice = service.call
+      expect(invoice.due_date).to eq(date.beginning_of_month + 9.days)
+    end
+
+    it "sets due_date equal to invoice date when payment_due_in is 0" do
+      lease.update!(payment_due_in: 0.days)
+      invoice = service.call
+      expect(invoice.due_date).to eq(date.beginning_of_month)
+    end
+
+    context "with payment due on the 10th of next month" do
+      let(:lease) { create(:lease, rent_amount: 1000, payment_due_in: 1.month + 9.days) }
+
+      it "sets due_date to 10th of the following month" do
+        expect(service.call.due_date).to eq(Date.new(2025, 3, 10))
+      end
+    end
+
+    context "with custom payment_due_in" do
+      let(:lease) { create(:lease, rent_amount: 1000, payment_due_in: 14.days) }
+
+      it "sets due_date accordingly" do
+        expect(service.call.due_date).to eq(date.beginning_of_month + 14.days)
+      end
+    end
+
     describe "rent line item" do
       let(:line_item) { service.call.line_items.find { |i| i.category == "rent" } }
 

@@ -20,6 +20,7 @@ class Invoice < ApplicationRecord
   validates :date, presence: true
   validates :status, presence: true
 
+  before_validation :set_default_due_date
   before_save :assign_number, if: -> { finalized? && number.nil? }
   after_save :sync_initial_entry, if: :should_sync_entry?
   after_save :auto_settle, if: :should_auto_settle?
@@ -27,6 +28,8 @@ class Invoice < ApplicationRecord
   scope :finalized_or_later, -> { where(status: %i[finalized sent paid partially_paid]) }
   scope :unsettled, -> { where(status: %i[finalized sent partially_paid]) }
   scope :rental, -> { joins(:line_items).where(line_items: { category: "rent" }).distinct }
+  scope :overdue,  -> { unsettled.where(due_date: ...Date.current) }
+  scope :near_due, -> { unsettled.where(due_date: Date.current..7.days.from_now) }
 
   def total_amount
     line_items.sum("ROUND(amount + amount * COALESCE(tax_rate, 0) / 100.0, 2)")
@@ -79,7 +82,19 @@ class Invoice < ApplicationRecord
     finalized? || sent? || partially_paid?
   end
 
+  def overdue?
+    unsettled? && due_date.present? && due_date < Date.current
+  end
+
+  def near_due?
+    unsettled? && due_date.present? && due_date.between?(Date.current, 7.days.from_now)
+  end
+
   private
+
+  def set_default_due_date
+    self.due_date ||= date
+  end
 
   def assign_number
     InvoiceNumberingService.new(self).call

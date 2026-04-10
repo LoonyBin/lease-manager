@@ -89,6 +89,13 @@
             .show-field-label Rent Amount
             .show-field-value.text-lg.font-semibold= number_to_currency(@lease.rent_amount, unit: "₹", precision: 0)
           .show-field
+            .show-field-label Payment Terms
+            .show-field-value
+              - if @lease.payment_due_in == 0.days
+                Due on Invoice Date
+              - else
+                Due in #{@lease.payment_due_in.inspect}
+          .show-field
             .show-field-label Security Deposit
             .show-field-value
               = number_to_currency(@lease.security_deposit, unit: "₹", precision: 0)

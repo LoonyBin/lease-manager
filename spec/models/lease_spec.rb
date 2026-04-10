@@ -33,6 +33,18 @@ RSpec.describe Lease do
     it { is_expected.to validate_numericality_of(:quantity).only_integer.is_greater_than(0) }
     it { is_expected.to have_many_attached(:documents) }
 
+    it { is_expected.to validate_presence_of(:payment_due_in) }
+
+    it "is valid with payment_due_in of 0.days" do
+      lease = build(:lease, payment_due_in: 0.days)
+      expect(lease).to be_valid
+    end
+
+    it "is valid with payment_due_in as a multi-part duration" do
+      lease = build(:lease, payment_due_in: 1.month + 9.days)
+      expect(lease).to be_valid
+    end
+
     describe "#quantity_within_capacity" do
       let(:property) { create(:property, capacity: 10) }
       let(:lease) { build(:lease, property: property, quantity: 11, start_date: Date.current) }
@@ -465,6 +477,52 @@ RSpec.describe Lease do
         lease.recalculate_cached_balance!
         expect(lease.reload.cached_balance).to eq(800)
       end
+    end
+  end
+
+  describe "#overdue_balance" do
+    let(:lease) { create(:lease) }
+
+    it "returns 0 when there are no invoices" do
+      expect(lease.overdue_balance).to eq(0)
+    end
+
+    it "sums only overdue invoice balances" do
+      create(:invoice, :with_balance, balance_amount: 300, lease: lease, status: :finalized,
+                                      due_date: 2.days.ago)
+      create(:invoice, :with_balance, balance_amount: 200, lease: lease, status: :finalized,
+                                      due_date: 10.days.from_now)
+      expect(lease.overdue_balance).to eq(300)
+    end
+
+    it "returns 0 when an invoice is not yet due" do
+      create(:invoice, :with_balance, balance_amount: 500, lease: lease, status: :finalized,
+                                      due_date: 1.day.from_now)
+      expect(lease.overdue_balance).to eq(0)
+    end
+
+    it "reflects the current date without requiring recalculation" do
+      create(:invoice, :with_balance, balance_amount: 500, lease: lease, status: :finalized,
+                                      due_date: 1.day.from_now)
+      travel_to(2.days.from_now) do
+        expect(lease.overdue_balance).to eq(500)
+      end
+    end
+  end
+
+  describe "#near_due_balance" do
+    let(:lease) { create(:lease) }
+
+    it "returns 0 when there are no invoices" do
+      expect(lease.near_due_balance).to eq(0)
+    end
+
+    it "sums only near-due invoice balances" do
+      create(:invoice, :with_balance, balance_amount: 400, lease: lease, status: :finalized,
+                                      due_date: 3.days.from_now)
+      create(:invoice, :with_balance, balance_amount: 100, lease: lease, status: :finalized,
+                                      due_date: 20.days.from_now)
+      expect(lease.near_due_balance).to eq(400)
     end
   end
 

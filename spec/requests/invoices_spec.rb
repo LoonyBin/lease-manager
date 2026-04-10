@@ -120,6 +120,11 @@ RSpec.describe "Invoices" do
         expect(invoice.reload.date).to eq(Date.new(2026, 2, 1))
         expect(line_item.reload).to have_attributes(name: "Updated", amount: 15_000)
       end
+
+      it "accepts and saves a due_date" do
+        patch invoice_path(invoice), params: { invoice: { due_date: "2026-02-15" } }
+        expect(invoice.reload.due_date).to eq(Date.new(2026, 2, 15))
+      end
     end
 
     context "when deleting a line item" do

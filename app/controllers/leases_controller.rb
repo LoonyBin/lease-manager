@@ -67,6 +67,7 @@ class LeasesController < ApplicationController
     params.expect(lease: [:property_id, :tenant_id, :start_date, :duration_months, :rent_amount,
                           :security_deposit_value, :security_deposit_type, :enhancement_period_months,
                           :enhancement_amount, :enhancement_type, :tax_name, :tax_rate, :terminated_on,
-                          :archived_at, :renewed_from_id, :property_schedule, :quantity, { documents: [] }])
+                          :archived_at, :renewed_from_id, :property_schedule, :quantity, :payment_due_in,
+                          { documents: [] }])
   end
 end

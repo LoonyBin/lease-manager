@@ -180,6 +180,18 @@ RSpec.describe "Leases" do
       end
     end
 
+    context "when updating payment_due_in" do
+      it "saves the new payment_due_in duration" do
+        patch lease_path(lease), params: { lease: { payment_due_in: "P1M9D" } }
+        expect(lease.reload.payment_due_in).to eq(1.month + 9.days)
+      end
+
+      it "accepts payment_due_in of 0" do
+        patch lease_path(lease), params: { lease: { payment_due_in: "P0D" } }
+        expect(lease.reload.payment_due_in).to eq(0.days)
+      end
+    end
+
     context "when archiving a terminated lease" do
       let(:terminated_lease) do
         create(:lease, start_date: 6.months.ago.to_date, duration_months: 12,
