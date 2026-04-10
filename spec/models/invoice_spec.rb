@@ -23,6 +23,129 @@ RSpec.describe Invoice do
     }
   end
 
+  describe "scopes" do
+    let(:lease) { create(:lease) }
+
+    describe ".overdue" do
+      it "includes unsettled invoices with due_date in the past" do
+        invoice = create(:invoice, :with_balance, balance_amount: 100, lease: lease, status: :finalized,
+                                                  due_date: 1.day.ago)
+        expect(described_class.overdue).to include(invoice)
+      end
+
+      it "excludes invoices with due_date today or in the future" do
+        invoice = create(:invoice, :with_balance, balance_amount: 100, lease: lease, status: :finalized,
+                                                  due_date: Date.current)
+        expect(described_class.overdue).not_to include(invoice)
+      end
+
+      it "excludes paid invoices" do
+        invoice = create(:invoice, :with_balance, balance_amount: 0, lease: lease, status: :paid,
+                                                  due_date: 1.day.ago)
+        expect(described_class.overdue).not_to include(invoice)
+      end
+
+      it "excludes cancelled invoices" do
+        invoice = create(:invoice, :with_balance, balance_amount: 100, lease: lease, status: :cancelled,
+                                                  due_date: 1.day.ago)
+        expect(described_class.overdue).not_to include(invoice)
+      end
+    end
+
+    describe ".near_due" do
+      it "includes unsettled invoices with due_date within 7 days" do
+        invoice = create(:invoice, :with_balance, balance_amount: 100, lease: lease, status: :finalized,
+                                                  due_date: 3.days.from_now)
+        expect(described_class.near_due).to include(invoice)
+      end
+
+      it "includes invoices with due_date today" do
+        invoice = create(:invoice, :with_balance, balance_amount: 100, lease: lease, status: :finalized,
+                                                  due_date: Date.current)
+        expect(described_class.near_due).to include(invoice)
+      end
+
+      it "includes invoices with due_date exactly 7 days from now" do
+        invoice = create(:invoice, :with_balance, balance_amount: 100, lease: lease, status: :finalized,
+                                                  due_date: 7.days.from_now)
+        expect(described_class.near_due).to include(invoice)
+      end
+
+      it "excludes invoices with due_date beyond 7 days" do
+        invoice = create(:invoice, :with_balance, balance_amount: 100, lease: lease, status: :finalized,
+                                                  due_date: 8.days.from_now)
+        expect(described_class.near_due).not_to include(invoice)
+      end
+
+      it "excludes paid invoices" do
+        invoice = create(:invoice, :with_balance, balance_amount: 0, lease: lease, status: :paid,
+                                                  due_date: Date.current)
+        expect(described_class.near_due).not_to include(invoice)
+      end
+    end
+  end
+
+  describe "due_date default" do
+    it "defaults due_date to date when not set" do
+      invoice = build(:invoice, date: Date.new(2026, 1, 1), due_date: nil)
+      invoice.valid?
+      expect(invoice.due_date).to eq(Date.new(2026, 1, 1))
+    end
+
+    it "preserves due_date when explicitly set" do
+      invoice = build(:invoice, date: Date.new(2026, 1, 1), due_date: Date.new(2026, 1, 15))
+      invoice.valid?
+      expect(invoice.due_date).to eq(Date.new(2026, 1, 15))
+    end
+  end
+
+  describe "#overdue?" do
+    let(:lease) { create(:lease) }
+
+    it "returns true when unsettled and due_date is in the past" do
+      invoice = create(:invoice, :with_balance, balance_amount: 100, lease: lease, status: :finalized,
+                                                due_date: 1.day.ago)
+      expect(invoice.overdue?).to be true
+    end
+
+    it "returns false when due_date is today" do
+      invoice = build(:invoice, status: :finalized, due_date: Date.current)
+      expect(invoice.overdue?).to be false
+    end
+
+    it "returns false when paid" do
+      invoice = build(:invoice, status: :paid, due_date: 1.day.ago)
+      expect(invoice.overdue?).to be false
+    end
+
+    it "returns false when cancelled" do
+      invoice = build(:invoice, status: :cancelled, due_date: 1.day.ago)
+      expect(invoice.overdue?).to be false
+    end
+  end
+
+  describe "#near_due?" do
+    it "returns true when unsettled and due_date within 7 days" do
+      invoice = build(:invoice, status: :finalized, due_date: 3.days.from_now)
+      expect(invoice.near_due?).to be true
+    end
+
+    it "returns true when due_date is today" do
+      invoice = build(:invoice, status: :finalized, due_date: Date.current)
+      expect(invoice.near_due?).to be true
+    end
+
+    it "returns false when due_date beyond 7 days" do
+      invoice = build(:invoice, status: :finalized, due_date: 8.days.from_now)
+      expect(invoice.near_due?).to be false
+    end
+
+    it "returns false when paid" do
+      invoice = build(:invoice, status: :paid, due_date: Date.current)
+      expect(invoice.near_due?).to be false
+    end
+  end
+
   describe "callbacks" do
     let(:invoice) { create(:invoice, status: :draft, number: nil) }
 

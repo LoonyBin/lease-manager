@@ -51,7 +51,7 @@ class InvoicesController < ApplicationController
   private
 
   def invoice_params
-    params.permit(invoice: [:lease_id, :date, :status, :document_type,
+    params.permit(invoice: [:lease_id, :date, :due_date, :status, :document_type,
                             { line_items_attributes: %i[id name amount tax_rate category _destroy] }])[:invoice]
   end
 end

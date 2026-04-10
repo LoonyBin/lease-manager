@@ -52,6 +52,9 @@ class Lease < ApplicationRecord
 
   validates :start_date, presence: true
   validates :duration_months, presence: true, numericality: { only_integer: true, greater_than: 0 }
+  validates :payment_due_in, presence: true
+  validate :payment_due_in_non_negative
+
   validate :termination_date_after_start_date
   validates :archived_at, absence: true, unless: :terminated_on?
 
@@ -60,6 +63,14 @@ class Lease < ApplicationRecord
     update_column(:cached_balance, invoices.unsettled.sum(:balance))
   end
   # rubocop:enable Rails/SkipsModelValidations
+
+  def overdue_balance
+    @overdue_balance ||= invoices.overdue.sum(:balance)
+  end
+
+  def near_due_balance
+    @near_due_balance ||= invoices.near_due.sum(:balance)
+  end
 
   def archived?
     archived_at.present?
@@ -85,6 +96,12 @@ class Lease < ApplicationRecord
   end
 
   private
+
+  def payment_due_in_non_negative
+    return if payment_due_in.blank?
+
+    errors.add(:payment_due_in, "must be non-negative") if payment_due_in.to_i.negative?
+  end
 
   def set_default_property_schedule
     return if property_schedule.present?

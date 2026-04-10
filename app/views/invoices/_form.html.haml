@@ -7,6 +7,7 @@
     - if f.object.new_record?
       = f.association :lease, presettable: true, col: 4, collection: leases, label_method: ->(l) { "#{l.tenant.name} - #{l.property.name}" }, label: "Lease (Tenant - Property)"
     = f.input :date, as: :date, html5: true
+    = f.input :due_date, as: :date, html5: true, hint: "Defaults to invoice date if blank"
     = f.input :status, collection: Invoice.statuses.keys, include_blank: false
 
   %h3.text-lg.font-bold.mb-4 Line Items
