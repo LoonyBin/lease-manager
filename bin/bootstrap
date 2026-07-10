@@ -48,18 +48,22 @@ else
 fi
 
 step "domain: $DOMAIN"
+domain_changed=false
 vhosts=$(dokku domains:report "$APP" --domains-app-vhosts)
 if [[ " $vhosts " == *" $DOMAIN "* ]]; then
   ok "configured"
 else
   dokku domains:set "$APP" "$DOMAIN"
+  domain_changed=true
 fi
 
 step "config"
 if [[ "$(dokku config:get "$APP" APP_HOST 2>/dev/null || true)" == "$DOMAIN" ]]; then
   ok "APP_HOST=$DOMAIN"
 else
-  dokku config:set --no-restart "$APP" APP_HOST="$DOMAIN"
+  # Restarts the app so running containers pick up the new value
+  # (a no-op before the first deploy).
+  dokku config:set "$APP" APP_HOST="$DOMAIN"
 fi
 if dokku config:get "$APP" RAILS_MASTER_KEY >/dev/null 2>&1; then
   ok "RAILS_MASTER_KEY is set"
@@ -90,7 +94,11 @@ if [[ "$(dokku ps:report "$APP" --deployed)" != "true" ]]; then
 else
   active=$(dokku letsencrypt:report "$APP" --letsencrypt-active)
   expiry=$(dokku letsencrypt:report "$APP" --letsencrypt-expiration)
-  if [[ "$active" != "true" || "${expiry:-0}" -lt "$(date +%s)" ]]; then
+  # Re-issue when the cert is missing/expired, or when this run changed the
+  # domain (the existing cert's SAN would still name the old domain). Not
+  # unconditional: plugin 0.20.4 has no skip-if-covered logic, so that would
+  # request a duplicate cert from ACME on every run and risk rate limits.
+  if [[ "$domain_changed" == "true" || "$active" != "true" || "${expiry:-0}" -lt "$(date +%s)" ]]; then
     dokku letsencrypt:enable "$APP"
   else
     ok "certificate active and not expired"
