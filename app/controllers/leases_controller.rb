@@ -9,14 +9,14 @@ class LeasesController < ApplicationController
   end
 
   def show
-    @lease = Lease.find(params[:id])
+    @lease = Lease.find(params.expect(:id))
     authorize @lease
     @statement_entries = helpers.statement_entries(@lease.entries.initial.preload(:instrument))
   end
 
   def new
     if params[:renewed_from_id]
-      old_lease = Lease.find(params[:renewed_from_id])
+      old_lease = Lease.find(params.expect(:renewed_from_id))
       @lease = Lease.build_renewal(old_lease)
     else
       @lease = Lease.new(new_lease_prepopulate_params)
@@ -25,7 +25,7 @@ class LeasesController < ApplicationController
   end
 
   def edit
-    @lease = Lease.find(params[:id])
+    @lease = Lease.find(params.expect(:id))
     authorize @lease
   end
 
@@ -41,7 +41,7 @@ class LeasesController < ApplicationController
   end
 
   def update
-    @lease = Lease.find(params[:id])
+    @lease = Lease.find(params.expect(:id))
     authorize @lease
     if @lease.update(lease_params)
       redirect_to @lease, notice: t(".success")
@@ -51,7 +51,7 @@ class LeasesController < ApplicationController
   end
 
   def destroy
-    @lease = Lease.find(params[:id])
+    @lease = Lease.find(params.expect(:id))
     authorize @lease
     @lease.destroy
     redirect_to leases_url, notice: t(".success")

@@ -8,7 +8,7 @@ class OwnersController < ApplicationController
   end
 
   def show
-    @owner = Owner.find(params[:id])
+    @owner = Owner.find(params.expect(:id))
     authorize @owner
     @properties = policy_scope(@owner.properties).includes(:leases)
   end
@@ -19,7 +19,7 @@ class OwnersController < ApplicationController
   end
 
   def edit
-    @owner = Owner.find(params[:id])
+    @owner = Owner.find(params.expect(:id))
     authorize @owner
   end
 
@@ -35,7 +35,7 @@ class OwnersController < ApplicationController
   end
 
   def update
-    @owner = Owner.find(params[:id])
+    @owner = Owner.find(params.expect(:id))
     authorize @owner
     if @owner.update(owner_params)
       redirect_to @owner, notice: t(".success")
@@ -45,7 +45,7 @@ class OwnersController < ApplicationController
   end
 
   def destroy
-    @owner = Owner.find(params[:id])
+    @owner = Owner.find(params.expect(:id))
     authorize @owner
     @owner.destroy
     redirect_to owners_url, notice: t(".success")

@@ -9,12 +9,12 @@ class VersionsController < ApplicationController
   end
 
   def show
-    @version = Version.find(params[:id])
+    @version = Version.find(params.expect(:id))
     authorize @version, policy_class: VersionPolicy
   end
 
   def destroy
-    @version = Version.find(params[:id])
+    @version = Version.find(params.expect(:id))
     authorize @version, policy_class: VersionPolicy
     @version.destroy
     redirect_to versions_path, notice: t(".success")

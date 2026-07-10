@@ -8,7 +8,7 @@ class PaymentsController < ApplicationController
   end
 
   def show
-    @payment = Payment.find(params[:id])
+    @payment = Payment.find(params.expect(:id))
     authorize @payment
   end
 
@@ -31,7 +31,7 @@ class PaymentsController < ApplicationController
   end
 
   def update
-    @payment = Payment.find(params[:id])
+    @payment = Payment.find(params.expect(:id))
     authorize @payment
 
     if @payment.update(update_params)
