@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+# Bootstrap the lease-manager app on the Dokku host (BCDR, not routine deploy).
+#
+# Sets up everything a `git push` deploy does not cover: the app itself, its
+# Postgres service and link, the domain, APP_HOST, required secrets, the
+# solid_queue worker, and the Let's Encrypt certificate with its auto-renew
+# cron job (server-wide by nature; the cron then keeps certs renewed without
+# this script).
+#
+# Run it before the first deploy on a fresh server (then once more after the
+# first deploy, to issue the certificate), or to rebuild/verify server-side
+# setup during disaster recovery. Idempotent: re-running only fixes drifted
+# state and never touches operator-owned runtime state like scale-ups.
+#
+# Usage:
+#   bin/bootstrap                          # uses the `dokku` ssh alias
+#   DOKKU_HOST=dokku@91.98.73.173 bin/bootstrap
+
+set -euo pipefail
+
+DOKKU_HOST="${DOKKU_HOST:-dokku}"
+APP="${APP:-lease-manager}"
+DOMAIN="${DOMAIN:-lease-manager.loonyb.in}"
+DB_SERVICE="${DB_SERVICE:-${APP}-db}"
+LETSENCRYPT_EMAIL="${LETSENCRYPT_EMAIL:-admin@loonyb.in}"
+
+dokku() { ssh -T -o LogLevel=ERROR "$DOKKU_HOST" "$@" | tr -d '\r'; }
+step() { printf -- '-----> %s\n' "$*"; }
+ok() { printf '       %s\n' "$*"; }
+
+step "app: $APP"
+if dokku apps:exists "$APP" >/dev/null 2>&1; then
+  ok "exists"
+else
+  dokku apps:create "$APP"
+fi
+
+step "postgres: $DB_SERVICE"
+if dokku postgres:exists "$DB_SERVICE" >/dev/null 2>&1; then
+  ok "service exists"
+else
+  dokku postgres:create "$DB_SERVICE"
+fi
+if dokku postgres:linked "$DB_SERVICE" "$APP" >/dev/null 2>&1; then
+  ok "linked to $APP"
+else
+  dokku postgres:link "$DB_SERVICE" "$APP"
+fi
+
+step "domain: $DOMAIN"
+domain_changed=false
+vhosts=$(dokku domains:report "$APP" --domains-app-vhosts)
+if [[ " $vhosts " == *" $DOMAIN "* ]]; then
+  ok "configured"
+else
+  dokku domains:set "$APP" "$DOMAIN"
+  domain_changed=true
+fi
+
+step "config"
+if [[ "$(dokku config:get "$APP" APP_HOST 2>/dev/null || true)" == "$DOMAIN" ]]; then
+  ok "APP_HOST=$DOMAIN"
+else
+  # Restarts the app so running containers pick up the new value
+  # (a no-op before the first deploy).
+  dokku config:set "$APP" APP_HOST="$DOMAIN"
+fi
+if dokku config:get "$APP" RAILS_MASTER_KEY >/dev/null 2>&1; then
+  ok "RAILS_MASTER_KEY is set"
+else
+  echo "ERROR: RAILS_MASTER_KEY is not set. Set it manually (never commit it):" >&2
+  echo "  ssh $DOKKU_HOST config:set $APP RAILS_MASTER_KEY=<key>" >&2
+  exit 1
+fi
+
+# Dokku defaults non-web proctypes to 0, so a fresh app never runs its
+# solid_queue worker. Only fix that zero; scale is otherwise operator-owned.
+step "process scale"
+worker_qty=$(dokku ps:scale "$APP" | awk '$1 == "worker:" {print $2}')
+if [[ "${worker_qty:-0}" -eq 0 ]]; then
+  dokku ps:scale "$APP" worker=1
+else
+  ok "worker=$worker_qty (operator-owned; left as is)"
+fi
+
+step "letsencrypt"
+if [[ -n "$(dokku letsencrypt:report "$APP" --letsencrypt-computed-email)" ]]; then
+  ok "email configured"
+else
+  dokku letsencrypt:set "$APP" email "$LETSENCRYPT_EMAIL"
+fi
+if [[ "$(dokku ps:report "$APP" --deployed)" != "true" ]]; then
+  ok "app not deployed yet; skipping certificate (re-run after first deploy)"
+else
+  active=$(dokku letsencrypt:report "$APP" --letsencrypt-active)
+  expiry=$(dokku letsencrypt:report "$APP" --letsencrypt-expiration)
+  # Re-issue when the cert is missing/expired, or when this run changed the
+  # domain (the existing cert's SAN would still name the old domain). Not
+  # unconditional: plugin 0.20.4 has no skip-if-covered logic, so that would
+  # request a duplicate cert from ACME on every run and risk rate limits.
+  if [[ "$domain_changed" == "true" || "$active" != "true" || "${expiry:-0}" -lt "$(date +%s)" ]]; then
+    dokku letsencrypt:enable "$APP"
+  else
+    ok "certificate active and not expired"
+  fi
+fi
+# Server-wide daily auto-renew; the plugin replaces any existing entry.
+dokku letsencrypt:cron-job --add
+
+step "certificate status"
+dokku letsencrypt:list | awk -v app="$APP" 'NR == 1 || $1 == app'
