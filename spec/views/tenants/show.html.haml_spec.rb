@@ -10,7 +10,7 @@ RSpec.describe "tenants/show" do
     render
   end
 
-  it { is_expected.to match(/Name/) }
-  it { is_expected.to match(/Email/) }
-  it { is_expected.to match(/Phone/) }
+  it { is_expected.to include("Name") }
+  it { is_expected.to include("Email") }
+  it { is_expected.to include("Phone") }
 end

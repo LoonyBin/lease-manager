@@ -7,7 +7,7 @@ class PropertiesController < ApplicationController
   end
 
   def show
-    @property = Property.find(params[:id])
+    @property = Property.find(params.expect(:id))
     authorize @property
   end
 
@@ -17,7 +17,7 @@ class PropertiesController < ApplicationController
   end
 
   def edit
-    @property = Property.find(params[:id])
+    @property = Property.find(params.expect(:id))
     authorize @property
   end
 
@@ -33,7 +33,7 @@ class PropertiesController < ApplicationController
   end
 
   def update
-    @property = Property.find(params[:id])
+    @property = Property.find(params.expect(:id))
     authorize @property
     if @property.update(property_params)
       redirect_to @property, notice: t(".success")
@@ -43,7 +43,7 @@ class PropertiesController < ApplicationController
   end
 
   def destroy
-    @property = Property.find(params[:id])
+    @property = Property.find(params.expect(:id))
     authorize @property
     @property.destroy
     redirect_to properties_url, notice: t(".success")

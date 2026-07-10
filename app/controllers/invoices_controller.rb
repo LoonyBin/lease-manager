@@ -10,7 +10,7 @@ class InvoicesController < ApplicationController
   end
 
   def show
-    @invoice = Invoice.find(params[:id])
+    @invoice = Invoice.find(params.expect(:id))
     authorize @invoice
   end
 
@@ -21,7 +21,7 @@ class InvoicesController < ApplicationController
   end
 
   def edit
-    @invoice = Invoice.find(params[:id])
+    @invoice = Invoice.find(params.expect(:id))
     authorize @invoice
   end
 
@@ -39,7 +39,7 @@ class InvoicesController < ApplicationController
   end
 
   def update
-    @invoice = Invoice.find(params[:id])
+    @invoice = Invoice.find(params.expect(:id))
     authorize @invoice
     if @invoice.update(invoice_params)
       redirect_to @invoice, notice: t(".success")

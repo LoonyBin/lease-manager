@@ -7,7 +7,7 @@ class UsersController < ApplicationController
   end
 
   def show
-    @user = User.find(params[:id])
+    @user = User.find(params.expect(:id))
     authorize @user
   end
 
@@ -17,7 +17,7 @@ class UsersController < ApplicationController
   end
 
   def edit
-    @user = User.find(params[:id])
+    @user = User.find(params.expect(:id))
     authorize @user
   end
 
@@ -33,7 +33,7 @@ class UsersController < ApplicationController
   end
 
   def update
-    @user = User.find(params[:id])
+    @user = User.find(params.expect(:id))
     authorize @user
     if @user.update(user_params)
       redirect_to @user, notice: t(".success")
@@ -43,7 +43,7 @@ class UsersController < ApplicationController
   end
 
   def destroy
-    @user = User.find(params[:id])
+    @user = User.find(params.expect(:id))
     authorize @user
     @user.destroy
     redirect_to users_url, notice: t(".success")

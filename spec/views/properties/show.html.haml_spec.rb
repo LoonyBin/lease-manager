@@ -10,8 +10,8 @@ RSpec.describe "properties/show" do
     render
   end
 
-  it { is_expected.to match(/Name/) }
-  it { is_expected.to match(/MyText/) }
+  it { is_expected.to include("Name") }
+  it { is_expected.to include("MyText") }
 
   context "with create shortcut dropdown" do
     subject { Capybara.string(view.content_for(:page_actions)) }

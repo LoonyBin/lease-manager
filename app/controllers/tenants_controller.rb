@@ -7,7 +7,7 @@ class TenantsController < ApplicationController
   end
 
   def show
-    @tenant = Tenant.find(params[:id])
+    @tenant = Tenant.find(params.expect(:id))
     authorize @tenant
   end
 
@@ -17,7 +17,7 @@ class TenantsController < ApplicationController
   end
 
   def edit
-    @tenant = Tenant.find(params[:id])
+    @tenant = Tenant.find(params.expect(:id))
     authorize @tenant
   end
 
@@ -33,7 +33,7 @@ class TenantsController < ApplicationController
   end
 
   def update
-    @tenant = Tenant.find(params[:id])
+    @tenant = Tenant.find(params.expect(:id))
     authorize @tenant
     if @tenant.update(tenant_params)
       redirect_to @tenant, notice: t(".success")
@@ -43,7 +43,7 @@ class TenantsController < ApplicationController
   end
 
   def destroy
-    @tenant = Tenant.find(params[:id])
+    @tenant = Tenant.find(params.expect(:id))
     authorize @tenant
     @tenant.destroy
     redirect_to tenants_url, notice: t(".success")
