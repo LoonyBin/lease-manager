@@ -42,12 +42,13 @@ class InvoiceTemplatesController < ApplicationController
   end
 
   # Renders the template form with the invoice that would be generated for
-  # the requested month, without saving anything.
+  # the requested month, without saving anything. Rendered as 422 so Turbo
+  # displays the re-rendered form instead of expecting a redirect.
   def preview
     @invoice_template = find_or_build_template
     authorize @invoice_template, @invoice_template.persisted? ? :update? : :create?
     build_preview
-    render @invoice_template.persisted? ? :edit : :new
+    render @invoice_template.persisted? ? :edit : :new, status: :unprocessable_content
   end
 
   private

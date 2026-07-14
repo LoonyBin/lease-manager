@@ -93,7 +93,7 @@ RSpec.describe "InvoiceTemplates" do
     it "renders the evaluated invoice for the requested month", :aggregate_failures do
       post preview_lease_invoice_templates_path(lease),
            params: valid_params.merge(preview_month: lease.start_date.iso8601)
-      expect(response).to have_http_status(:success)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include("Fixed maintenance charge")
       expect(response.body).to include("2,500")
     end
@@ -116,7 +116,7 @@ RSpec.describe "InvoiceTemplates" do
       patch preview_lease_invoice_templates_path(lease),
             params: { id: template.id, preview_month: lease.start_date.iso8601,
                       invoice_template: { name: template.name, payment_due_in: "P9D" } }
-      expect(response).to have_http_status(:success)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include("Rent for #{lease.start_date.strftime('%B %Y')}")
     end
   end
