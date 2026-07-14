@@ -88,8 +88,10 @@ class InvoicesController < ApplicationController
     templates.detect { |t| invoiced_ids.exclude?(t.id) && t.generates_for?(month) } || templates.first
   end
 
+  # Whole-month range to match the generator's dedup (dates are editable).
   def invoiced_template_ids(lease, month)
-    Invoice.where(lease: lease, date: month).where.not(invoice_template_id: nil).pluck(:invoice_template_id)
+    Invoice.where(lease: lease, date: month..month.end_of_month)
+           .where.not(invoice_template_id: nil).pluck(:invoice_template_id)
   end
 
   def set_form_collections
