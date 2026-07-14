@@ -33,6 +33,12 @@ RSpec.describe "API rate limiting" do
     expect(response).to have_http_status(:ok)
   end
 
+  it "counts scheme variants of one token against a single bucket" do
+    limit.times { get properties_path(format: :json), headers: headers }
+    get properties_path(format: :json), headers: { "Authorization" => "Token #{api_token.plaintext_token}" }
+    expect(response).to have_http_status(:too_many_requests)
+  end
+
   it "throttles invalid tokens rather than only rejecting them" do
     (limit + 1).times { get properties_path(format: :json), headers: { "Authorization" => "Bearer wrong" } }
     expect(response).to have_http_status(:too_many_requests)

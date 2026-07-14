@@ -19,7 +19,7 @@ class ApplicationController < ActionController::Base
   # Keyed by the digest of the presented token, shared across controllers.
   rate_limit to: Rails.configuration.x.api_rate_limit.limit,
              within: Rails.configuration.x.api_rate_limit.period,
-             by: -> { ApiToken.digest(request.authorization.to_s) },
+             by: -> { ApiToken.digest(presented_token.to_s) },
              with: -> { render json: { error: "Rate limit exceeded" }, status: :too_many_requests },
              store: API_RATE_LIMIT_STORE,
              scope: "api",
@@ -54,9 +54,14 @@ class ApplicationController < ActionController::Base
   # When an Authorization header is present there is no session fallback: an
   # invalid, revoked, or expired token is a 401 even with a live session.
   def user_from_token
-    authenticate_with_http_token do |token, _options|
-      ApiToken.authenticate(token)&.tap(&:touch_last_used)&.user
-    end
+    ApiToken.authenticate(presented_token)&.tap(&:touch_last_used)&.user
+  end
+
+  # The token parsed from the Authorization header (nil when absent or
+  # malformed). The rate limiter keys off this same value, so Token/Bearer
+  # scheme and whitespace variants of one credential share a single bucket.
+  def presented_token
+    ActionController::HttpAuthentication::Token.token_and_options(request)&.first
   end
 
   def token_request?
