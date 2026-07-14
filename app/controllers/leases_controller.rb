@@ -6,12 +6,14 @@ class LeasesController < ApplicationController
     base_scope = base_scope.not_archived unless params.dig(:q, :by_status) == "archived"
     @q = base_scope.ransack(params[:q])
     @leases = @q.result.page(params[:page]).per(20)
+    respond_ok @leases
   end
 
   def show
     @lease = Lease.find(params.expect(:id))
     authorize @lease
     @statement_entries = helpers.statement_entries(@lease.entries.initial.preload(:instrument))
+    respond_ok @lease
   end
 
   def new
@@ -34,9 +36,9 @@ class LeasesController < ApplicationController
     authorize @lease
 
     if @lease.save
-      redirect_to @lease, notice: t(".success")
+      respond_created(@lease) { redirect_to @lease, notice: t(".success") }
     else
-      render :new, status: :unprocessable_content
+      respond_invalid(@lease) { render :new, status: :unprocessable_content }
     end
   end
 
@@ -44,9 +46,9 @@ class LeasesController < ApplicationController
     @lease = Lease.find(params.expect(:id))
     authorize @lease
     if @lease.update(lease_params)
-      redirect_to @lease, notice: t(".success")
+      respond_updated(@lease) { redirect_to @lease, notice: t(".success") }
     else
-      render :edit, status: :unprocessable_content
+      respond_invalid(@lease) { render :edit, status: :unprocessable_content }
     end
   end
 
@@ -54,7 +56,7 @@ class LeasesController < ApplicationController
     @lease = Lease.find(params.expect(:id))
     authorize @lease
     @lease.destroy
-    redirect_to leases_url, notice: t(".success")
+    respond_destroyed { redirect_to leases_url, notice: t(".success") }
   end
 
   private

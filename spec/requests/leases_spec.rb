@@ -296,4 +296,14 @@ RSpec.describe "Leases" do
       expect(old_lease.reload.terminated_on).to eq(Lease.last.start_date - 1.day)
     end
   end
+
+  describe "JSON via API token" do
+    it_behaves_like "serves JSON with a valid API token" do
+      let(:json_path) { leases_path(format: :json) }
+    end
+
+    it_behaves_like "serves JSON with a valid API token" do
+      let(:json_path) { lease_path(create(:lease), format: :json) }
+    end
+  end
 end

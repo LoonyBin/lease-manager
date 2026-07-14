@@ -7,11 +7,13 @@ class InvoicesController < ApplicationController
     @q = policy_scope(Invoice).ransack(params[:q])
     @q.sorts = "date desc" if @q.sorts.empty?
     @invoices = @q.result.includes(lease: %i[property tenant]).page(params[:page]).per(20)
+    respond_ok @invoices
   end
 
   def show
     @invoice = Invoice.find(params.expect(:id))
     authorize @invoice
+    respond_ok @invoice
   end
 
   def new
@@ -44,9 +46,9 @@ class InvoicesController < ApplicationController
     @invoice = Invoice.find(params.expect(:id))
     authorize @invoice
     if @invoice.update(invoice_params)
-      redirect_to @invoice, notice: t(".success")
+      respond_updated(@invoice) { redirect_to @invoice, notice: t(".success") }
     else
-      render :edit, status: :unprocessable_content
+      respond_invalid(@invoice) { render :edit, status: :unprocessable_content }
     end
   end
 

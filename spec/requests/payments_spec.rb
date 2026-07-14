@@ -292,4 +292,14 @@ RSpec.describe "Payments" do
       end
     end
   end
+
+  describe "JSON via API token" do
+    it_behaves_like "serves JSON with a valid API token" do
+      let(:json_path) { payments_path(format: :json) }
+    end
+
+    it_behaves_like "serves JSON with a valid API token" do
+      let(:json_path) { payment_path(create(:payment), format: :json) }
+    end
+  end
 end

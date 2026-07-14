@@ -1,5 +1,10 @@
 ---
 en:
+  api_tokens:
+    create:
+      success: API token was successfully created.
+    destroy:
+      success: API token was revoked.
   authorization:
     not_authorized: You are not authorized to perform this action.
   helpers:

@@ -18,9 +18,9 @@ class InvoiceTemplatesController < ApplicationController
     @invoice_template = @lease.invoice_templates.build(invoice_template_params)
     authorize @invoice_template
     if @invoice_template.save
-      redirect_to @lease, notice: t(".success")
+      respond_created(@invoice_template) { redirect_to @lease, notice: t(".success") }
     else
-      render :new, status: :unprocessable_content
+      respond_invalid(@invoice_template) { render :new, status: :unprocessable_content }
     end
   end
 
@@ -28,9 +28,9 @@ class InvoiceTemplatesController < ApplicationController
     @invoice_template = @lease.invoice_templates.find(params.expect(:id))
     authorize @invoice_template
     if @invoice_template.update(invoice_template_params)
-      redirect_to @lease, notice: t(".success")
+      respond_updated(@invoice_template) { redirect_to @lease, notice: t(".success") }
     else
-      render :edit, status: :unprocessable_content
+      respond_invalid(@invoice_template) { render :edit, status: :unprocessable_content }
     end
   end
 
@@ -38,7 +38,7 @@ class InvoiceTemplatesController < ApplicationController
     @invoice_template = @lease.invoice_templates.find(params.expect(:id))
     authorize @invoice_template
     @invoice_template.destroy
-    redirect_to @lease, notice: t(".success")
+    respond_destroyed { redirect_to @lease, notice: t(".success") }
   end
 
   # Renders the template form with the invoice that would be generated for

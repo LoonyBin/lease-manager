@@ -5,11 +5,13 @@ class PaymentsController < ApplicationController
     @q = policy_scope(Payment).ransack(params[:q])
     @q.sorts = ["date desc", "created_at desc"] if @q.sorts.empty?
     @payments = @q.result.includes(:lease).page(params[:page]).per(20)
+    respond_ok @payments
   end
 
   def show
     @payment = Payment.find(params.expect(:id))
     authorize @payment
+    respond_ok @payment
   end
 
   def new
@@ -23,10 +25,10 @@ class PaymentsController < ApplicationController
     authorize @payment
 
     if @payment.save
-      redirect_to payments_path, notice: t(".success")
+      respond_created(@payment) { redirect_to payments_path, notice: t(".success") }
     else
       @leases = filtered_leases
-      render :new, status: :unprocessable_content
+      respond_invalid(@payment) { render :new, status: :unprocessable_content }
     end
   end
 
@@ -35,9 +37,9 @@ class PaymentsController < ApplicationController
     authorize @payment
 
     if @payment.update(update_params)
-      redirect_to @payment, notice: t(".success")
+      respond_updated(@payment) { redirect_to @payment, notice: t(".success") }
     else
-      render :show, status: :unprocessable_content
+      respond_invalid(@payment) { render :show, status: :unprocessable_content }
     end
   end
 

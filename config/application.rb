@@ -41,6 +41,11 @@ module LeaseManager
     # Don't generate system test files.
     config.generators.system_tests = nil
 
+    # Rate limit for API-token requests: at most `limit` requests per rolling
+    # `period`, counted per token (see ApplicationController#rate_limit).
+    config.x.api_rate_limit.limit = Integer(ENV.fetch("API_RATE_LIMIT", 300))
+    config.x.api_rate_limit.period = Integer(ENV.fetch("API_RATE_LIMIT_PERIOD", 300)).seconds
+
     config.generators do |g|
       g.template_engine :haml
       g.test_framework :rspec,

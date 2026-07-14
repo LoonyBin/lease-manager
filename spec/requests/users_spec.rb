@@ -106,4 +106,14 @@ RSpec.describe "Users" do
       expect(response).to redirect_to(users_url)
     end
   end
+
+  describe "JSON via API token" do
+    it_behaves_like "serves JSON with a valid API token" do
+      let(:json_path) { users_path(format: :json) }
+    end
+
+    it_behaves_like "serves JSON with a valid API token" do
+      let(:json_path) { user_path(create(:user), format: :json) }
+    end
+  end
 end

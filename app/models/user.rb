@@ -2,6 +2,7 @@
 
 class User < ApplicationRecord
   has_many :user_associations, dependent: :destroy
+  has_many :api_tokens, dependent: :destroy
   has_many :owners, through: :user_associations, source: :associable, source_type: "Owner"
   has_many :tenants, through: :user_associations, source: :associable, source_type: "Tenant"
 

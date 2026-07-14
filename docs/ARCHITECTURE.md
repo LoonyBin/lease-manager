@@ -41,7 +41,9 @@ A `Settleable` interface and `Entry` backing standardizes financial allocations.
 - `CreditNote` can settle `Invoices` or adjust ledger balances.
 - `SettlementService` orchestrates auto-allocation logic.
 
-### 2. Authorization (Pundit)
+### 2. Authentication & Authorization (Pundit)
+Authentication is dual-mode: browsers sign in via Google OmniAuth and get a session cookie, while scripts authenticate with long-lived API tokens (`Authorization: Bearer lmt_...`, managed on the user's profile page — see [API.md](API.md)). Both paths resolve to the same `current_user`; when an `Authorization` header is present the session is ignored entirely, and an invalid token is a 401 rather than a fallback. Tokens act with the full permissions of their user.
+
 Access is strictly controlled via Policies.
 - **Scope Resolution**: Users only see data relevant to them (e.g., Owners see their properties, Tenants see their leases).
 - **Contexts**:

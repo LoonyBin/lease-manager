@@ -1,0 +1,44 @@
+.show-section
+  %h3.show-section-title API Tokens
+
+  - if flash[:new_api_token]
+    .alert.alert-warning.mb-4
+      %div
+        %p.font-semibold Copy your new API token now — it won't be shown again.
+        %code.font-mono.text-sm.select-all.break-all= flash[:new_api_token]
+
+  - if user.api_tokens.any?
+    .overflow-x-auto.mb-4
+      %table.table.table-sm
+        %thead
+          %tr
+            %th Name
+            %th Created
+            %th Last used
+            %th Expires
+            %th Status
+            %th
+        %tbody
+          - user.api_tokens.order(created_at: :desc).each do |token|
+            %tr
+              %td= token.name
+              %td= token.created_at.to_date
+              %td= token.last_used_at ? "#{time_ago_in_words(token.last_used_at)} ago" : "Never"
+              %td= token.expires_at&.to_date || "Never"
+              %td
+                - if token.revoked?
+                  %span.resource-badge.resource-badge-neutral Revoked
+                - elsif token.expired?
+                  %span.resource-badge.resource-badge-warning Expired
+                - else
+                  %span.resource-badge.resource-badge-success Active
+              %td
+                - unless token.revoked?
+                  = button_to "Revoke", api_token_path(token), method: :delete, class: "btn btn-ghost btn-xs text-error", data: { turbo_confirm: "Revoke this token? Anything still using it will stop working." }
+  - else
+    .show-empty.mb-4 No API tokens
+
+  = form_with model: ApiToken.new, class: "show-inline-form" do |f|
+    = f.text_field :name, placeholder: "Token name...", class: "input input-bordered input-sm flex-1"
+    = f.date_field :expires_at, title: "Expires on (optional)", class: "input input-bordered input-sm"
+    = f.submit "Create token", class: "btn btn-sm btn-primary"
