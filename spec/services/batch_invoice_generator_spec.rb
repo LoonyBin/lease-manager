@@ -75,6 +75,17 @@ RSpec.describe BatchInvoiceGenerator do
       end
     end
 
+    context "when a manual invoice without a template link bills rent for the month" do
+      before do
+        invoice = create(:invoice, lease: active_lease, date: date.beginning_of_month)
+        invoice.line_items.create!(name: "Rent (manual)", amount: 1000, category: "rent")
+      end
+
+      it "does not double-bill rent" do
+        expect { generate_invoices }.not_to change(Invoice, :count)
+      end
+    end
+
     context "when only a security deposit invoice exists for the month" do
       before do
         invoice = create(:invoice, lease: active_lease, date: date.beginning_of_month)

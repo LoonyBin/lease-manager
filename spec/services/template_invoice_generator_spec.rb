@@ -92,10 +92,49 @@ RSpec.describe TemplateInvoiceGenerator do
       end
     end
 
-    context "when an unrelated invoice exists for the month" do
+    context "when a manual invoice without a template link bills rent for the month" do
+      let!(:manual_invoice) do
+        create(:invoice, lease: lease, date: Date.new(2025, 2, 20)).tap do |invoice|
+          invoice.line_items.create!(name: "Rent (manual)", amount: 1000, category: "rent")
+        end
+      end
+
+      it "returns nil so the batch cannot double-bill rent" do
+        expect(service.call).to be_nil
+      end
+
+      it "generates again once the manual invoice is cancelled" do
+        manual_invoice.update!(status: :cancelled)
+        expect(service.call).to be_new_record
+      end
+
+      it "still generates for templates that do not bill rent" do
+        maintenance = create(:invoice_template, lease: lease, name: "Maintenance").tap do |t|
+          t.line_items.first.update!(name: "Maintenance charge", amount_expression: "2500", category: "maintenance")
+        end
+        expect(described_class.new(maintenance, date).call).to be_new_record
+      end
+
+      it "still builds a preview when find_existing is disabled" do
+        expect(described_class.new(template, date, find_existing: false).call).to be_new_record
+      end
+    end
+
+    context "when a manual credit note has a rent line for the month" do
+      before do
+        credit_note = create(:invoice, :credit_note, lease: lease, date: Date.new(2025, 2, 1))
+        credit_note.line_items.create!(name: "Rent adjustment", amount: 500, category: "rent")
+      end
+
+      it "still builds a new invoice" do
+        expect(service.call).to be_new_record
+      end
+    end
+
+    context "when a manual invoice has only non-rent lines for the month" do
       before do
         invoice = create(:invoice, lease: lease, date: Date.new(2025, 2, 1))
-        invoice.line_items.create!(name: "Rent", amount: 1000, category: "rent")
+        invoice.line_items.create!(name: "Security Deposit", amount: 2000, category: "security_deposit")
       end
 
       it "still builds a new invoice" do

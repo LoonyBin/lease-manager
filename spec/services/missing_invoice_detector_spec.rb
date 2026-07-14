@@ -63,6 +63,19 @@ RSpec.describe MissingInvoiceDetector do
       end
     end
 
+    context "when rent was billed manually for the month (no template link)" do
+      let!(:lease) { create(:lease, start_date: today.beginning_of_month, duration_months: 12) }
+
+      before do
+        invoice = create(:invoice, lease: lease, date: today.beginning_of_month)
+        invoice.line_items.create!(name: "Rent (manual)", amount: 1000, category: "rent")
+      end
+
+      it "treats the month as covered" do
+        expect(result.map(&:date)).not_to include(today.beginning_of_month)
+      end
+    end
+
     context "when a lease has multiple templates" do
       let!(:lease) { create(:lease, start_date: today.beginning_of_month, duration_months: 12) }
       let!(:extra_template) { create(:invoice_template, lease: lease, name: "Maintenance") }
