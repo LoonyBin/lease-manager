@@ -26,6 +26,7 @@ A web-based lease management application designed for property managers to handl
 
 ### 1. Invoicing & Credit
 - **Rent Invoices**: Automated or manual generation. Total amounts actively factor tax configurations.
+- **Invoice Templates**: Each lease carries one or more editable templates that drive monthly generation. Line-item wording supports `{placeholder}` variables (e.g. `Rent for {month_name} {year}`) and amounts are arithmetic expressions (`rent * f`, fixed charges) evaluated safely per month, with save-time validation of unknown variables and an in-form month preview. Templates have generation windows (defaulting to the lease term); one invoice is produced per template per month, so extra charges can be billed together (extra line items) or separately (extra templates). Line amounts round to 2 decimals; invoice totals are rounded to whole currency units via an appended "Round Off" line. Leases without templates are skipped by generation and flagged on the invoice audit page.
 - **Security Deposits**: Automatically invoiced upon lease creation. Supports decimal values for months or fixed flat-amount inputs.
 - **Credit Notes & Refunds**: Tracked equivalently to invoices for returning limits, reversing incorrect charges, or processing deposit returns.
 - **Sequencing**: Unique invoice number sequences per Owner.

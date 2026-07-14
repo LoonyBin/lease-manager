@@ -546,4 +546,51 @@ RSpec.describe Lease do
       expect(regular_lease.terminated_on).to be_nil
     end
   end
+
+  describe "default invoice template creation" do
+    it { is_expected.to have_many(:invoice_templates).dependent(:destroy) }
+
+    context "when creating a regular lease" do
+      let(:lease) { create(:lease, tax_rate: 18, payment_due_in: 14.days) }
+      let(:template) { lease.invoice_templates.first }
+
+      it "creates the default template", :aggregate_failures do
+        expect(lease.invoice_templates.count).to eq(1)
+        expect(template).to have_attributes(name: "Rent", payment_due_in: 14.days, starts_on: nil, ends_on: nil)
+        expect(template.line_items.map(&:amount_expression)).to eq(["rent", "rent * (prorata - 1)"])
+        expect(template.line_items.map(&:tax_rate)).to all(eq(18))
+      end
+    end
+
+    context "when the default template cannot be saved" do
+      before do
+        builder = instance_double(InvoiceTemplates::DefaultBuilder, call: InvoiceTemplate.new)
+        allow(InvoiceTemplates::DefaultBuilder).to receive(:new).and_return(builder)
+      end
+
+      it "still creates the lease, without templates", :aggregate_failures do
+        lease = create(:lease)
+        expect(lease).to be_persisted
+        expect(lease.invoice_templates).to be_empty
+      end
+    end
+
+    context "when the lease is a renewal" do
+      let(:old_lease) { create(:lease, start_date: Date.new(2024, 1, 1), duration_months: 12) }
+      let(:renewal) { described_class.build_renewal(old_lease).tap(&:save!) }
+      let(:maintenance) { renewal.invoice_templates.detect { |t| t.name == "Maintenance" } }
+
+      before do
+        create(:invoice_template, lease: old_lease, name: "Maintenance",
+                                  payment_due_in: 5.days, starts_on: Date.new(2024, 3, 1))
+      end
+
+      it "copies the previous lease's templates instead of building the default", :aggregate_failures do
+        expect(renewal.invoice_templates.map(&:name)).to contain_exactly("Rent", "Maintenance")
+        expect(maintenance.payment_due_in).to eq(5.days)
+        expect(maintenance.starts_on).to be_nil
+        expect(maintenance.line_items.map(&:amount_expression)).to eq(["rent"])
+      end
+    end
+  end
 end

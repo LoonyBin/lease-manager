@@ -116,6 +116,33 @@
               - else
                 %span.opacity-50 None
 
+      .show-section
+        .show-section-header
+          %h3.show-section-title Invoice Templates
+          .show-section-actions
+            - if policy(InvoiceTemplate.new(lease: @lease)).create?
+              = link_to new_lease_invoice_template_path(@lease), class: "btn btn-ghost btn-xs", title: "New invoice template" do
+                = heroicon "plus", options: { class: "w-4 h-4" }
+        - if @lease.invoice_templates.any?
+          .show-list
+            - @lease.invoice_templates.each do |template|
+              .show-list-item
+                .flex.justify-between.items-center.gap-2
+                  %div
+                    .show-list-item-title= template.name
+                    .show-list-item-meta
+                      = (template.effective_starts_on&.strftime("%b %Y") || "?") + " → " + (template.effective_ends_on&.strftime("%b %Y") || "Ongoing")
+                      = "· " + template.line_items.map(&:name).join(", ")
+                  .flex.gap-1
+                    - if policy(template).update?
+                      = link_to edit_lease_invoice_template_path(@lease, template), class: "btn btn-ghost btn-xs btn-square", title: "Edit template" do
+                        = heroicon "pencil-square", options: { class: "w-4 h-4" }
+                    - if policy(template).destroy?
+                      = button_to lease_invoice_template_path(@lease, template), method: :delete, class: "btn btn-ghost btn-xs btn-square text-error", data: { turbo_confirm: "Delete this invoice template? Future invoices will no longer be generated from it." }, title: "Delete template" do
+                        = heroicon "trash", options: { class: "w-4 h-4" }
+        - else
+          .show-empty No invoice templates. Monthly invoices will not be generated for this lease.
+
       - if @lease.renewed_from || @lease.renewal
         .show-section
           %h3.show-section-title Related Leases

@@ -33,6 +33,35 @@ RSpec.describe "Invoices" do
         get new_invoice_path(invoice: { lease_id: lease.id, date: date })
         expect(response).to have_http_status(:success)
       end
+
+      it "prefills line items from the lease's default template" do
+        get new_invoice_path(invoice: { lease_id: lease.id, date: date })
+        expect(response.body).to include("Rent for February 2025")
+      end
+
+      it "offers the lease's templates for prefilling" do
+        get new_invoice_path(invoice: { lease_id: lease.id, date: date })
+        expect(response.body).to include("invoice[invoice_template_id]")
+      end
+
+      it "prefills from an explicitly selected template" do
+        template = create(:invoice_template, lease: lease, name: "Maintenance")
+        template.line_items.first.update!(name: "Fixed maintenance charge", amount_expression: "2500",
+                                          category: "maintenance")
+        get new_invoice_path(invoice: { lease_id: lease.id, date: date, invoice_template_id: template.id })
+        expect(response.body).to include("Fixed maintenance charge")
+      end
+
+      it "falls back to a blank form when the template expression fails to evaluate" do
+        lease.invoice_templates.first.line_items.first.update!(amount_expression: "rent / (n - n)")
+        get new_invoice_path(invoice: { lease_id: lease.id, date: date })
+        expect(response).to have_http_status(:success)
+      end
+
+      it "falls back to a blank form for a stale template id" do
+        get new_invoice_path(invoice: { lease_id: lease.id, date: date, invoice_template_id: -1 })
+        expect(response).to have_http_status(:success)
+      end
     end
 
     context "with document_type=credit_note" do
@@ -92,8 +121,9 @@ RSpec.describe "Invoices" do
 
   describe "POST /invoices (JSON)" do
     let(:lease) { create(:lease) }
+    let(:date) { lease.start_date.next_month.beginning_of_month }
     let(:params) do
-      { invoice: { lease_id: lease.id, date: Date.current.beginning_of_month.iso8601,
+      { invoice: { lease_id: lease.id, date: date.iso8601,
                    status: "draft", document_type: "invoice" } }
     end
 
@@ -102,6 +132,27 @@ RSpec.describe "Invoices" do
       expect(response).to have_http_status(:success)
       expect(response.parsed_body["status"]).to eq("draft")
       expect(Invoice.find(response.parsed_body["id"]).line_items).to be_present
+    end
+
+    context "with an explicit invoice_template_id (audit page flow)" do
+      let(:template) { lease.invoice_templates.first }
+      let(:params) do
+        { invoice: { lease_id: lease.id, invoice_template_id: template.id,
+                     date: date.iso8601,
+                     status: "draft", document_type: "invoice" } }
+      end
+
+      it "creates an invoice linked to the template", :aggregate_failures do
+        expect { post invoices_path(format: :json), params: params, as: :json }
+          .to change(Invoice, :count).by(1)
+        expect(Invoice.find(response.parsed_body["id"]).invoice_template).to eq(template)
+      end
+
+      it "does not create a duplicate for the same template and month" do
+        post invoices_path(format: :json), params: params, as: :json
+        expect { post invoices_path(format: :json), params: params, as: :json }
+          .not_to change(Invoice, :count)
+      end
     end
   end
 

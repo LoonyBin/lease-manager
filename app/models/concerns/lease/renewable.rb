@@ -32,5 +32,17 @@ class Lease
     def terminate_renewed_from_lease
       renewed_from.update!(terminated_on: start_date - 1.day)
     end
+
+    # Renewals inherit the previous lease's templates instead of the default
+    # one; generation windows stay nil so they follow the new lease dates.
+    def copy_invoice_templates_from(old_lease)
+      old_lease.invoice_templates.includes(:line_items).find_each do |template|
+        copy = invoice_templates.build(name: template.name, payment_due_in: template.payment_due_in)
+        template.line_items.each do |line|
+          copy.line_items.build(line.slice(:name, :amount_expression, :tax_rate, :category, :position))
+        end
+        copy.save!
+      end
+    end
   end
 end

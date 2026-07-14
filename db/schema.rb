@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_10_000002) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_14_000004) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -55,17 +55,42 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_10_000002) do
     t.index ["transaction_id"], name: "index_entries_on_transaction_id"
   end
 
+  create_table "invoice_template_line_items", force: :cascade do |t|
+    t.string "amount_expression", null: false
+    t.string "category", null: false
+    t.datetime "created_at", null: false
+    t.bigint "invoice_template_id", null: false
+    t.string "name", null: false
+    t.integer "position"
+    t.decimal "tax_rate", precision: 5, scale: 3, default: "0.0"
+    t.datetime "updated_at", null: false
+    t.index ["invoice_template_id"], name: "index_invoice_template_line_items_on_invoice_template_id"
+  end
+
+  create_table "invoice_templates", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.date "ends_on"
+    t.bigint "lease_id", null: false
+    t.string "name", null: false
+    t.interval "payment_due_in", default: "P9D", null: false
+    t.date "starts_on"
+    t.datetime "updated_at", null: false
+    t.index ["lease_id"], name: "index_invoice_templates_on_lease_id"
+  end
+
   create_table "invoices", force: :cascade do |t|
     t.decimal "balance", precision: 10, scale: 2, default: "0.0"
     t.datetime "created_at", null: false
     t.date "date"
     t.integer "document_type", default: 0, null: false
     t.date "due_date"
+    t.bigint "invoice_template_id"
     t.bigint "lease_id", null: false
     t.string "number"
     t.integer "sequence_number"
     t.integer "status", default: 0
     t.datetime "updated_at", null: false
+    t.index ["invoice_template_id", "date"], name: "index_invoices_on_invoice_template_id_and_date", unique: true, where: "(invoice_template_id IS NOT NULL)"
     t.index ["lease_id"], name: "index_invoices_on_lease_id"
   end
 
@@ -311,6 +336,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_10_000002) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "entries", "leases"
+  add_foreign_key "invoice_template_line_items", "invoice_templates"
+  add_foreign_key "invoice_templates", "leases"
+  add_foreign_key "invoices", "invoice_templates", on_delete: :nullify
   add_foreign_key "invoices", "leases"
   add_foreign_key "leases", "leases", column: "renewed_from_id"
   add_foreign_key "leases", "properties"

@@ -40,6 +40,7 @@ class Lease < ApplicationRecord
   belongs_to :property
   belongs_to :tenant
   has_many :invoices, dependent: :destroy
+  has_many :invoice_templates, dependent: :destroy
   has_many :payments, dependent: :destroy
   has_many :entries, dependent: :destroy
 
@@ -48,6 +49,7 @@ class Lease < ApplicationRecord
   before_validation :set_default_property_schedule
 
   after_create :handle_security_deposit_creation
+  after_create :create_default_invoice_templates
   after_update :handle_security_deposit_termination, if: :saved_change_to_terminated_on?
 
   validates :start_date, presence: true
@@ -111,6 +113,18 @@ class Lease < ApplicationRecord
 
   def handle_security_deposit_creation
     SecurityDepositInvoicer.new(self).call
+  end
+
+  def create_default_invoice_templates
+    if renewed_from.present?
+      copy_invoice_templates_from(renewed_from)
+    else
+      InvoiceTemplates::DefaultBuilder.new(self).call.save!
+    end
+  rescue ActiveRecord::RecordInvalid => e
+    # A lease without templates is still usable (the invoice audit page
+    # surfaces it); never fail lease creation over its default template.
+    Rails.logger.error("Default invoice template creation failed for lease #{id}: #{e.message}")
   end
 
   def handle_security_deposit_termination
