@@ -39,7 +39,7 @@ RSpec.describe "InvoiceTemplates" do
 
       it "rejects the template", :aggregate_failures do
         expect { post lease_invoice_templates_path(lease), params: invalid_params }
-          .not_to change(InvoiceTemplate, :count)
+          .not_to change(lease.invoice_templates, :count)
         expect(response).to have_http_status(:unprocessable_content)
         expect(response.body).to include("references unknown variables: rennt")
       end

@@ -135,7 +135,9 @@ RSpec.describe "Invoices" do
     end
 
     context "with an explicit invoice_template_id (audit page flow)" do
-      let(:template) { lease.invoice_templates.first }
+      # Eager so the lease's after_create side effects (default template,
+      # security deposit invoice) don't land inside the change-count blocks.
+      let!(:template) { lease.invoice_templates.first }
       let(:params) do
         { invoice: { lease_id: lease.id, invoice_template_id: template.id,
                      date: date.iso8601,
