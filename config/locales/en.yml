@@ -5,9 +5,17 @@ en:
   helpers:
     links:
       clear: Clear
-  invoices:
+  invoice_templates:
     create:
-      success: Invoice was successfully created.
+      success: Invoice template was successfully created.
+    destroy:
+      success: Invoice template was successfully deleted.
+    preview:
+      evaluation_error: 'Expression error: %{message}'
+      outside_window: The selected month is outside this template's generation window; no invoice would be generated.
+    update:
+      success: Invoice template was successfully updated.
+  invoices:
     update:
       success: Invoice was successfully updated.
   leases:

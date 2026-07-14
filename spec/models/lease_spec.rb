@@ -33,6 +33,18 @@ RSpec.describe Lease do
     it { is_expected.to validate_numericality_of(:quantity).only_integer.is_greater_than(0) }
     it { is_expected.to have_many_attached(:documents) }
 
+    it { is_expected.to validate_presence_of(:payment_due_in) }
+
+    it "is valid with payment_due_in of 0.days" do
+      lease = build(:lease, payment_due_in: 0.days)
+      expect(lease).to be_valid
+    end
+
+    it "is valid with payment_due_in as a multi-part duration" do
+      lease = build(:lease, payment_due_in: 1.month + 9.days)
+      expect(lease).to be_valid
+    end
+
     describe "#quantity_within_capacity" do
       let(:property) { create(:property, capacity: 10) }
       let(:lease) { build(:lease, property: property, quantity: 11, start_date: Date.current) }
@@ -468,6 +480,52 @@ RSpec.describe Lease do
     end
   end
 
+  describe "#overdue_balance" do
+    let(:lease) { create(:lease) }
+
+    it "returns 0 when there are no invoices" do
+      expect(lease.overdue_balance).to eq(0)
+    end
+
+    it "sums only overdue invoice balances" do
+      create(:invoice, :with_balance, balance_amount: 300, lease: lease, status: :finalized,
+                                      due_date: 2.days.ago)
+      create(:invoice, :with_balance, balance_amount: 200, lease: lease, status: :finalized,
+                                      due_date: 10.days.from_now)
+      expect(lease.overdue_balance).to eq(300)
+    end
+
+    it "returns 0 when an invoice is not yet due" do
+      create(:invoice, :with_balance, balance_amount: 500, lease: lease, status: :finalized,
+                                      due_date: 1.day.from_now)
+      expect(lease.overdue_balance).to eq(0)
+    end
+
+    it "reflects the current date without requiring recalculation" do
+      create(:invoice, :with_balance, balance_amount: 500, lease: lease, status: :finalized,
+                                      due_date: 1.day.from_now)
+      travel_to(2.days.from_now) do
+        expect(lease.overdue_balance).to eq(500)
+      end
+    end
+  end
+
+  describe "#near_due_balance" do
+    let(:lease) { create(:lease) }
+
+    it "returns 0 when there are no invoices" do
+      expect(lease.near_due_balance).to eq(0)
+    end
+
+    it "sums only near-due invoice balances" do
+      create(:invoice, :with_balance, balance_amount: 400, lease: lease, status: :finalized,
+                                      due_date: 3.days.from_now)
+      create(:invoice, :with_balance, balance_amount: 100, lease: lease, status: :finalized,
+                                      due_date: 20.days.from_now)
+      expect(lease.near_due_balance).to eq(400)
+    end
+  end
+
   describe "after_create callback" do
     let(:old_lease) do
       create(:lease,
@@ -486,6 +544,53 @@ RSpec.describe Lease do
     it "does not affect other leases when not a renewal" do
       regular_lease = create(:lease)
       expect(regular_lease.terminated_on).to be_nil
+    end
+  end
+
+  describe "default invoice template creation" do
+    it { is_expected.to have_many(:invoice_templates).dependent(:destroy) }
+
+    context "when creating a regular lease" do
+      let(:lease) { create(:lease, tax_rate: 18, payment_due_in: 14.days) }
+      let(:template) { lease.invoice_templates.first }
+
+      it "creates the default template", :aggregate_failures do
+        expect(lease.invoice_templates.count).to eq(1)
+        expect(template).to have_attributes(name: "Rent", payment_due_in: 14.days, starts_on: nil, ends_on: nil)
+        expect(template.line_items.map(&:amount_expression)).to eq(["rent", "rent * (prorata - 1)"])
+        expect(template.line_items.map(&:tax_rate)).to all(eq(18))
+      end
+    end
+
+    context "when the default template cannot be saved" do
+      before do
+        builder = instance_double(InvoiceTemplates::DefaultBuilder, call: InvoiceTemplate.new)
+        allow(InvoiceTemplates::DefaultBuilder).to receive(:new).and_return(builder)
+      end
+
+      it "still creates the lease, without templates", :aggregate_failures do
+        lease = create(:lease)
+        expect(lease).to be_persisted
+        expect(lease.invoice_templates).to be_empty
+      end
+    end
+
+    context "when the lease is a renewal" do
+      let(:old_lease) { create(:lease, start_date: Date.new(2024, 1, 1), duration_months: 12) }
+      let(:renewal) { described_class.build_renewal(old_lease).tap(&:save!) }
+      let(:maintenance) { renewal.invoice_templates.detect { |t| t.name == "Maintenance" } }
+
+      before do
+        create(:invoice_template, lease: old_lease, name: "Maintenance",
+                                  payment_due_in: 5.days, starts_on: Date.new(2024, 3, 1))
+      end
+
+      it "copies the previous lease's templates instead of building the default", :aggregate_failures do
+        expect(renewal.invoice_templates.map(&:name)).to contain_exactly("Rent", "Maintenance")
+        expect(maintenance.payment_due_in).to eq(5.days)
+        expect(maintenance.starts_on).to be_nil
+        expect(maintenance.line_items.map(&:amount_expression)).to eq(["rent"])
+      end
     end
   end
 end

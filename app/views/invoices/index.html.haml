@@ -34,6 +34,7 @@
             .invoice-col-number Invoice
             .invoice-col-property Property
             .invoice-col-tenant Tenant
+            .invoice-col-due Due
             .invoice-col-amount Amount
             .invoice-col-status Status
             .invoice-col-actions Actions
@@ -64,6 +65,9 @@
                 .resource-item-meta
                   = heroicon "user", options: { class: "w-3.5 h-3.5 shrink-0 hidden-table" }
                   %span= invoice.lease.tenant.name
+              .resource-col.invoice-col-due
+                - if invoice.due_date.present?
+                  %span{class: ("text-error" if invoice.overdue?)}= invoice.due_date.strftime("%b %d, %Y")
               .resource-col.invoice-col-amount
                 -# Card view: total with status badge
                 .invoice-item-amount

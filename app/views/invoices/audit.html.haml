@@ -5,17 +5,27 @@
     = heroicon "arrow-left", options: { class: "w-4 h-4" }
     Back to Invoices
 
+- if @leases_without_templates.any?
+  .alert.alert-warning.shadow-lg.mb-6
+    = heroicon "exclamation-triangle", options: { class: "w-6 h-6 shrink-0" }
+    %div
+      %span The following leases have no invoice templates, so no invoices are generated for them:
+      %ul.list-disc.list-inside.mt-1
+        - @leases_without_templates.each do |lease|
+          %li
+            = link_to "#{lease.property.name} → #{lease.tenant.name}", lease, class: "link"
+
 - if @missing_invoices.empty?
   .alert.alert-success.shadow-lg.mb-6
     = heroicon "check-circle", options: { class: "w-6 h-6 shrink-0" }
-    %span All invoices are up to date. No missing rental invoices found.
+    %span All invoices are up to date. No missing invoices found.
 - else
   .card.bg-base-100.shadow-xl{data: { controller: "audit" }}
     .card-body
       .flex.flex-wrap.justify-between.items-start.gap-4.mb-4
         %div
           %h2.card-title Invoice Audit
-          %p{class: "text-base-content/60 text-sm"} The following rental invoice months were never generated. Select the ones you want to create as drafts.
+          %p{class: "text-base-content/60 text-sm"} The following invoice months were never generated from their templates. Select the ones you want to create as drafts.
         .flex.items-center.gap-3
           %span.text-sm{class: "text-base-content/60"}
             %span{data: { "audit-target": "count" }}
@@ -41,13 +51,14 @@
             %tr
               %th.w-8
               %th Month
+              %th Template
               %th Property
               %th Tenant
-              %th.text-right Expected Rent
+              %th.text-right Expected Amount
               %th.w-32 Status
           %tbody{data: { "audit-target": "tableBody" }}
             - @missing_invoices.each do |item|
-              %tr{data: { "audit-target": "row", "lease-id": item.lease.id, date: item.date.iso8601 }}
+              %tr{data: { "audit-target": "row", "lease-id": item.lease.id, "invoice-template-id": item.template.id, date: item.date.iso8601 }}
                 %td
                   %input.checkbox.checkbox-sm{
                     type: "checkbox",
@@ -55,6 +66,7 @@
                     data: { action: "change->audit#toggle", "audit-target": "checkbox" }
                   }
                 %td.font-medium= item.date.strftime("%B %Y")
+                %td= item.template.name
                 %td= item.property.name
                 %td= item.tenant.name
                 %td.text-right= number_to_currency(item.expected_amount, unit: "₹", precision: 0)

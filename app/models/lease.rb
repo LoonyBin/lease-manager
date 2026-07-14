@@ -40,6 +40,7 @@ class Lease < ApplicationRecord
   belongs_to :property
   belongs_to :tenant
   has_many :invoices, dependent: :destroy
+  has_many :invoice_templates, dependent: :destroy
   has_many :payments, dependent: :destroy
   has_many :entries, dependent: :destroy
 
@@ -48,10 +49,14 @@ class Lease < ApplicationRecord
   before_validation :set_default_property_schedule
 
   after_create :handle_security_deposit_creation
+  after_create :create_default_invoice_templates
   after_update :handle_security_deposit_termination, if: :saved_change_to_terminated_on?
 
   validates :start_date, presence: true
   validates :duration_months, presence: true, numericality: { only_integer: true, greater_than: 0 }
+  validates :payment_due_in, presence: true
+  validate :payment_due_in_non_negative
+
   validate :termination_date_after_start_date
   validates :archived_at, absence: true, unless: :terminated_on?
 
@@ -60,6 +65,14 @@ class Lease < ApplicationRecord
     update_column(:cached_balance, invoices.unsettled.sum(:balance))
   end
   # rubocop:enable Rails/SkipsModelValidations
+
+  def overdue_balance
+    @overdue_balance ||= invoices.overdue.sum(:balance)
+  end
+
+  def near_due_balance
+    @near_due_balance ||= invoices.near_due.sum(:balance)
+  end
 
   def archived?
     archived_at.present?
@@ -86,6 +99,12 @@ class Lease < ApplicationRecord
 
   private
 
+  def payment_due_in_non_negative
+    return if payment_due_in.blank?
+
+    errors.add(:payment_due_in, "must be non-negative") if payment_due_in.to_i.negative?
+  end
+
   def set_default_property_schedule
     return if property_schedule.present?
 
@@ -94,6 +113,18 @@ class Lease < ApplicationRecord
 
   def handle_security_deposit_creation
     SecurityDepositInvoicer.new(self).call
+  end
+
+  def create_default_invoice_templates
+    if renewed_from.present?
+      copy_invoice_templates_from(renewed_from)
+    else
+      InvoiceTemplates::DefaultBuilder.new(self).call.save!
+    end
+  rescue ActiveRecord::RecordInvalid => e
+    # A lease without templates is still usable (the invoice audit page
+    # surfaces it); never fail lease creation over its default template.
+    Rails.logger.error("Default invoice template creation failed for lease #{id}: #{e.message}")
   end
 
   def handle_security_deposit_termination

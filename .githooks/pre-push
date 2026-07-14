@@ -1,0 +1,23 @@
+#!/bin/sh
+
+# Redirect output to stderr.
+exec 1>&2
+
+echo 'Running pre-push hooks...'
+
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+
+if [ "$current_branch" = "master" ] || [ "$current_branch" = "main" ]; then
+    echo "❌ Direct pushes to $current_branch are not allowed. Please use PRs!"
+    exit 1
+fi
+
+echo "Running Slow Specs (requests, integration)..."
+bundle exec rspec spec/requests spec/integration
+if [ $? -ne 0 ]; then
+    echo "❌ Slow Specs failed. Please fix before pushing."
+    exit 1
+fi
+
+echo "✅ All pre-push checks passed!"
+exit 0

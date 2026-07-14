@@ -47,8 +47,10 @@
             ₹
     = f.input :enhancement_period_months
 
-    = f.input :tax_rate, placeholder: "e.g., 18"
+    = f.input :tax_rate, placeholder: "e.g., 18", hint: "Seeds the default invoice template when the lease is created."
     = f.input :tax_name, placeholder: "e.g., GST"
+
+    = f.input :payment_due_in, as: :duration, units: [:months, :days], label: "Payment Due In", hint: "Set to 0 for payment due on invoice date. Seeds the default invoice template; edit the lease's invoice templates to change it later."
 
     - if f.object.terminated_on.present?
       = f.input :terminated_on, col: 4, as: :date, html5: true

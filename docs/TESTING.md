@@ -16,6 +16,7 @@
 - **Coverage**: SimpleCov (Run `open coverage/index.html` after tests).
 - **Security**: Brakeman (Static analysis).
 - **Style**: RuboCop.
+- **Automation**: Git hooks ensure quality limits on commits/pushes.
 
 ## Running Tests
 
@@ -32,6 +33,12 @@ bin/rspec spec/system
 bundle exec guard
 ```
 
+### Git Hooks Enforcements
+The project enforces pre-commit and pre-push Git Hook requirements that guarantee quality before CI execution:
+- **`pre-commit`**: Executes RuboCop styling assessments and essential checks.
+- **`pre-push`**: Ensures the full comprehensive RSpec suite resolves without conflicts.
+Local `.githooks` paths must be registered for enforcement checking (`git config core.hooksPath .githooks`).
+
 ### Manual / Browser Implementation
 When manually testing or running browser specs that require login:
 
@@ -42,10 +49,12 @@ When manually testing or running browser specs that require login:
    - **Email**: `admin` (or any string to identify the user)
    - **Role**: Created dynamically or matched to existing seed data.
 
-*Note: In production/staging, Google OAuth is the primary authentication method.*
+*Note: In production/staging, Google OAuth securely manages authentication via Rails Secrets.*
 
 ## Quality Gates
-Before pushing code, ensure the following pass:
+Before pushing code, ensure the following pass locally:
 1. `bin/rspec` (All tests green)
 2. `bin/rubocop` (No style offenses)
 3. `bin/brakeman` (No security warnings)
+
+During continuous integration runs, jobs automatically gate deployment success metrics prior to dispatching upgrades, preventing stale iterations.

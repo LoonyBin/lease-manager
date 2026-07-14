@@ -41,6 +41,13 @@
             .show-field
               .show-field-label Date
               .show-field-value= @invoice.date.strftime("%B %d, %Y")
+            - if @invoice.due_date.present?
+              .show-field
+                .show-field-label Due Date
+                .show-field-value
+                  %span{class: ("text-error font-semibold" if @invoice.overdue?)}= @invoice.due_date.strftime("%B %d, %Y")
+                  - if @invoice.overdue?
+                    %span.resource-badge.resource-badge-error.ml-2 Overdue
             .show-field
               .show-field-label Status
               .show-field-value

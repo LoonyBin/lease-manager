@@ -83,6 +83,7 @@ export default class extends Controller {
   async processRow(row) {
     const statusEl = row.querySelector("[data-audit-target='rowStatus']")
     const leaseId = row.dataset.leaseId
+    const invoiceTemplateId = row.dataset.invoiceTemplateId
     const date = row.dataset.date
 
     this.setRowStatus(statusEl, "loading")
@@ -98,6 +99,7 @@ export default class extends Controller {
         body: JSON.stringify({
           invoice: {
             lease_id: leaseId,
+            invoice_template_id: invoiceTemplateId,
             date: date,
             status: "draft",
             document_type: "invoice"

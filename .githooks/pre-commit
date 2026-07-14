@@ -1,0 +1,43 @@
+#!/bin/sh
+
+# Redirect output to stderr.
+exec 1>&2
+
+echo 'Running pre-commit hooks...'
+
+# Run Rubocop (lints)
+echo "Running Lints (Rubocop)..."
+if [ -f "bin/rubocop" ]; then
+    bin/rubocop
+else
+    bundle exec rubocop
+fi
+
+if [ $? -ne 0 ]; then
+    echo "❌ Rubocop failed. Please fix before committing."
+    exit 1
+fi
+
+# Run Brakeman (security scanner)
+echo "Running Brakeman (Security Scanner)..."
+if [ -f "bin/brakeman" ]; then
+    bin/brakeman -q
+else
+    bundle exec brakeman -q
+fi
+
+if [ $? -ne 0 ]; then
+    echo "❌ Brakeman found security warnings. Please fix before committing."
+    exit 1
+fi
+
+# Run fast specs (excluding requests, integration, system)
+echo "Running Fast Specs..."
+bundle exec rspec --exclude-pattern "spec/{requests,integration,system,features,e2e}/**/*_spec.rb"
+if [ $? -ne 0 ]; then
+    echo "❌ Fast Specs failed. Please fix before committing."
+    exit 1
+fi
+
+echo "✅ All pre-commit checks passed!"
+exit 0

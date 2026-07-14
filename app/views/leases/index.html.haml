@@ -68,7 +68,12 @@
                   %span.rent= number_to_currency(lease.rent_amount, unit: "₹", precision: 0)
                   %span.duration #{lease.duration_months} months
               .resource-col.lease-col-balance
-                %span{class: ("text-error" if lease.cached_balance > 0)}= number_to_currency(lease.cached_balance, unit: "₹", precision: 0)
+                - if lease.overdue_balance > 0
+                  %span.text-error.block= "Overdue #{number_to_currency(lease.overdue_balance, unit: '₹', precision: 0)}"
+                - if lease.near_due_balance > 0
+                  %span.text-warning.block= "Due this week #{number_to_currency(lease.near_due_balance, unit: '₹', precision: 0)}"
+                - if lease.overdue_balance.zero? && lease.near_due_balance.zero? && lease.cached_balance > 0
+                  %span.opacity-70= number_to_currency(lease.cached_balance, unit: "₹", precision: 0)
               .resource-col-flex.lease-col-status
                 - badge_variant = case status
                 - when "active" then "success"

@@ -13,7 +13,7 @@ class UserAssociationsController < ApplicationController
   end
 
   def destroy
-    @user_association = UserAssociation.find(params[:id])
+    @user_association = UserAssociation.find(params.expect(:id))
     authorize @user_association
     @user_association.destroy
     redirect_back_or_to(root_path, notice: t(".success"))
