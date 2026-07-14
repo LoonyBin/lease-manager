@@ -12,8 +12,9 @@ class BackfillDefaultInvoiceTemplates < ActiveRecord::Migration[8.1]
   end
 
   def down
-    # The DB-level ON DELETE SET NULL clears invoices.invoice_template_id.
-    InvoiceTemplate.delete_all
+    # destroy_all so dependent line items are removed (their FK has no
+    # cascade) and invoices.invoice_template_id is nullified.
+    InvoiceTemplate.destroy_all
   end
 
   private
