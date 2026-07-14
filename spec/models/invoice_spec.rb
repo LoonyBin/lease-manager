@@ -5,6 +5,7 @@ require "rails_helper"
 RSpec.describe Invoice do
   describe "associations" do
     it { is_expected.to belong_to(:lease) }
+    it { is_expected.to belong_to(:invoice_template).optional }
     it { is_expected.to have_many(:line_items).dependent(:destroy) }
     it { is_expected.to have_many(:entries).dependent(:destroy) }
   end
@@ -12,6 +13,23 @@ RSpec.describe Invoice do
   describe "validations" do
     it { is_expected.to validate_presence_of(:date) }
     it { is_expected.to validate_presence_of(:status) }
+
+    it "accepts an invoice template belonging to the invoice's lease" do
+      lease = create(:lease)
+      invoice = build(:invoice, lease: lease, invoice_template: lease.invoice_templates.first)
+      expect(invoice).to be_valid
+    end
+
+    it "rejects an invoice template from another lease", :aggregate_failures do
+      invoice = build(:invoice, lease: create(:lease), invoice_template: create(:lease).invoice_templates.first)
+      expect(invoice).not_to be_valid
+      expect(invoice.errors[:invoice_template]).to include("must belong to the invoice's lease")
+    end
+
+    it "rejects a dangling invoice template id" do
+      invoice = build(:invoice, lease: create(:lease), invoice_template_id: -1)
+      expect(invoice).not_to be_valid
+    end
 
     it {
       is_expected.to define_enum_for(:status).with_values(draft: 0, finalized: 1, sent: 2, paid: 3, cancelled: 4,

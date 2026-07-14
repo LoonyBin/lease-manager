@@ -1,0 +1,154 @@
+= simple_form_for [lease, invoice_template] do |f|
+  - if f.object.errors.any?
+    .alert.alert-error.mb-4
+      %ul.list-disc.list-inside
+        - f.object.errors.full_messages.uniq.each do |message|
+          %li= message
+  - if f.object.persisted?
+    = hidden_field_tag :id, f.object.id
+
+  = f.grid_inputs do
+    = f.input :name, col: 2, hint: "Identifies this template in lists; it does not appear on invoices."
+    = f.input :payment_due_in, as: :duration, units: [:months, :days], label: "Payment Due In",
+              hint: "Set to 0 for payment due on invoice date."
+    = f.input :starts_on, as: :date, html5: true, label: "Generate From", hint: "Defaults to the lease start date."
+    = f.input :ends_on, as: :date, html5: true, label: "Generate Until",
+              hint: "Defaults to the lease end date; always capped by it."
+
+  %h3.text-lg.font-bold.mb-4 Line Items
+
+  %div{ data: { controller: "nested-fields" } }
+    %table.table.w-full.mb-4
+      %thead
+        %tr
+          %th Description
+          %th Category
+          %th.text-right Amount Expression
+          %th.text-right Tax Rate (%)
+          %th
+      %tbody{ data: { nested_fields_target: "container" } }
+        = f.simple_fields_for :line_items do |li|
+          %tr
+            %td
+              = li.hidden_field :id
+              = li.input_field :name, class: "input input-bordered input-sm w-full"
+            %td
+              = li.input_field :category, class: "input input-bordered input-sm w-full"
+            %td.text-right
+              = li.input_field :amount_expression, class: "input input-bordered input-sm w-40 text-right font-mono"
+            %td.text-right
+              = li.input_field :tax_rate, class: "input input-bordered input-sm w-24 text-right"
+            %td
+              = li.label :_destroy, class: "cursor-pointer" do
+                = li.check_box :_destroy, class: "checkbox checkbox-sm checkbox-error"
+                %span.text-xs.text-error.ml-1 Delete
+
+    %template{ data: { nested_fields_target: "template" } }
+      %tr
+        %td
+          %input.input.input-bordered.input-sm.w-full{ type: "text", name: "invoice_template[line_items_attributes][NEW_RECORD][name]" }
+        %td
+          %input.input.input-bordered.input-sm.w-full{ type: "text", name: "invoice_template[line_items_attributes][NEW_RECORD][category]" }
+        %td.text-right
+          %input.input.input-bordered.input-sm.w-40.text-right.font-mono{ type: "text", name: "invoice_template[line_items_attributes][NEW_RECORD][amount_expression]" }
+        %td.text-right
+          %input.input.input-bordered.input-sm.w-24.text-right{ type: "number", step: "any", name: "invoice_template[line_items_attributes][NEW_RECORD][tax_rate]", value: "0" }
+        %td
+
+    .mt-2
+      %button.btn.btn-sm.btn-outline.btn-secondary{ type: "button", data: { action: "nested-fields#add" } }
+        = heroicon "plus", options: { class: "w-4 h-4 mr-1" }
+        Add Line Item
+
+  .collapse.collapse-arrow.bg-base-200.mt-6
+    %input{ type: "checkbox" }
+    .collapse-title.font-medium Available variables & expressions
+    .collapse-content.text-sm
+      %p.mb-2
+        Amount expressions support
+        %code + - * /
+        and parentheses over these variables, plus
+        %code ROUND
+        %code ROUNDDOWN
+        %code ROUNDUP
+        functions. Descriptions may embed values with
+        %code {curly_braces}
+        placeholders.
+      %table.table.table-sm
+        %tbody
+          %tr
+            %td
+              %code rent
+              %span.opacity-60 (r)
+            %td Monthly rent at the invoice date, including enhancements
+          %tr
+            %td
+              %code prorata
+              %span.opacity-60 (f)
+            %td Fraction of the month covered by the lease (1 for full months)
+          %tr
+            %td
+              %code days_in_month
+              %span.opacity-60 (n)
+            %td Number of days in the invoice month
+          %tr
+            %td
+              %code occupied_days
+              \/
+              %code unused_days
+            %td Days of the month inside / outside the lease term
+          %tr
+            %td
+              %code invoice_date
+              \/
+              %code month_name
+              \/
+              %code year
+            %td Invoice date parts, mainly for descriptions
+      %p.mt-2.opacity-70
+        Examples:
+        %code rent * f
+        for pro-rated rent,
+        %code 2500
+        for a fixed charge,
+        %code Rent for {month_name} {year}
+        as a description.
+
+  .card.bg-base-200.mt-6
+    .card-body.p-4
+      %h3.text-lg.font-bold.mb-2 Preview
+      .flex.flex-wrap.items-center.gap-3
+        = date_field_tag :preview_month, (@preview_month || Date.current.beginning_of_month), class: "input input-bordered input-sm"
+        %button.btn.btn-secondary.btn-sm{ type: "submit", formaction: preview_lease_invoice_templates_path(lease), formnovalidate: true }
+          = heroicon "eye", options: { class: "w-4 h-4 mr-1" }
+          Preview
+      - if @preview_error
+        .alert.alert-error.mt-3= @preview_error
+      - elsif @preview_message
+        .alert.alert-info.mt-3= @preview_message
+      - elsif @preview_invoice
+        .overflow-x-auto.mt-3
+          %table.table.table-sm.w-full
+            %thead
+              %tr
+                %th.w-full Description
+                %th.text-right Amount
+                %th.text-right Tax
+                %th.text-right Total
+            %tbody
+              - @preview_invoice.line_items.each do |item|
+                %tr
+                  %td
+                    .font-medium= item.name
+                    .text-xs.opacity-50= item.category.humanize
+                  %td.text-right= number_to_currency(item.amount, unit: "₹", precision: 2)
+                  %td.text-right= number_to_currency(item.tax_amount, unit: "₹", precision: 2)
+                  %td.text-right.font-semibold= number_to_currency(item.total, unit: "₹", precision: 2)
+            %tfoot
+              %tr
+                %th.text-right{ colspan: 3 } Total
+                %th.text-right.text-lg= number_to_currency(@preview_invoice.total_amount, unit: "₹", precision: 2)
+        %p.text-xs.opacity-60.mt-1
+          = "Invoice date: #{@preview_invoice.date.strftime('%B %d, %Y')} · Due: #{@preview_invoice.due_date.strftime('%B %d, %Y')}"
+
+  = f.form_actions

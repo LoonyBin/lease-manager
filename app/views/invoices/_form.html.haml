@@ -2,6 +2,7 @@
   = f.error_notification
   = f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present?
   = f.hidden_field :document_type
+  = f.hidden_field :invoice_template_id
 
   = f.grid_inputs do
     - if f.object.new_record?

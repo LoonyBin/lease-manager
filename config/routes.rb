@@ -1,7 +1,14 @@
 # frozen_string_literal: true
 
 Rails.application.routes.draw do
-  resources :leases
+  resources :leases do
+    resources :invoice_templates, except: %i[index show] do
+      collection do
+        # PATCH because the persisted-template form submits with _method=patch
+        match :preview, via: %i[post patch]
+      end
+    end
+  end
   resources :payments, only: %i[index show new create update]
   resources :properties
   resources :tenants

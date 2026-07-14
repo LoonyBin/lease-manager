@@ -1,5 +1,25 @@
 - content_for :title, @invoice.credit_note? ? "New Credit Note" : "New Invoice"
-.max-w-4xl.mx-auto.card.bg-base-100.shadow-xl
-  .card-body
-    %h2.card-title.mb-5= @invoice.credit_note? ? "New Credit Note" : "New Invoice"
-    = render 'form', invoice: @invoice, leases: @leases
+.max-w-4xl.mx-auto
+  - if @invoice.invoice? && @invoice.lease && @invoice_templates&.any?
+    .card.bg-base-200.shadow.mb-4
+      .card-body.p-4
+        = form_with url: new_invoice_path, method: :get do |prefill|
+          = hidden_field_tag "invoice[lease_id]", @invoice.lease_id
+          .flex.flex-wrap.items-end.gap-3
+            .form-control
+              %label.label{ for: "invoice_invoice_template_id" }
+                %span.label-text Prefill from template
+              = select_tag "invoice[invoice_template_id]",
+                options_from_collection_for_select(@invoice_templates, :id, :name, @invoice.invoice_template_id),
+                class: "select select-bordered select-sm"
+            .form-control
+              %label.label{ for: "invoice_date" }
+                %span.label-text Month
+              = date_field_tag "invoice[date]", @invoice.date || Date.current.beginning_of_month, class: "input input-bordered input-sm"
+            %button.btn.btn-secondary.btn-sm{ type: "submit" }
+              = heroicon "bolt", options: { class: "w-4 h-4 mr-1" }
+              Prefill
+  .card.bg-base-100.shadow-xl
+    .card-body
+      %h2.card-title.mb-5= @invoice.credit_note? ? "New Credit Note" : "New Invoice"
+      = render 'form', invoice: @invoice, leases: @leases

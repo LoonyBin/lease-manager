@@ -1,17 +1,13 @@
 # frozen_string_literal: true
 
 class Invoice < ApplicationRecord
+  include Invoice::Totals
+
   belongs_to :lease
+  belongs_to :invoice_template, optional: true
   has_many :line_items, dependent: :destroy
   accepts_nested_attributes_for :line_items, allow_destroy: true
   has_many :entries, as: :instrument, dependent: :destroy
-
-  ransacker :total_amount do
-    Arel.sql(<<~SQL.squish)
-      (SELECT COALESCE(SUM(line_items.amount + line_items.amount * COALESCE(line_items.tax_rate, 0) / 100.0), 0)
-       FROM line_items WHERE line_items.invoice_id = invoices.id)
-    SQL
-  end
 
   enum :status, { draft: 0, finalized: 1, sent: 2, paid: 3, cancelled: 4, partially_paid: 5 }, default: :draft,
                                                                                                validate: true
@@ -19,6 +15,8 @@ class Invoice < ApplicationRecord
 
   validates :date, presence: true
   validates :status, presence: true
+  validates :date, uniqueness: { scope: :invoice_template_id }, if: :invoice_template_id?
+  validate :invoice_template_belongs_to_lease, if: :invoice_template_id?
 
   before_validation :set_default_due_date
   before_save :assign_number, if: -> { finalized? && number.nil? }
@@ -27,23 +25,8 @@ class Invoice < ApplicationRecord
 
   scope :finalized_or_later, -> { where(status: %i[finalized sent paid partially_paid]) }
   scope :unsettled, -> { where(status: %i[finalized sent partially_paid]) }
-  scope :rental, -> { joins(:line_items).where(line_items: { category: "rent" }).distinct }
   scope :overdue,  -> { unsettled.where(due_date: ...Date.current) }
   scope :near_due, -> { unsettled.where(due_date: Date.current..7.days.from_now) }
-
-  def total_amount
-    line_items.sum("ROUND(amount + amount * COALESCE(tax_rate, 0) / 100.0, 2)")
-  end
-
-  def paid_amount
-    return 0 unless total_amount.positive?
-
-    [total_amount - balance, 0].max
-  end
-
-  def outstanding_amount
-    balance
-  end
 
   def credit?
     credit_note?
@@ -51,10 +34,6 @@ class Invoice < ApplicationRecord
 
   def debit?
     invoice?
-  end
-
-  def signed_amount
-    debit? ? total_amount : -total_amount
   end
 
   # rubocop:disable Rails/SkipsModelValidations -- Intentionally skip callbacks to avoid infinite loops
@@ -91,6 +70,14 @@ class Invoice < ApplicationRecord
   end
 
   private
+
+  # Also rejects dangling template ids (deleted templates), which would
+  # otherwise only fail at the database foreign-key constraint.
+  def invoice_template_belongs_to_lease
+    return if invoice_template&.lease_id == lease_id
+
+    errors.add(:invoice_template, "must belong to the invoice's lease")
+  end
 
   def set_default_due_date
     self.due_date ||= date

@@ -25,6 +25,7 @@ Metrics/BlockLength:
   Exclude:
     - "Guardfile"
     - config/initializers/simple_form.rb
+    - config/routes.rb
 
 Layout/LineLength:
   Max: 120

@@ -1,0 +1,8 @@
+- content_for :title, "Edit Invoice Template"
+.max-w-4xl.mx-auto.card.bg-base-100.shadow-xl
+  .card-body
+    %h2.card-title.mb-1 Edit Invoice Template
+    %p.text-sm.opacity-60.mb-5= "#{@lease.property.name} → #{@lease.tenant.name}"
+    .alert.alert-info.mb-4
+      %span Changes apply to future invoice generation only; already generated invoices (including drafts) are untouched.
+    = render "form", invoice_template: @invoice_template, lease: @lease
