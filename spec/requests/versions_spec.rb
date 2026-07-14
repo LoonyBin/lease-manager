@@ -107,4 +107,17 @@ RSpec.describe "Versions" do
       end
     end
   end
+
+  describe "JSON via API token" do
+    it_behaves_like "serves JSON with a valid API token" do
+      let(:json_path) { versions_path(format: :json) }
+    end
+
+    it_behaves_like "serves JSON with a valid API token" do
+      let(:json_path) do
+        create(:property)
+        version_path(Version.last, format: :json)
+      end
+    end
+  end
 end

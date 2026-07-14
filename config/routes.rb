@@ -20,6 +20,7 @@ Rails.application.routes.draw do
   end
   resources :users
   resources :user_associations, only: %i[create destroy]
+  resources :api_tokens, only: %i[create destroy]
 
   get "/login", to: "sessions#new", as: :login
   match "/auth/:provider/callback", to: "sessions#create", via: %i[get post]

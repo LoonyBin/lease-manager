@@ -4,11 +4,13 @@ class TenantsController < ApplicationController
   def index
     @q = policy_scope(Tenant).ransack(params[:q])
     @tenants = @q.result.page(params[:page]).per(20)
+    respond_ok @tenants
   end
 
   def show
     @tenant = Tenant.find(params.expect(:id))
     authorize @tenant
+    respond_ok @tenant
   end
 
   def new
@@ -26,9 +28,9 @@ class TenantsController < ApplicationController
     authorize @tenant
 
     if @tenant.save
-      redirect_to @tenant, notice: t(".success")
+      respond_created(@tenant) { redirect_to @tenant, notice: t(".success") }
     else
-      render :new, status: :unprocessable_content
+      respond_invalid(@tenant) { render :new, status: :unprocessable_content }
     end
   end
 
@@ -36,9 +38,9 @@ class TenantsController < ApplicationController
     @tenant = Tenant.find(params.expect(:id))
     authorize @tenant
     if @tenant.update(tenant_params)
-      redirect_to @tenant, notice: t(".success")
+      respond_updated(@tenant) { redirect_to @tenant, notice: t(".success") }
     else
-      render :edit, status: :unprocessable_content
+      respond_invalid(@tenant) { render :edit, status: :unprocessable_content }
     end
   end
 
@@ -46,7 +48,7 @@ class TenantsController < ApplicationController
     @tenant = Tenant.find(params.expect(:id))
     authorize @tenant
     @tenant.destroy
-    redirect_to tenants_url, notice: t(".success")
+    respond_destroyed { redirect_to tenants_url, notice: t(".success") }
   end
 
   private
