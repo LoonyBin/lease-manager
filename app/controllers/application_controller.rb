@@ -12,6 +12,19 @@ class ApplicationController < ActionController::Base
   # stay global.
   API_RATE_LIMIT_STORE = ActiveSupport::Cache::MemoryStore.new
 
+  # Registered before the other callbacks: require_login halts the chain with
+  # a 401 on invalid, revoked, or expired tokens, so the limiter must run
+  # first to throttle those requests too (and to skip the token lookup that
+  # set_paper_trail_whodunnit triggers via current_user when throttled).
+  # Keyed by the digest of the presented token, shared across controllers.
+  rate_limit to: Rails.configuration.x.api_rate_limit.limit,
+             within: Rails.configuration.x.api_rate_limit.period,
+             by: -> { ApiToken.digest(request.authorization.to_s) },
+             with: -> { render json: { error: "Rate limit exceeded" }, status: :too_many_requests },
+             store: API_RATE_LIMIT_STORE,
+             scope: "api",
+             if: :token_request?
+
   before_action :set_paper_trail_whodunnit
   before_action :require_login
   after_action :verify_pundit_authorization
@@ -23,15 +36,6 @@ class ApplicationController < ActionController::Base
   # and token requests never fall back to the session (see #current_user),
   # so CSRF protection is unnecessary for them. Session requests keep it.
   skip_before_action :verify_authenticity_token, if: :token_request?
-
-  # Keyed by the digest of the presented token, shared across controllers.
-  rate_limit to: Rails.configuration.x.api_rate_limit.limit,
-             within: Rails.configuration.x.api_rate_limit.period,
-             by: -> { ApiToken.digest(request.authorization.to_s) },
-             with: -> { render json: { error: "Rate limit exceeded" }, status: :too_many_requests },
-             store: API_RATE_LIMIT_STORE,
-             scope: "api",
-             if: :token_request?
 
   rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
 
