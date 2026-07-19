@@ -14,7 +14,7 @@
 
   .form-control.mb-4
     = f.label :to_emails, "Recipients", class: "label-text"
-    = text_field_tag "reminder_step[to_emails]", f.object.to_emails.join(", "),
+    = text_field_tag "reminder_step[to_emails]", Array(f.object.to_emails).join(", "),
                      class: "input input-bordered w-full", list: "reminder-step-emails",
                      placeholder: "someone@example.com, someone.else@example.com"
     %datalist#reminder-step-emails

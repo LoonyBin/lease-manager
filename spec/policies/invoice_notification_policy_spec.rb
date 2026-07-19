@@ -34,6 +34,7 @@ RSpec.describe InvoiceNotificationPolicy do
     end
 
     it "resolves nothing for a non-admin" do
+      notification # the scope is only meaningfully empty if there is a row for it to exclude
       create(:user_association, user: user, associable: lease.property.owner)
       expect(described_class::Scope.new(user, InvoiceNotification).resolve).to be_empty
     end
