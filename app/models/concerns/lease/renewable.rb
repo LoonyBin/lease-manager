@@ -33,6 +33,19 @@ class Lease
       renewed_from.update!(terminated_on: start_date - 1.day)
     end
 
+    # Renewals inherit the previous lease's reminder policy, including any
+    # escalation routing the admin set up by hand.
+    def copy_reminder_steps_from(old_lease)
+      # Queried fresh rather than through the association, so a caller that
+      # already touched +old_lease.reminder_steps+ cannot hand us a stale
+      # (or empty) cache.
+      ReminderStep.where(lease_id: old_lease.id).order(:position, :id).find_each do |step|
+        reminder_steps.create!(
+          step.slice(:position, :offset_days, :repeat_every_days, :subject, :body, :to_emails)
+        )
+      end
+    end
+
     # Renewals inherit the previous lease's templates instead of the default
     # one; generation windows stay nil so they follow the new lease dates.
     def copy_invoice_templates_from(old_lease)

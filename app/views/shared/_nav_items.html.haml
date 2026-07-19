@@ -26,6 +26,10 @@
     = link_to payments_path, class: "nav-subitem", data: { nav: "payments", action: "details-menu#close" } do
       = heroicon "currency-rupee", options: { class: "nav-icon" }
       %span.nav-label Payments
+    - if policy(InvoiceNotification).index?
+      = link_to invoice_notifications_path, class: "nav-subitem", data: { nav: "invoice_notifications", action: "details-menu#close" } do
+        = heroicon "inbox-arrow-down", options: { class: "nav-icon" }
+        %span.nav-label Reminders
 
 -# Settings: Mobile = dropup menu, Desktop = accordion
 %details.nav-accordion.nav-accordion-settings{data: { controller: "details-menu" }}

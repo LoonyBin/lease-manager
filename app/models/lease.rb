@@ -4,6 +4,7 @@ class Lease < ApplicationRecord
   include Lease::RentCalculation
   include Lease::Renewable
   include Lease::CapacityCheck
+  include Lease::Reminding
 
   VALID_STATUSES = %w[active expired terminated upcoming archived].freeze
 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_14_000005) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_19_000003) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -68,6 +68,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_14_000005) do
     t.index ["transaction_id"], name: "index_entries_on_transaction_id"
   end
 
+  create_table "invoice_notifications", force: :cascade do |t|
+    t.text "body", null: false
+    t.integer "channel", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.bigint "invoice_id", null: false
+    t.text "last_error"
+    t.date "occurrence_on", null: false
+    t.string "recipient_email", null: false
+    t.bigint "reminder_step_id"
+    t.datetime "sent_at"
+    t.integer "status", default: 0, null: false
+    t.string "subject", null: false
+    t.datetime "updated_at", null: false
+    t.index ["invoice_id", "reminder_step_id", "recipient_email", "occurrence_on"], name: "index_invoice_notifications_uniqueness", unique: true
+    t.index ["invoice_id"], name: "index_invoice_notifications_on_invoice_id"
+    t.index ["reminder_step_id"], name: "index_invoice_notifications_on_reminder_step_id"
+  end
+
   create_table "invoice_template_line_items", force: :cascade do |t|
     t.string "amount_expression", null: false
     t.string "category", null: false
@@ -119,6 +137,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_14_000005) do
     t.bigint "property_id", null: false
     t.text "property_schedule"
     t.integer "quantity", default: 1, null: false
+    t.boolean "reminders_enabled", default: true, null: false
     t.bigint "renewed_from_id"
     t.decimal "rent_amount"
     t.integer "security_deposit_type", default: 0, null: false
@@ -180,6 +199,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_14_000005) do
     t.string "unit", default: "Unit", null: false
     t.datetime "updated_at", null: false
     t.index ["owner_id"], name: "index_properties_on_owner_id"
+  end
+
+  create_table "reminder_steps", force: :cascade do |t|
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.bigint "lease_id", null: false
+    t.integer "offset_days", null: false
+    t.integer "position", null: false
+    t.integer "repeat_every_days"
+    t.string "subject", null: false
+    t.string "to_emails", default: [], null: false, array: true
+    t.datetime "updated_at", null: false
+    t.index ["lease_id", "position"], name: "index_reminder_steps_on_lease_id_and_position"
+    t.index ["lease_id"], name: "index_reminder_steps_on_lease_id"
+    t.check_constraint "repeat_every_days > 0", name: "reminder_steps_repeat_every_days_positive"
   end
 
   create_table "solid_queue_blocked_executions", force: :cascade do |t|
@@ -350,6 +384,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_14_000005) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "api_tokens", "users"
   add_foreign_key "entries", "leases"
+  add_foreign_key "invoice_notifications", "invoices"
+  add_foreign_key "invoice_notifications", "reminder_steps", on_delete: :nullify
   add_foreign_key "invoice_template_line_items", "invoice_templates"
   add_foreign_key "invoice_templates", "leases"
   add_foreign_key "invoices", "invoice_templates", on_delete: :nullify
@@ -360,6 +396,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_14_000005) do
   add_foreign_key "line_items", "invoices"
   add_foreign_key "payments", "leases"
   add_foreign_key "properties", "owners"
+  add_foreign_key "reminder_steps", "leases"
   add_foreign_key "solid_queue_blocked_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_claimed_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_failed_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade

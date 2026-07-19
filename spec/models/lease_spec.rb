@@ -547,6 +547,68 @@ RSpec.describe Lease do
     end
   end
 
+  describe "default reminder step creation" do
+    it { is_expected.to have_many(:reminder_steps).dependent(:destroy) }
+
+    context "when creating a regular lease" do
+      let(:lease) { create(:lease, tenant: create(:tenant, email: "Tenant@Example.com")) }
+
+      it "creates the default escalation ladder", :aggregate_failures do
+        expect(lease.reminder_steps.count).to eq(3)
+        expect(lease.reminder_steps.map(&:offset_days)).to eq([-7, 0, 7])
+        expect(lease.reminder_steps.map(&:repeat_every_days)).to eq([nil, nil, 14])
+      end
+
+      it "seeds the recipients from the tenant" do
+        expect(lease.reminder_steps.map(&:to_emails).uniq).to eq([["tenant@example.com"]])
+      end
+
+      it "enables reminders by default" do
+        expect(lease.reminders_enabled).to be(true)
+      end
+    end
+
+    context "when no recipient address is known" do
+      it "still creates the lease, without a policy", :aggregate_failures do
+        lease = create(:lease, tenant: create(:tenant, email: nil))
+        expect(lease).to be_persisted
+        expect(lease.reminder_steps).to be_empty
+      end
+    end
+
+    context "when the default policy cannot be saved" do
+      before do
+        builder = instance_double(Reminders::DefaultPolicyBuilder, call: [ReminderStep.new])
+        allow(Reminders::DefaultPolicyBuilder).to receive(:new).and_return(builder)
+      end
+
+      it "still creates the lease, without a policy", :aggregate_failures do
+        lease = create(:lease)
+        expect(lease).to be_persisted
+        expect(lease.reminder_steps).to be_empty
+      end
+    end
+
+    context "when the lease is a renewal" do
+      let(:old_lease) { create(:lease, start_date: Date.new(2024, 1, 1), duration_months: 12) }
+      let(:renewal) { described_class.build_renewal(old_lease).tap(&:save!) }
+
+      before do
+        old_lease.reminder_steps.destroy_all
+        create(:reminder_step, :escalated, lease: old_lease, position: 1, offset_days: 21,
+                                           repeat_every_days: 30, subject: "Final notice")
+      end
+
+      it "carries over the previous lease's policy, escalation routing included", :aggregate_failures do
+        expect(renewal.reminder_steps.count).to eq(1)
+        expect(renewal.reminder_steps.first).to have_attributes(offset_days: 21, repeat_every_days: 30,
+                                                                subject: "Final notice")
+        expect(renewal.reminder_steps.first.to_emails)
+          .to eq(%w[collections@example.com legal@example.com])
+      end
+    end
+  end
+
   describe "default invoice template creation" do
     it { is_expected.to have_many(:invoice_templates).dependent(:destroy) }
 

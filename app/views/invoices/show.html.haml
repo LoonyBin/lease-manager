@@ -88,6 +88,38 @@
                 %th.text-right{colspan: 3} Total
                 %th.text-right.text-lg= number_to_currency(@invoice.line_items.sum(&:total), unit: "₹", precision: 0)
 
+    - notifications = @invoice.invoice_notifications.recent_first.includes(:reminder_step)
+    - if notifications.any?
+      .show-card.mt-4
+        .show-section
+          .show-section-header
+            %h3.show-section-title Reminders
+            = link_to invoice_notifications_path(q: { invoice_lease_id_eq: @invoice.lease_id }), class: "btn btn-ghost btn-xs", title: "Reminder outbox" do
+              = heroicon "inbox-arrow-down", options: { class: "w-4 h-4" }
+          .overflow-x-auto
+            %table.table.table-sm.w-full
+              %thead
+                %tr
+                  %th Scheduled
+                  %th Recipient
+                  %th Subject
+                  %th Status
+                  %th
+              %tbody
+                - notifications.each do |notification|
+                  %tr
+                    %td= notification.occurrence_on.strftime("%b %d, %Y")
+                    %td.font-mono.text-xs= notification.recipient_email
+                    %td
+                      = notification.subject
+                      - if notification.last_error.present?
+                        .text-xs.text-error= notification.last_error
+                    %td
+                      = render "invoice_notifications/status_badge", notification: notification
+                      - if notification.sent_at
+                        .text-xs.opacity-50= notification.sent_at.strftime("%b %d, %Y %H:%M")
+                    %td= render "invoice_notifications/actions", notification: notification
+
     - settlement_entries = @invoice.entries.settlements.includes(:lease)
     - if settlement_entries.any?
       .show-card.mt-4

@@ -70,6 +70,7 @@ class LeasesController < ApplicationController
                           :security_deposit_value, :security_deposit_type, :enhancement_period_months,
                           :enhancement_amount, :enhancement_type, :tax_name, :tax_rate, :terminated_on,
                           :archived_at, :renewed_from_id, :property_schedule, :quantity, :payment_due_in,
+                          :reminders_enabled,
                           { documents: [] }])
   end
 end

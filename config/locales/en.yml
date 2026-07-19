@@ -10,6 +10,24 @@ en:
   helpers:
     links:
       clear: Clear
+  invoice_notifications:
+    approve:
+      not_pending: That reminder is no longer pending approval.
+      success: Reminder approved and queued for sending.
+    approve_all:
+      success:
+        one: 1 reminder approved and queued for sending.
+        other: "%{count} reminders approved and queued for sending."
+        zero: No pending reminders to approve.
+    cancel:
+      not_cancellable: Only pending or failed reminders can be cancelled.
+      success: Reminder cancelled.
+    retry:
+      not_failed: Only failed reminders can be retried.
+      success: Reminder queued for another attempt.
+    undeliverable:
+      invoice_settled: 'Cancelled at send time: the invoice was settled after this reminder was approved.'
+      reminders_disabled: 'Cancelled at send time: reminders were switched off for this lease after approval.'
   invoice_templates:
     create:
       success: Invoice template was successfully created.
@@ -49,6 +67,13 @@ en:
       success: Property was successfully destroyed.
     update:
       success: Property was successfully updated.
+  reminder_steps:
+    create:
+      success: Reminder step was successfully created.
+    destroy:
+      success: Reminder step was successfully deleted.
+    update:
+      success: Reminder step was successfully updated.
   sessions:
     create:
       success: Signed in successfully.

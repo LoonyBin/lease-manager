@@ -8,6 +8,17 @@ Rails.application.routes.draw do
         match :preview, via: %i[post patch]
       end
     end
+    resources :reminder_steps, except: %i[index show]
+  end
+  resources :invoice_notifications, only: %i[index] do
+    member do
+      patch :approve
+      patch :cancel
+      patch :retry
+    end
+    collection do
+      patch :approve_all
+    end
   end
   resources :payments, only: %i[index show new create update]
   resources :properties

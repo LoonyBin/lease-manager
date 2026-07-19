@@ -1,0 +1,8 @@
+- content_for :title, "Edit Reminder Step"
+.max-w-4xl.mx-auto.card.bg-base-100.shadow-xl
+  .card-body
+    %h2.card-title.mb-1 Edit Reminder Step
+    %p.text-sm.opacity-60.mb-5= "#{@lease.property.name} → #{@lease.tenant.name}"
+    .alert.alert-info.mb-4
+      %span Changes apply to reminders queued from now on; messages already waiting in the outbox keep the wording they were queued with.
+    = render "form", reminder_step: @reminder_step, lease: @lease, suggested_emails: @suggested_emails
