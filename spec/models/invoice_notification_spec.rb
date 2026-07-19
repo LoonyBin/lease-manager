@@ -129,6 +129,51 @@ RSpec.describe InvoiceNotification do
       notification.mark_failed!("x" * 5000)
       expect(notification.last_error.length).to eq(described_class::MAX_ERROR_LENGTH)
     end
+
+    # Without this the row stays `sending` forever: the worker has already
+    # claimed it, so nothing else will ever pick it up.
+    it "still reaches a terminal state when the row cannot be saved", :aggregate_failures do
+      notification = create(:invoice_notification, :approved)
+      notification.claim_for_delivery!
+      allow(notification).to receive(:update!).and_raise(ActiveRecord::RecordInvalid.new(notification))
+
+      notification.mark_failed!("boom")
+
+      expect(notification.reload).to have_attributes(status: "failed", last_error: "boom")
+    end
+  end
+
+  describe "#undeliverable_reason" do
+    let(:invoice) { create(:invoice, status: :finalized) }
+
+    it "is nil while the notification can still go out" do
+      expect(create(:invoice_notification, :approved, invoice: invoice).undeliverable_reason).to be_nil
+    end
+
+    it "names a settled invoice" do
+      notification = create(:invoice_notification, :approved, invoice: invoice)
+      invoice.update!(status: :paid)
+      expect(notification.reload.undeliverable_reason).to eq(
+        I18n.t("invoice_notifications.undeliverable.invoice_settled")
+      )
+    end
+
+    it "names a lease that stopped reminding" do
+      notification = create(:invoice_notification, :approved, invoice: invoice)
+      invoice.lease.update!(reminders_enabled: false)
+      expect(notification.reload.undeliverable_reason).to eq(
+        I18n.t("invoice_notifications.undeliverable.reminders_disabled")
+      )
+    end
+  end
+
+  describe "#cancel_undeliverable!" do
+    it "retires the row with its reason", :aggregate_failures do
+      notification = create(:invoice_notification, :approved)
+      notification.cancel_undeliverable!("nothing left to chase")
+      expect(notification).to be_cancelled
+      expect(notification.last_error).to eq("nothing left to chase")
+    end
   end
 
   describe "scopes" do

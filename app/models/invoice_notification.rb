@@ -47,6 +47,23 @@ class InvoiceNotification < ApplicationRecord
     approved? && invoice.unsettled? && invoice.lease.reminding?
   end
 
+  # Why an +approved+ row can no longer go out, or nil when it still can.
+  # Only meaningful for an approved row: any other status is its own answer.
+  def undeliverable_reason
+    return I18n.t("invoice_notifications.undeliverable.invoice_settled") unless invoice.unsettled?
+    return I18n.t("invoice_notifications.undeliverable.reminders_disabled") unless invoice.lease.reminding?
+
+    nil
+  end
+
+  # Retires an approved row that lost its reason to exist between approval and
+  # dispatch. +cancelled+ rather than +failed+: nothing went wrong, there is
+  # simply nothing to send, and +failed+ would offer a pointless retry. Leaving
+  # it +approved+ would strand it in the outbox looking perpetually queued.
+  def cancel_undeliverable!(reason)
+    update!(status: :cancelled, last_error: reason.to_s.truncate(MAX_ERROR_LENGTH))
+  end
+
   # Atomically moves this row from +approved+ to +sending+, returning false if
   # another worker (or an admin cancelling) got there first. The conditional
   # UPDATE is the claim: only the caller whose write matched a row proceeds.
@@ -67,8 +84,18 @@ class InvoiceNotification < ApplicationRecord
     update!(status: :sent, sent_at: Time.current, last_error: nil)
   end
 
+  # The last write on a claimed row, so it has to land: if it does not, the row
+  # is stranded in +sending+ with no worker left to pick it up and no admin
+  # action that can reach it. An unrelated validation failure on a row that is
+  # already in flight is therefore stamped straight onto the columns.
   def mark_failed!(error)
-    update!(status: :failed, last_error: error.to_s.truncate(MAX_ERROR_LENGTH))
+    message = error.to_s.truncate(MAX_ERROR_LENGTH)
+    update!(status: :failed, last_error: message)
+  rescue ActiveRecord::ActiveRecordError => e
+    Rails.logger.error("Could not save failure on notification #{id}, forcing terminal state: #{e.message}")
+    # rubocop:disable Rails/SkipsModelValidations -- validations are what is blocking the write
+    update_columns(status: self.class.statuses[:failed], last_error: message, updated_at: Time.current)
+    # rubocop:enable Rails/SkipsModelValidations
   end
 
   def to_s

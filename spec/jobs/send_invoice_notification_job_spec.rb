@@ -27,6 +27,23 @@ RSpec.describe SendInvoiceNotificationJob do
       expect(Reminders::Delivery).not_to have_received(:call)
     end
 
+    # Otherwise the row sits in the outbox as `approved` forever, looking like
+    # a send that is still coming.
+    it "cancels an approved notification that is no longer deliverable", :aggregate_failures do
+      notification = create(:invoice_notification, :approved, invoice: invoice)
+      invoice.update!(status: :paid)
+
+      described_class.new.perform(notification.reload)
+
+      expect(notification.reload).to be_cancelled
+      expect(notification.last_error).to eq(I18n.t("invoice_notifications.undeliverable.invoice_settled"))
+    end
+
+    it "leaves an already-terminal notification alone" do
+      notification = create(:invoice_notification, :cancelled, invoice: invoice)
+      expect { described_class.new.perform(notification) }.not_to(change { notification.reload.attributes })
+    end
+
     it "does not send the same notification twice" do
       notification = create(:invoice_notification, :sent, invoice: invoice)
       described_class.new.perform(notification)
