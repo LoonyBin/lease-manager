@@ -16,3 +16,6 @@ production:
   generate_monthly_invoices:
     command: "GenerateInvoicesJob.perform_later"
     schedule: "5 0 1 * *"
+  schedule_invoice_reminders:
+    command: "ScheduleInvoiceRemindersJob.perform_later"
+    schedule: "30 1 * * *"

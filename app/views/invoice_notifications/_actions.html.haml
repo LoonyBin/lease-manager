@@ -1,0 +1,10 @@
+.flex.gap-1
+  - if notification.approvable? && policy(notification).approve?
+    = button_to approve_invoice_notification_path(notification), method: :patch, class: "btn btn-ghost btn-xs btn-square text-success", data: { turbo_confirm: "Send this reminder to #{notification.recipient_email}?" }, title: "Approve & send" do
+      = heroicon "paper-airplane", options: { class: "w-4 h-4" }
+  - if notification.retryable? && policy(notification).retry?
+    = button_to retry_invoice_notification_path(notification), method: :patch, class: "btn btn-ghost btn-xs btn-square", title: "Retry" do
+      = heroicon "arrow-path", options: { class: "w-4 h-4" }
+  - if notification.cancellable? && policy(notification).cancel?
+    = button_to cancel_invoice_notification_path(notification), method: :patch, class: "btn btn-ghost btn-xs btn-square text-error", title: "Cancel" do
+      = heroicon "x-circle", options: { class: "w-4 h-4" }

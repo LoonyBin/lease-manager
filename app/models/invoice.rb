@@ -8,6 +8,7 @@ class Invoice < ApplicationRecord
   has_many :line_items, dependent: :destroy
   accepts_nested_attributes_for :line_items, allow_destroy: true
   has_many :entries, as: :instrument, dependent: :destroy
+  has_many :invoice_notifications, dependent: :destroy
 
   enum :status, { draft: 0, finalized: 1, sent: 2, paid: 3, cancelled: 4, partially_paid: 5 }, default: :draft,
                                                                                                validate: true

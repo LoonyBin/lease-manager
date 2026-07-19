@@ -1,0 +1,80 @@
+= simple_form_for [lease, reminder_step] do |f|
+  - if f.object.errors.any?
+    .alert.alert-error.mb-4
+      %ul.list-disc.list-inside
+        - f.object.errors.full_messages.uniq.each do |message|
+          %li= message
+
+  = f.grid_inputs do
+    = f.input :position, label: "Order", hint: "Steps are listed and fired in this order."
+    = f.input :offset_days, label: "Days From Due Date",
+              hint: "Negative for before the due date (-7 = a week early), 0 on the due date, positive for overdue."
+    = f.input :repeat_every_days, label: "Repeat Every (days)",
+              hint: "Leave blank to fire once. Repeats stop when the invoice is settled."
+
+  .form-control.mb-4
+    = f.label :to_emails, "Recipients", class: "label-text"
+    = text_field_tag "reminder_step[to_emails]", f.object.to_emails.join(", "),
+                     class: "input input-bordered w-full", list: "reminder-step-emails",
+                     placeholder: "someone@example.com, someone.else@example.com"
+    %datalist#reminder-step-emails
+      - suggested_emails.each do |email|
+        %option{ value: email }
+    %p.text-xs.opacity-60.mt-1
+      Comma-separated. Suggestions come from the tenant and the property owner's users, but any address works —
+      recipients do not need an account. Later steps can escalate to a different list.
+
+  = f.grid_inputs do
+    = f.input :subject, col: 2, label: "Subject"
+  = f.input :body, as: :text, label: "Message", input_html: { rows: 12, class: "textarea textarea-bordered w-full" }
+
+  .collapse.collapse-arrow.bg-base-200.mt-6
+    %input{ type: "checkbox" }
+    .collapse-title.font-medium Available placeholders
+    .collapse-content.text-sm
+      %p.mb-2
+        Subject and message may embed values with
+        %code {curly_braces}
+        placeholders, the same syntax as invoice templates.
+      %table.table.table-sm
+        %tbody
+          %tr
+            %td
+              %code invoice_number
+              \/
+              %code invoice_date
+              \/
+              %code due_date
+            %td Invoice identity and dates
+          %tr
+            %td
+              %code total_amount
+              \/
+              %code balance_due
+            %td Invoice total and the amount still outstanding
+          %tr
+            %td
+              %code days_overdue
+            %td Days past the due date (0 before it)
+          %tr
+            %td
+              %code tenant_name
+              \/
+              %code property_name
+              \/
+              %code owner_name
+            %td Who the invoice is for, and from
+          %tr
+            %td
+              %code invoice_url
+            %td Link back to the invoice in this app
+          %tr
+            %td
+              %code rent
+              \/
+              %code month_name
+              \/
+              %code year
+            %td Invoice-template variables for the invoice's month
+
+  = f.form_actions

@@ -143,6 +143,37 @@
         - else
           .show-empty No invoice templates. Monthly invoices will not be generated for this lease.
 
+      .show-section
+        .show-section-header
+          %h3.show-section-title Reminder Policy
+          .show-section-actions
+            - unless @lease.reminders_enabled?
+              %span.resource-badge.resource-badge-neutral Disabled
+            - if policy(ReminderStep.new(lease: @lease)).create?
+              = link_to new_lease_reminder_step_path(@lease), class: "btn btn-ghost btn-xs", title: "New reminder step" do
+                = heroicon "plus", options: { class: "w-4 h-4" }
+        - if @lease.reminder_steps.any?
+          .show-list
+            - @lease.reminder_steps.each do |step|
+              .show-list-item
+                .flex.justify-between.items-center.gap-2
+                  %div
+                    .show-list-item-title= step.to_s
+                    .show-list-item-meta
+                      = step.subject
+                      = "· " + step.to_emails.join(", ")
+                  .flex.gap-1
+                    - if policy(step).update?
+                      = link_to edit_lease_reminder_step_path(@lease, step), class: "btn btn-ghost btn-xs btn-square", title: "Edit reminder step" do
+                        = heroicon "pencil-square", options: { class: "w-4 h-4" }
+                    - if policy(step).destroy?
+                      = button_to lease_reminder_step_path(@lease, step), method: :delete, class: "btn btn-ghost btn-xs btn-square text-error", data: { turbo_confirm: "Delete this reminder step? Reminders already queued are unaffected." }, title: "Delete reminder step" do
+                        = heroicon "trash", options: { class: "w-4 h-4" }
+        - elsif @lease.reminders_enabled?
+          .show-empty No reminder steps. Invoices for this lease will not be chased.
+        - else
+          .show-empty Reminders are disabled for this lease.
+
       - if @lease.renewed_from || @lease.renewal
         .show-section
           %h3.show-section-title Related Leases

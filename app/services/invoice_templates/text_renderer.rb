@@ -17,9 +17,10 @@ module InvoiceTemplates
       end
     end
 
-    # Placeholder names in the text that are not Context variables.
-    def self.unknown_placeholders(text)
-      text.to_s.scan(PLACEHOLDER_PATTERN).flatten.map(&:downcase).uniq - Context::VARIABLE_NAMES
+    # Placeholder names in the text that are not known variables. Callers with
+    # a different variable set (e.g. reminder messages) pass their own names.
+    def self.unknown_placeholders(text, variable_names = Context::VARIABLE_NAMES)
+      text.to_s.scan(PLACEHOLDER_PATTERN).flatten.map(&:downcase).uniq - variable_names
     end
 
     private
