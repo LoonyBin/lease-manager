@@ -15,5 +15,11 @@ class CreateReminderSteps < ActiveRecord::Migration[8.1]
     end
 
     add_index :reminder_steps, %i[lease_id position]
+
+    # Backstop for the model's numericality validation: a zero or negative
+    # repeat never advances ReminderStep#occurrences_for, so keep the value
+    # unrepresentable even via update_column or raw SQL. NULL still means
+    # "fire once".
+    add_check_constraint :reminder_steps, "repeat_every_days > 0", name: "reminder_steps_repeat_every_days_positive"
   end
 end

@@ -213,6 +213,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_19_000003) do
     t.datetime "updated_at", null: false
     t.index ["lease_id", "position"], name: "index_reminder_steps_on_lease_id_and_position"
     t.index ["lease_id"], name: "index_reminder_steps_on_lease_id"
+    t.check_constraint "repeat_every_days > 0", name: "reminder_steps_repeat_every_days_positive"
   end
 
   create_table "solid_queue_blocked_executions", force: :cascade do |t|

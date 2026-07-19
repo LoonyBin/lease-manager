@@ -36,6 +36,18 @@ RSpec.describe ReminderStep do
       expect(build(:reminder_step, repeat_every_days: nil)).to be_valid
     end
 
+    # The validation is the real guard; the check constraint is what stops a
+    # non-advancing repeat sneaking past it via update_column or raw SQL.
+    it "rejects a zero repeat interval at the database too" do
+      step = create(:reminder_step, repeat_every_days: 7)
+      # rubocop:disable Rails/SkipsModelValidations -- skipping them is exactly what is under test
+      sneak_past_validations = -> { step.update_column(:repeat_every_days, 0) }
+      # rubocop:enable Rails/SkipsModelValidations
+
+      expect(&sneak_past_validations)
+        .to raise_error(ActiveRecord::StatementInvalid, /reminder_steps_repeat_every_days_positive/)
+    end
+
     it "rejects an offset beyond a year" do
       expect(build(:reminder_step, offset_days: 400)).not_to be_valid
     end
