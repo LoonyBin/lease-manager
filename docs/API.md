@@ -59,7 +59,7 @@ Available resources: `properties`, `tenants`, `owners`, `leases`, `payments`,
 `invoices` (no delete), `invoice_templates` (nested under
 `/leases/:lease_id/`, mutations only), `users`, `user_associations`
 (mutations only), and `versions` (the audit trail; read and delete).
-Reports and session endpoints are HTML-only.
+Session endpoints are HTML-only; the reports endpoints are documented below.
 
 Responses serialize a record's full attribute set (Rails' default
 `render json:`) — a deliberate v1 decision, bounded by two guardrails: you
@@ -68,6 +68,50 @@ Pundit policies and scopes as the browser UI), and credentials are never
 serialized (API tokens have no read endpoint, and token digests are excluded
 from the audit trail). A field-level serializer layer is deferred until a
 consumer needs a stable, narrower contract.
+
+## Reports
+
+The reports are the only place the app computes aggregates, so unlike the REST
+resources they serialize an explicit, hand-picked payload rather than a record's
+full attribute set. `GET /` is an alias for `GET /reports` (the app's root).
+
+```sh
+curl -H "Authorization: Bearer $TOKEN" https://example.com/reports.json
+curl -H "Authorization: Bearer $TOKEN" https://example.com/reports/revenue.json
+curl -H "Authorization: Bearer $TOKEN" https://example.com/reports/outstanding.json
+curl -H "Authorization: Bearer $TOKEN" https://example.com/reports/taxes.json
+```
+
+| URL | Payload keys |
+| --- | ------------ |
+| `GET /reports.json` | `total_revenue`, `total_outstanding`, `total_taxes`, `total_collected`, `revenue_by_month`, `payments_by_month`, `occupancy_stats`, `invoice_status_distribution` |
+| `GET /reports/revenue.json` | `by_month`, `by_property` |
+| `GET /reports/outstanding.json` | `total_outstanding`, `invoices` |
+| `GET /reports/taxes.json` | `total_taxes`, `by_month` |
+
+- `revenue_by_month`, `payments_by_month`, and both `by_month` maps are keyed by
+  a `"%b %Y"` month label (e.g. `"Jan 2026"`). `revenue.by_property` is an array
+  of `{ property_id, property, amount }` objects (property names can collide, so
+  it is not a name-keyed hash). Each `outstanding.invoices` entry exposes only
+  `id`, `number`, `date`, `due_date`, `outstanding_amount`, `lease`, `property`,
+  and `tenant` — a trimmed shape, not the full invoice attribute set.
+- **Money** is a decimal string, consistent with the rest of the API. Reports
+  additionally round it to **at most 2 decimals, not zero-padded** — `"1234.5"`,
+  `"0.0"`, `"0.13"` — so each figure matches the (half-up) number the matching
+  page shows. This 2-decimal rounding is reports-specific; other endpoints emit
+  the column's raw scale, unrounded.
+- **`total_outstanding` is two different figures.** On `GET /reports.json` it is
+  the balance of every non-cancelled, non-draft invoice — it **includes** paid
+  rows and negative credit-note balances. On `GET /reports/outstanding.json` it
+  is the sum of only the positive `outstanding_amount`s, **excluding** paid
+  invoices. Don't treat the two as the same number.
+- **`invoice_status_distribution`** keys are the status enum identifiers
+  (`"partially_paid"`, `"finalized"`, …), not display labels.
+- Date-range filtering is **not** supported: the charts are the last 12 months
+  and the `revenue`/`taxes` tables are all-time. `outstanding` returns **all**
+  matching invoices with **no pagination**. JSON object **key order is not part
+  of the contract** — the month maps are sorted in Ruby, not guaranteed on the
+  wire.
 
 ## Responses and errors
 
