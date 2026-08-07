@@ -10,10 +10,12 @@ module JsonResponses
   private
 
   # GET actions: default HTML template, or the payload serialized as JSON.
-  def respond_ok(payload)
+  # Pass the payload positionally, or as a block when building it is expensive
+  # and should only happen for the JSON format (the HTML path never yields).
+  def respond_ok(payload = nil)
     respond_to do |format|
       format.html
-      format.json { render json: payload }
+      format.json { render json: block_given? ? yield : payload }
     end
   end
 

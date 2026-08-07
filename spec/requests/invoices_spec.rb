@@ -134,6 +134,24 @@ RSpec.describe "Invoices" do
       expect(Invoice.find(response.parsed_body["id"]).line_items).to be_present
     end
 
+    context "when the month's only invoice is a template-linked credit note" do
+      # Eager so the lease's after_create side effects don't run inside the block.
+      let!(:template) { lease.invoice_templates.first }
+      let(:params) do
+        { invoice: { lease_id: lease.id, date: date.iso8601, status: "draft", document_type: "invoice" } }
+      end
+
+      before { create(:invoice, :credit_note, lease: lease, invoice_template: template, date: date) }
+
+      it "prefills from the template and persists an invoice beside the credit note", :aggregate_failures do
+        expect { post invoices_path(format: :json), params: params, as: :json }
+          .to change(Invoice, :count).by(1)
+        created = Invoice.find(response.parsed_body["id"])
+        expect(created.invoice_template).to eq(template)
+        expect(created.line_items.map(&:category)).to include("rent")
+      end
+    end
+
     context "with an explicit invoice_template_id (audit page flow)" do
       # Eager so the lease's after_create side effects (default template,
       # security deposit invoice) don't land inside the change-count blocks.

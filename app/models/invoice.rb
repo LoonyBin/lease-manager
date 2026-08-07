@@ -16,7 +16,12 @@ class Invoice < ApplicationRecord
 
   validates :date, presence: true
   validates :status, presence: true
-  validates :date, uniqueness: { scope: :invoice_template_id }, if: :invoice_template_id?
+  # Only debit invoices reserve a template's month, and only against other
+  # debit invoices (the +covering+ conditions): a credit note may share a
+  # (template, date) with the month's real invoice. Matches the partial unique
+  # index, which carries the same +document_type = 0+ predicate. See #163.
+  validates :date, uniqueness: { scope: :invoice_template_id, conditions: -> { covering } },
+                   if: -> { invoice_template_id? && invoice? }
   validate :invoice_template_belongs_to_lease, if: :invoice_template_id?
 
   # Ransack allowlist — keep in sync with app/views/invoices/_search.html.haml, _sort.html.haml,
@@ -40,6 +45,13 @@ class Invoice < ApplicationRecord
   scope :unsettled, -> { where(status: %i[finalized sent partially_paid]) }
   scope :overdue,  -> { unsettled.where(due_date: ...Date.current) }
   scope :near_due, -> { unsettled.where(due_date: Date.current..7.days.from_now) }
+
+  # Invoices that count as a month having been billed by a template: any debit
+  # invoice, cancelled included (billed then waived is a decision, not a gap);
+  # credit notes are corrections, not bills, so they never cover a month.
+  # +cancelled+ is a status, not a document_type, so filtering on document_type
+  # provably keeps cancelled invoices and excludes credit notes. See #163.
+  scope :covering, -> { where(document_type: :invoice) }
 
   def credit?
     credit_note?
