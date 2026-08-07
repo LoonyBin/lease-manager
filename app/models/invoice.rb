@@ -19,6 +19,18 @@ class Invoice < ApplicationRecord
   validates :date, uniqueness: { scope: :invoice_template_id }, if: :invoice_template_id?
   validate :invoice_template_belongs_to_lease, if: :invoice_template_id?
 
+  # Ransack allowlist — keep in sync with app/views/invoices/_search.html.haml, _sort.html.haml,
+  # and invoices_controller.rb's default sort. total_amount is a ransacker (Invoice::Totals), so it
+  # must be listed explicitly now that the base default is empty. lease_id serves leases/show's
+  # "All invoices" link; the lease association serves lease_tenant_name / lease_property_name.
+  def self.ransackable_attributes(_auth_object = nil)
+    %w[date number document_type status lease_id total_amount]
+  end
+
+  def self.ransackable_associations(_auth_object = nil)
+    %w[lease]
+  end
+
   before_validation :set_default_due_date
   before_save :assign_number, if: -> { finalized? && number.nil? }
   after_save :sync_initial_entry, if: :should_sync_entry?

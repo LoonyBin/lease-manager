@@ -1,0 +1,60 @@
+# frozen_string_literal: true
+
+require "rails_helper"
+
+# Guards the Ransack allowlists locked down in #173. The old blanket default
+# (ApplicationRecord exposing every column + every association) let /users filter
+# on api_tokens.token_digest and use the match/no-match response as an oracle to
+# recover the digest one prefix at a time.
+#
+# These assertions are deliberately scoped to ApplicationRecord descendants.
+# Version (< PaperTrail::Version) knowingly still returns column_names; its wider
+# object/object_changes exposure is a separate, tracked follow-up and is out of
+# scope here — so the "never returns column_names" claim below is not global.
+RSpec.describe ApplicationRecord do
+  # Column names that look like a credential and must never be searchable.
+  let(:sensitive_column) { /digest|secret|password|token|_key\b|\bkey\b/i }
+
+  # Concrete, table-backed descendants only — skip abstract bases and any
+  # table-less descendant (e.g. an STI root without its own table).
+  let(:searchable_models) do
+    Rails.application.eager_load!
+    described_class.descendants.reject { |m| m.abstract_class? || !m.table_exists? }
+  end
+
+  let(:secret_leaks) do
+    searchable_models.filter_map do |model|
+      leaked = model.ransackable_attributes & model.column_names.grep(sensitive_column)
+      "#{model.name} → #{leaked.join(', ')}" if leaked.any?
+    end
+  end
+
+  let(:wholesale_models) do
+    searchable_models.select { |m| m.ransackable_attributes.sort == m.column_names.sort }.map(&:name)
+  end
+
+  describe "the Ransack allowlist policy across all descendants" do
+    it "fails closed at the base class", :aggregate_failures do
+      expect(described_class.ransackable_attributes).to eq([])
+      expect(described_class.ransackable_associations).to eq([])
+    end
+
+    # Quiet today: the only secret-shaped column on an ApplicationRecord table is
+    # api_tokens.token_digest, and ApiToken's allowlist is []. This fails the day
+    # someone makes a password/secret/digest/token/key column ransackable.
+    it "never exposes a secret-shaped column to Ransack" do
+      expect(secret_leaks).to be_empty, "sensitive columns exposed to Ransack:\n#{secret_leaks.join("\n")}"
+    end
+
+    # A model that returns its full column list is almost certainly inheriting a
+    # blanket default rather than a deliberate, reviewed allowlist.
+    it "never allowlists a model's full column list wholesale" do
+      expect(wholesale_models).to be_empty
+    end
+
+    it "does not expose the api_tokens.token_digest oracle (AC#1)", :aggregate_failures do
+      expect(ApiToken.ransackable_attributes).not_to include("token_digest")
+      expect(User.ransackable_associations).not_to include("api_tokens")
+    end
+  end
+end

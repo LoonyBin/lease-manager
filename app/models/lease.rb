@@ -38,6 +38,15 @@ class Lease < ApplicationRecord
     %i[by_status]
   end
 
+  # Ransack allowlist — keep in sync with app/views/leases/_search.html.haml and _sort.html.haml.
+  # property/tenant carry the *_name filters and sorts; property_id/tenant_id serve the
+  # properties/show and tenants/show "View all" links. (end_date is a Ruby method, not a column,
+  # so its sort option is already a silent no-op and is intentionally not allowlisted — see #173.)
+  # Endless defs keep this already-long class under Metrics/ClassLength.
+  def self.ransackable_attributes(_auth_object = nil) = %w[start_date rent_amount property_id tenant_id]
+
+  def self.ransackable_associations(_auth_object = nil) = %w[property tenant]
+
   belongs_to :property
   belongs_to :tenant
   has_many :invoices, dependent: :destroy
