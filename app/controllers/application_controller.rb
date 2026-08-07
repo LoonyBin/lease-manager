@@ -27,6 +27,7 @@ class ApplicationController < ActionController::Base
 
   before_action :set_paper_trail_whodunnit
   before_action :require_login
+  before_action :enforce_token_scope, if: :token_request?
   after_action :verify_pundit_authorization
 
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
@@ -54,7 +55,16 @@ class ApplicationController < ActionController::Base
   # When an Authorization header is present there is no session fallback: an
   # invalid, revoked, or expired token is a 401 even with a live session.
   def user_from_token
-    ApiToken.authenticate(presented_token)&.tap(&:touch_last_used)&.user
+    current_api_token&.tap(&:touch_last_used)&.user
+  end
+
+  # Memoized so require_login and enforce_token_scope share one lookup.
+  # `defined?` (not ||=) caches a nil result too — an absent/invalid token is
+  # looked up once, not on every predicate.
+  def current_api_token
+    return @current_api_token if defined?(@current_api_token)
+
+    @current_api_token = ApiToken.authenticate(presented_token)
   end
 
   # The token parsed from the Authorization header (nil when absent or
@@ -80,6 +90,23 @@ class ApplicationController < ActionController::Base
     else
       redirect_to login_path
     end
+  end
+
+  # Credential-level guard: a read_only token may make only safe requests.
+  # This rests on the invariant that no GET/HEAD route reachable by a token
+  # holder mutates state. Two known writes-on-a-safe-verb, both out of reach
+  # from a read_only token, keep that invariant honest:
+  #   - sessions#create (OAuth callback GET; needs omniauth.auth, never a token request)
+  #   - ApiToken#touch_last_used (benign last_used_at bump on every authed GET)
+  # A route-walk spec (spec/requests/api_token_scope_invariant_spec.rb) guards
+  # this against future drift. Halting here in a before_action means the
+  # after_action verify_pundit_authorization never runs, so a blocked write
+  # raises no spurious "authorize was not called" error.
+  def enforce_token_scope
+    return unless current_api_token&.read_only?
+    return if request.get? || request.head?
+
+    render json: { error: t("authorization.read_only_token") }, status: :forbidden
   end
 
   def verify_pundit_authorization

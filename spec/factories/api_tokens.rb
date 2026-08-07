@@ -5,6 +5,10 @@ FactoryBot.define do
     user
     sequence(:name) { |n| "Token #{n}" }
 
+    trait :read_only do
+      scope { :read_only }
+    end
+
     trait :revoked do
       revoked_at { 1.hour.ago }
     end
