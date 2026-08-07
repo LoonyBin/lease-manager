@@ -94,10 +94,14 @@ class ApplicationController < ActionController::Base
 
   # Credential-level guard: a read_only token may make only safe requests.
   # This rests on the invariant that no GET/HEAD route reachable by a token
-  # holder mutates state. Two known writes-on-a-safe-verb, both out of reach
-  # from a read_only token, keep that invariant honest:
+  # holder mutates domain state. Two known writes-on-a-safe-verb keep that
+  # invariant honest — neither touches domain state:
   #   - sessions#create (OAuth callback GET; needs omniauth.auth, never a token request)
-  #   - ApiToken#touch_last_used (benign last_used_at bump on every authed GET)
+  #   - ApiToken#touch_last_used, a benign last_used_at bump. An earlier callback
+  #     (whodunnit/require_login) resolves current_user before this runs, so the
+  #     bump fires on every authenticated token request — including a read_only
+  #     write this method then denies. A denied request is still token usage, so
+  #     recording it is intended.
   # A route-walk spec (spec/requests/api_token_scope_invariant_spec.rb) guards
   # this against future drift. Halting here in a before_action means the
   # after_action verify_pundit_authorization never runs, so a blocked write
