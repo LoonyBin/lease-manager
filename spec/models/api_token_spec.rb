@@ -40,6 +40,12 @@ RSpec.describe ApiToken do
       expect(token).not_to be_valid
       expect(token.errors[:scope]).to be_present
     end
+
+    it "is immutable after creation (attr_readonly)", :aggregate_failures do
+      token = create(:api_token, :read_only)
+      expect { token.update!(scope: :read_write) }.to raise_error(ActiveRecord::ReadonlyAttributeError)
+      expect(token.reload.scope).to eq("read_only")
+    end
   end
 
   describe ".authenticate" do
