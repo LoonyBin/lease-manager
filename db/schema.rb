@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_07_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_07_000002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -122,7 +122,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_07_000001) do
     t.integer "sequence_number"
     t.integer "status", default: 0
     t.datetime "updated_at", null: false
-    t.index ["invoice_template_id", "date"], name: "index_invoices_on_invoice_template_id_and_date", unique: true, where: "(invoice_template_id IS NOT NULL)"
+    t.index ["invoice_template_id", "date"], name: "index_invoices_on_invoice_template_id_and_date", unique: true, where: "((invoice_template_id IS NOT NULL) AND (document_type = 0))"
     t.index ["lease_id"], name: "index_invoices_on_lease_id"
   end
 

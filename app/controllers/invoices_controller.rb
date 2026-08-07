@@ -91,9 +91,11 @@ class InvoicesController < ApplicationController
   end
 
   # Whole-month range to match the generator's dedup (dates are editable).
+  # +covering+ so a template-linked credit note does not mask its template from
+  # the prefill picker, keeping this in step with the generator. See #163.
   def invoiced_template_ids(lease, month)
     Invoice.where(lease: lease, date: month..month.end_of_month)
-           .where.not(invoice_template_id: nil).pluck(:invoice_template_id)
+           .where.not(invoice_template_id: nil).covering.pluck(:invoice_template_id)
   end
 
   def set_form_collections

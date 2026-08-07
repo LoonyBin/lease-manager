@@ -1,10 +1,12 @@
 # frozen_string_literal: true
 
 # Builds an unsaved draft invoice for an invoice template and month.
-# Returns the existing invoice when the template already generated one for
-# that month, and nil when the month is outside the template's effective
-# window, rent was already billed manually for the month, or no line item
-# evaluates to a non-zero amount.
+# Returns the existing invoice when the template already generated a debit
+# invoice for that month (a cancelled one still dedups — billed then waived is
+# a decision, not a gap), and nil when the month is outside the template's
+# effective window, rent was already billed manually for the month, or no line
+# item evaluates to a non-zero amount. A template-linked credit note does not
+# count as coverage, so the month regenerates a fresh invoice beside it. See #163.
 class TemplateInvoiceGenerator
   ROUND_OFF_CATEGORY = "rounding"
   ROUND_OFF_NAME = "Round Off"
@@ -23,7 +25,7 @@ class TemplateInvoiceGenerator
     return nil if @date.nil?
 
     if find_existing?
-      existing = Invoice.find_by(invoice_template: @template, date: month_range)
+      existing = Invoice.covering.find_by(invoice_template: @template, date: month_range)
       return existing if existing
       return nil if rent_billed_manually?
     end
@@ -64,8 +66,21 @@ class TemplateInvoiceGenerator
     end
   end
 
+  # Deliberate divergence from +Invoice.covering+, which counts cancelled
+  # invoices. The distinction is tense: +covering+ answers a historical question
+  # ("was this month ever billed by a template?") where a cancellation is part
+  # of the history, while this asks a present-state one ("is there an active
+  # competing rent charge right now?") where a cancellation removes the
+  # competitor and so stops suppressing generation. The extra +status <>
+  # cancelled+ clause below the +covering+ document_type filter is that
+  # divergence, locked by the "generates again once the manual invoice is
+  # cancelled" spec. Residual asymmetry: a month whose only invoice is a
+  # cancelled *manual* rent invoice is flagged and regenerated, whereas a
+  # cancelled *template* invoice covers its month — same user action, opposite
+  # audit behaviour, decided solely by whether the cancelled bill carried a
+  # template link. See #163.
   def manual_rent_invoice_exists?
-    Invoice.where(lease: @lease, invoice_template_id: nil, date: month_range, document_type: :invoice)
+    Invoice.covering.where(lease: @lease, invoice_template_id: nil, date: month_range)
            .where.not(status: :cancelled)
            .joins(:line_items).exists?(line_items: { category: RENT_CATEGORY })
   end
