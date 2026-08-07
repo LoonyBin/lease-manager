@@ -29,8 +29,11 @@ RSpec.describe ApplicationRecord do
     end
   end
 
+  # A superset check, not exact equality: a model returning `column_names` *plus*
+  # a ransacker (the exact shape of the old fail-open default,
+  # column_names + _ransackers.keys) would slip past an equality test.
   let(:wholesale_models) do
-    searchable_models.select { |m| m.ransackable_attributes.sort == m.column_names.sort }.map(&:name)
+    searchable_models.select { |m| (m.column_names - m.ransackable_attributes).empty? }.map(&:name)
   end
 
   describe "the Ransack allowlist policy across all descendants" do

@@ -21,16 +21,23 @@ RSpec.describe "Ransack search" do
     let(:real_prefix) { token.token_digest[0, 8] }
     let(:wrong_prefix) { "#{real_prefix[0] == '0' ? '1' : '0'}#{real_prefix[1..]}" }
 
-    before { create(:user, name: "ZZ-Oracle-Bystander") }
+    let!(:bystander) { create(:user, name: "ZZ-Oracle-Bystander") }
 
-    def body_for(prefix)
+    # Email renders for every row and is unique per user, so the emails present
+    # in the body are the full rendered result set.
+    def rendered_emails(prefix)
       get users_path, params: { q: { api_tokens_token_digest_start: prefix } }
-      response.body
+      User.pluck(:email).select { |email| response.body.include?(email) }
     end
 
     it "returns the same users whether the digest prefix matches or not", :aggregate_failures do
-      expect(body_for(real_prefix)).to include("ZZ-Oracle-Target", "ZZ-Oracle-Bystander")
-      expect(body_for(wrong_prefix)).to include("ZZ-Oracle-Target", "ZZ-Oracle-Bystander")
+      real = rendered_emails(real_prefix)
+      wrong = rendered_emails(wrong_prefix)
+
+      # Compare the complete rendered user set, not just the two named rows — a
+      # surviving prefix oracle would add or drop some row for one prefix only.
+      expect(real).to eq(wrong)
+      expect(real).to include(target.email, bystander.email)
     end
   end
 
