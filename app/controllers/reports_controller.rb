@@ -1,17 +1,21 @@
 # frozen_string_literal: true
 
 class ReportsController < ApplicationController
+  include ReportSerialization
+
   skip_after_action :verify_pundit_authorization
   before_action { authorize :report }
 
   def index
     set_summary_stats
     set_chart_data
+    respond_ok { index_payload }
   end
 
   def revenue
     @invoices_by_month = group_invoices_by_month
     @invoices_by_property = group_invoices_by_property
+    respond_ok { revenue_payload }
   end
 
   def outstanding
@@ -21,11 +25,15 @@ class ReportsController < ApplicationController
                                                  .sort_by(&:date)
 
     @total_outstanding = @outstanding_invoices.sum(&:outstanding_amount)
+    respond_ok { outstanding_payload }
   end
 
   def taxes
     @taxes_by_month = group_taxes_by_month
-    @total_taxes = finalized_line_items.sum("amount * tax_rate / 100.0")
+    # Round each line's tax before summing, matching set_summary_stats and
+    # group_taxes_by_month, so total_taxes agrees across every report endpoint.
+    @total_taxes = finalized_line_items.sum("ROUND(amount * tax_rate / 100.0, 2)")
+    respond_ok { taxes_payload }
   end
 
   private
