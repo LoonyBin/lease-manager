@@ -83,10 +83,13 @@ class MissingInvoiceDetector
     months
   end
 
+  # +covering+: a cancelled template invoice still counts as billed, but a
+  # template-linked credit note does not cover its month. See #163.
   def existing_invoice_months
     @existing_invoice_months ||=
       Invoice.where(lease: @leases)
              .where.not(invoice_template_id: nil)
+             .covering
              .pluck(:invoice_template_id, :date)
              .to_set { |template_id, date| [template_id, date.beginning_of_month] }
   end

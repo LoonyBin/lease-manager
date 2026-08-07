@@ -92,6 +92,37 @@ RSpec.describe TemplateInvoiceGenerator do
       end
     end
 
+    context "when the existing invoice from this template is cancelled" do
+      let!(:existing) do
+        described_class.new(template, date).call.tap do |invoice|
+          invoice.save!
+          invoice.update!(status: :cancelled)
+        end
+      end
+
+      it "returns the cancelled invoice rather than building a duplicate", :aggregate_failures do
+        expect(service.call).to eq(existing)
+        expect(service.call).to be_cancelled
+      end
+    end
+
+    context "when the month's only invoice is a template-linked credit note" do
+      let(:date) { Date.new(2025, 2, 1) }
+      let!(:credit_note) do
+        create(:invoice, :credit_note, lease: lease, invoice_template: template, date: date)
+      end
+
+      it "builds a fresh invoice" do
+        expect(service.call).to be_new_record
+      end
+
+      it "saves the fresh invoice alongside the credit note", :aggregate_failures do
+        invoice = service.call
+        expect { invoice.save! }.to change(Invoice, :count).by(1)
+        expect(credit_note.reload).to be_persisted
+      end
+    end
+
     context "when a manual invoice without a template link bills rent for the month" do
       let!(:manual_invoice) do
         create(:invoice, lease: lease, date: Date.new(2025, 2, 20)).tap do |invoice|

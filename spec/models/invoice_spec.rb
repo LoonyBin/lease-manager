@@ -41,8 +41,42 @@ RSpec.describe Invoice do
     }
   end
 
+  describe "template + date uniqueness" do
+    let(:lease) { create(:lease) }
+    let(:template) { lease.invoice_templates.first }
+    let(:date) { Date.new(2026, 1, 1) }
+
+    before { create(:invoice, lease: lease, invoice_template: template, date: date) }
+
+    it "rejects a second debit invoice for the same template and date", :aggregate_failures do
+      duplicate = build(:invoice, lease: lease, invoice_template: template, date: date)
+      expect(duplicate).not_to be_valid
+      expect(duplicate.errors[:date]).to be_present
+    end
+
+    it "allows a template-linked credit note beside the month's debit invoice" do
+      credit_note = build(:invoice, :credit_note, lease: lease, invoice_template: template, date: date)
+      expect(credit_note).to be_valid
+    end
+  end
+
   describe "scopes" do
     let(:lease) { create(:lease) }
+
+    describe ".covering" do
+      let(:template) { lease.invoice_templates.first }
+      let!(:cancelled) do
+        create(:invoice, lease: lease, invoice_template: template, date: Date.new(2026, 1, 1), status: :cancelled)
+      end
+      let!(:credit_note) do
+        create(:invoice, :credit_note, lease: lease, invoice_template: template, date: Date.new(2026, 2, 1))
+      end
+
+      it "includes cancelled debit invoices but excludes credit notes", :aggregate_failures do
+        expect(described_class.covering).to include(cancelled)
+        expect(described_class.covering).not_to include(credit_note)
+      end
+    end
 
     describe ".overdue" do
       it "includes unsettled invoices with due_date in the past" do

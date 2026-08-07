@@ -76,6 +76,65 @@ RSpec.describe MissingInvoiceDetector do
       end
     end
 
+    context "when the month's only template invoice is cancelled" do
+      let!(:lease) { create(:lease, start_date: today.beginning_of_month, duration_months: 12) }
+
+      before do
+        TemplateInvoiceGenerator.new(lease.invoice_templates.first, today).call.tap do |invoice|
+          invoice.save!
+          invoice.update!(status: :cancelled)
+        end
+      end
+
+      it "treats the month as covered (billed then waived)" do
+        expect(result.map(&:date)).not_to include(today.beginning_of_month)
+      end
+    end
+
+    context "when the month's only invoice is a template-linked credit note" do
+      let!(:lease) { create(:lease, start_date: today.beginning_of_month, duration_months: 12) }
+
+      before do
+        create(:invoice, :credit_note, lease: lease, invoice_template: lease.invoice_templates.first,
+                                       date: today.beginning_of_month)
+      end
+
+      it "flags the month with an expected amount", :aggregate_failures do
+        missing = result.find { |m| m.date == today.beginning_of_month }
+        expect(missing).to be_present
+        expect(missing.expected_amount).to eq(1180)
+      end
+    end
+
+    context "when a template-linked credit note sits beside the month's invoice" do
+      let!(:lease) { create(:lease, start_date: today.beginning_of_month, duration_months: 12) }
+
+      before do
+        TemplateInvoiceGenerator.new(lease.invoice_templates.first, today).call.save!
+        create(:invoice, :credit_note, lease: lease, invoice_template: lease.invoice_templates.first,
+                                       date: today.beginning_of_month)
+      end
+
+      it "treats the month as covered by the real invoice" do
+        expect(result.map(&:date)).not_to include(today.beginning_of_month)
+      end
+    end
+
+    context "when a finalized template invoice covers the month" do
+      let!(:lease) { create(:lease, start_date: today.beginning_of_month, duration_months: 12) }
+
+      before do
+        TemplateInvoiceGenerator.new(lease.invoice_templates.first, today).call.tap do |invoice|
+          invoice.save!
+          invoice.update!(status: :finalized)
+        end
+      end
+
+      it "does not flag the month" do
+        expect(result.map(&:date)).not_to include(today.beginning_of_month)
+      end
+    end
+
     context "when a lease has multiple templates" do
       let!(:lease) { create(:lease, start_date: today.beginning_of_month, duration_months: 12) }
       let!(:extra_template) { create(:invoice_template, lease: lease, name: "Maintenance") }
