@@ -12,6 +12,19 @@ class ApiToken < ApplicationRecord
   # trail's object/object_changes.
   self.paper_trail_options = paper_trail_options.merge(skip: %w[token_digest])
 
+  # read_write (default) keeps existing tokens fully privileged; read_only is
+  # gated at the request level (see ApplicationController#enforce_token_scope)
+  # to reject POST/PATCH/PUT/DELETE. validate: true surfaces a bad value as a
+  # validation error (handled by the create form) rather than an ArgumentError.
+  enum :scope, { read_write: 0, read_only: 1 }, default: :read_write, validate: true
+
+  # Scope is fixed at creation. There is no update route today
+  # (resources :api_tokens, only: %i[create destroy]); attr_readonly keeps it
+  # immutable even if one is ever added, so a token can never widen
+  # read_only -> read_write in place — you revoke and re-issue. Backs the
+  # immutability the profile UI and docs/API.md promise.
+  attr_readonly :scope
+
   validates :name, presence: true
   validates :token_digest, presence: true, uniqueness: true
 

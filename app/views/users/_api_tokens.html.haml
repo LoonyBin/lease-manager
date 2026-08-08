@@ -15,6 +15,7 @@
             %th Name
             %th Created
             %th Last used
+            %th Scope
             %th Expires
             %th Status
             %th
@@ -24,6 +25,11 @@
               %td= token.name
               %td= token.created_at.to_date
               %td= token.last_used_at ? "#{time_ago_in_words(token.last_used_at)} ago" : "Never"
+              %td
+                - if token.read_only?
+                  %span.resource-badge.resource-badge-neutral Read only
+                - else
+                  Read write
               %td= token.expires_at&.to_date || "Never"
               %td
                 - if token.revoked?
@@ -40,5 +46,7 @@
 
   = form_with model: ApiToken.new, class: "show-inline-form" do |f|
     = f.text_field :name, placeholder: "Token name...", class: "input input-bordered input-sm flex-1"
+    = f.select :scope, [["Read write", "read_write"], ["Read only", "read_only"]], {}, class: "select select-bordered select-sm", title: "Scope (read-only tokens cannot write)"
     = f.date_field :expires_at, title: "Expires on (optional)", class: "input input-bordered input-sm"
     = f.submit "Create token", class: "btn btn-sm btn-primary"
+  %p.text-xs.opacity-60.mt-1 Scope is fixed once created — to change it, revoke and issue a new token.
