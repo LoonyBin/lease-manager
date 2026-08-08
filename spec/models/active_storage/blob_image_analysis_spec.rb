@@ -10,17 +10,17 @@ require "rails_helper"
 # generation is the latent trap #183 exists to close, so it is guarded here too.
 RSpec.describe ActiveStorage::Blob do
   let(:blob) do
-    described_class.create_and_upload!(
-      io: Rails.root.join("spec/fixtures/files/sample.png").open,
-      filename: "sample.png",
-      content_type: "image/png"
-    )
+    Rails.root.join("spec/fixtures/files/sample.png").open do |io|
+      described_class.create_and_upload!(io: io, filename: "sample.png", content_type: "image/png")
+    end
   end
 
   it "extracts width and height metadata from an image via ruby-vips" do
     blob.analyze
 
-    expect(blob.reload.metadata).to include("width", "height")
+    # sample.png is 1x1; assert the exact dimensions so a garbage-dimension
+    # result can't pass on key presence alone.
+    expect(blob.reload.metadata).to include("width" => 1, "height" => 1)
   end
 
   it "processes an image variant via ruby-vips" do
