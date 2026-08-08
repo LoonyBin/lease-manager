@@ -54,6 +54,19 @@ RSpec.describe ReplaceApiTokenScopeWithPermissions do
     expect(row["preset"]).to eq("read_only")
   end
 
+  # `down` derives scope back from permissions, fail-closed: only the exact FULL
+  # grant returns to read_write; anything narrower lands on read_only, so an
+  # emergency rollback never restores full mutation rights to a narrow token.
+  # The before hook leaves us in the post-migration (up) schema, so we seed a
+  # narrow custom grant here, roll back, and assert the derived scope.
+  it "rolls a narrow custom grant back to read_only, and the full grant to read_write", :aggregate_failures do
+    insert_custom_token("narrow_custom", %w[invoices#index invoices#show payments#create])
+    migration.migrate(:down)
+    ApiToken.reset_column_information
+    expect(legacy_scope("narrow_custom")).to eq(1) # read_only, fail-closed
+    expect(legacy_scope("legacy_rw")).to eq(0)     # the exact FULL grant -> read_write
+  end
+
   # A legacy row (with `scope`, without `permissions`/`preset`) written in raw
   # SQL rather than through the model.
   def insert_legacy_token(name, scope)
@@ -63,7 +76,22 @@ RSpec.describe ReplaceApiTokenScopeWithPermissions do
     SQL
   end
 
+  # A post-migration token (permissions/preset, no scope) with a custom grant,
+  # written in raw SQL so the down direction can be exercised on it.
+  def insert_custom_token(name, permissions)
+    connection.execute(<<~SQL.squish)
+      INSERT INTO api_tokens (name, token_digest, permissions, preset, user_id, created_at, updated_at)
+      VALUES (#{connection.quote(name)}, #{connection.quote(name)}, #{connection.quote(permissions.to_json)}::jsonb,
+              NULL, #{user.id}, NOW(), NOW())
+    SQL
+  end
+
   def backfilled(name)
     connection.select_one("SELECT permissions, preset FROM api_tokens WHERE name = #{connection.quote(name)}")
+  end
+
+  # scope after a rollback, cast to Integer (0 = read_write, 1 = read_only).
+  def legacy_scope(name)
+    connection.select_value("SELECT scope FROM api_tokens WHERE name = #{connection.quote(name)}").to_i
   end
 end

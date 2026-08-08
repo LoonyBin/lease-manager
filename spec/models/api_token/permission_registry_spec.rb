@@ -38,6 +38,21 @@ RSpec.describe ApiToken::PermissionRegistry do
       expect(described_class.read_preset).to include("invoices#index", "invoices#show", "reports#revenue")
       expect(described_class.read_preset).not_to include("properties#create", "properties#destroy")
     end
+
+    # Retargeted successor to the deleted route-walk invariant spec
+    # (spec/requests/api_token_scope_invariant_spec.rb). That spec compared every
+    # GET/HEAD-reachable app action against a human-curated allowlist of read
+    # action *names*, so a future mutating action on a safe verb (the classic
+    # `get :recompute`) could not silently land in the read-only preset and be
+    # handed to every read_only token. read_preset is *built* from the GET/HEAD
+    # verb, so the verb is not an independent oracle here — the curated name
+    # allowlist is. A new read-only endpoint with a novel action name is a
+    # conscious edit to this list, not a silent inclusion.
+    it "contains only known read actions (guards a mutating action on a safe verb)" do
+      read_action_names = %w[index show audit revenue outstanding taxes]
+      offenders = described_class.read_preset.reject { |id| read_action_names.include?(id.split("#").last) }
+      expect(offenders).to be_empty, "non-read action names in read_preset: #{offenders.inspect}"
+    end
   end
 
   describe ".full_preset" do
