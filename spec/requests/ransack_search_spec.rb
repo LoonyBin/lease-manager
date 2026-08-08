@@ -59,6 +59,21 @@ RSpec.describe "Ransack search" do
     end
   end
 
+  describe "GET /invoices (default sort tiebreak)" do
+    # invoices_controller defaults @q.sorts to ["date desc", "created_at desc"]; without created_at
+    # in the allowlist the tiebreak sort node is silently dropped and the ORDER BY truncates back to
+    # date DESC, leaving same-date paging nondeterministic. Assert the executed SQL rather than row
+    # order: a dropped node leaves no ORDER BY at all, which Postgres can still return in insertion
+    # order, so a row-order check would pass with the fix reverted. Regression guard for #179.
+    it "orders by date desc, created_at desc from the controller default" do
+      sql = []
+      collector = ->(*, payload) { sql << payload[:sql] }
+      ActiveSupport::Notifications.subscribed(collector, "sql.active_record") { get invoices_path }
+      expect(sql.grep(/FROM "invoices"/).join("\n"))
+        .to match(/ORDER BY\s+"invoices"\."date"\s+DESC,\s*"invoices"\."created_at"\s+DESC/i)
+    end
+  end
+
   describe "GET /payments" do
     let(:lease) { create(:lease, tenant: create(:tenant, name: "ZZ-PayTenant")) }
     let!(:older) do
