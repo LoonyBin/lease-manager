@@ -24,27 +24,71 @@ RSpec.describe ApiToken do
     end
   end
 
-  describe "scope" do
-    it "defaults to read_write" do
-      expect(build(:api_token).scope).to eq("read_write")
+  describe "permissions" do
+    it "defaults to the full grantable set (mirrors the old read_write default)" do
+      expect(build(:api_token).permissions).to eq(ApiToken::PermissionRegistry.full_preset)
     end
 
-    it "exposes read_write?/read_only? predicates", :aggregate_failures do
-      expect(build(:api_token)).to be_read_write
-      expect(build(:api_token, :read_only)).to be_read_only
+    it "answers permits? by set membership", :aggregate_failures do
+      token = build(:api_token, :custom, permissions: %w[invoices#index payments#create])
+      expect(token.permits?("invoices#index")).to be(true)
+      expect(token.permits?("payments#create")).to be(true)
+      expect(token.permits?("leases#destroy")).to be(false)
     end
 
-    it "treats an unknown scope as a validation error, not a raise", :aggregate_failures do
-      token = build(:api_token)
-      expect { token.scope = "bogus" }.not_to raise_error
+    it "normalizes entries to a sorted, de-duplicated list" do
+      token = create(:api_token, :custom, permissions: %w[payments#create invoices#index invoices#index])
+      expect(token.permissions).to eq(%w[invoices#index payments#create])
+    end
+
+    it "rejects non-string entries with a validation error", :aggregate_failures do
+      token = build(:api_token, :custom, permissions: [123, :symbol])
       expect(token).not_to be_valid
-      expect(token.errors[:scope]).to be_present
+      expect(token.errors[:permissions]).to be_present
+    end
+
+    it "accepts non-registry entries so the token-management invariant stays testable" do
+      # No subset validation: a token can be created carrying api_tokens#create.
+      # The guard, not the model, is what refuses it — see
+      # spec/requests/api_token_management_invariant_spec.rb.
+      expect(build(:api_token, :custom, permissions: %w[api_tokens#create])).to be_valid
     end
 
     it "is immutable after creation (attr_readonly)", :aggregate_failures do
       token = create(:api_token, :read_only)
-      expect { token.update!(scope: :read_write) }.to raise_error(ActiveRecord::ReadonlyAttributeError)
-      expect(token.reload.scope).to eq("read_only")
+      expect { token.update!(permissions: ApiToken::PermissionRegistry.full_preset) }
+        .to raise_error(ActiveRecord::ReadonlyAttributeError)
+      expect(token.reload.permissions).to eq(ApiToken::PermissionRegistry.read_preset)
+    end
+  end
+
+  describe "#orphaned_grants" do
+    it "returns granted actions absent from the registry" do
+      token = build(:api_token, :custom, permissions: %w[invoices#index gone#missing])
+      expect(token.orphaned_grants).to eq(%w[gone#missing])
+    end
+
+    it "is empty for a preset token" do
+      expect(build(:api_token, :read_only).orphaned_grants).to be_empty
+    end
+  end
+
+  describe "preset" do
+    it "accepts the known labels and nil (custom)", :aggregate_failures do
+      expect(build(:api_token, :custom, preset: nil)).to be_valid
+      expect(build(:api_token, preset: "full")).to be_valid
+      expect(build(:api_token, :read_only, preset: "read_only")).to be_valid
+    end
+
+    it "rejects an unknown label such as \"custom\"", :aggregate_failures do
+      token = build(:api_token, :custom, preset: "custom")
+      expect(token).not_to be_valid
+      expect(token.errors[:preset]).to be_present
+    end
+
+    it "is immutable after creation (attr_readonly)" do
+      token = create(:api_token, preset: "full")
+      expect { token.update!(preset: "read_only") }.to raise_error(ActiveRecord::ReadonlyAttributeError)
     end
   end
 
@@ -149,12 +193,16 @@ RSpec.describe ApiToken do
       expect(serialized).not_to include(token.token_digest)
     end
 
-    it "captures the scope in the create version, still without the digest", :aggregate_failures do
-      token = create(:api_token, :read_only)
+    it "captures the granted permissions in the create version, still without the digest", :aggregate_failures do
+      # The exact granted array, not merely a "permissions" substring — the old
+      # `include("scope")` assertion passed for any token regardless of value.
+      # PaperTrail stores a jsonb column double-encoded (a JSON string inside the
+      # JSON object_changes), so the "to" value is parsed once more to compare.
+      token = create(:api_token, :custom, permissions: %w[invoices#index payments#create])
       create_version = token.versions.find_by(event: "create")
-      serialized = [create_version.object, create_version.object_changes].join
-      expect(serialized).to include("scope")
-      expect(serialized).not_to include(token.token_digest)
+      granted = JSON.parse(JSON.parse(create_version.object_changes)["permissions"].last)
+      expect(granted).to eq(%w[invoices#index payments#create])
+      expect([create_version.object, create_version.object_changes].join).not_to include(token.token_digest)
     end
   end
 end

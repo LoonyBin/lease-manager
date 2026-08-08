@@ -52,12 +52,12 @@
                   - if from_val.nil?
                     %span.opacity-50= t(".empty")
                   - else
-                    = from_val
+                    = audit_change_value(from_val)
                 %td
                   - if to_val.nil?
                     %span.opacity-50= t(".empty")
                   - else
-                    = to_val
+                    = audit_change_value(to_val)
 
   - elsif @version.object.present?
     .show-section
