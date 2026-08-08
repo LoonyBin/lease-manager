@@ -80,10 +80,15 @@ RSpec.describe "ApiTokens" do
       expect(response.body).to include("Permissions are fixed once created")
     end
 
+    # Scoped to the token's own row on purpose: "Read only" also appears in the
+    # preset radio label (t("api_token_presets.read_only")), which renders
+    # unconditionally, so a bare `include("Read only")` passes even when no token
+    # is listed at all.
     it "shows each token's permission summary in the list" do
       create(:api_token, :read_only, user: user, name: "RO token")
       get user_path(user)
-      expect(response.body).to include("Read only")
+      row = Capybara.string(response.body).find("tr", text: "RO token")
+      expect(row).to have_css("td", text: "Read only")
     end
   end
 
