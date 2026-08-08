@@ -91,7 +91,10 @@ RSpec.describe ReplaceApiTokenScopeWithPermissions do
   end
 
   # scope after a rollback, cast to Integer (0 = read_write, 1 = read_only).
+  # Deliberately nil-safe rather than nil-coercing: a bare `.to_i` turns a
+  # missing row into 0, which would let `eq(0)` pass vacuously when the row
+  # never made it back. nil never equals 0, so a vanished row now fails loudly.
   def legacy_scope(name)
-    connection.select_value("SELECT scope FROM api_tokens WHERE name = #{connection.quote(name)}").to_i
+    connection.select_value("SELECT scope FROM api_tokens WHERE name = #{connection.quote(name)}")&.to_i
   end
 end
