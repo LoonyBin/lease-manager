@@ -28,8 +28,12 @@ class Invoice < ApplicationRecord
   # and invoices_controller.rb's default sort. total_amount is a ransacker (Invoice::Totals), so it
   # must be listed explicitly now that the base default is empty. lease_id serves leases/show's
   # "All invoices" link; the lease association serves lease_tenant_name / lease_property_name.
+  # created_at and id are required by invoices_controller.rb's default sort
+  # ["date desc", "created_at desc", "id desc"]: without them each tiebreak node is silently dropped
+  # and same-date ordering becomes nondeterministic. id is the unique final key — created_at is
+  # neither unique nor indexed, so identical (date, created_at) rows still need id to be deterministic.
   def self.ransackable_attributes(_auth_object = nil)
-    %w[date number document_type status lease_id total_amount]
+    %w[date number document_type status lease_id total_amount created_at id]
   end
 
   def self.ransackable_associations(_auth_object = nil)

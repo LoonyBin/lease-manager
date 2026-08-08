@@ -59,6 +59,21 @@ RSpec.describe "Ransack search" do
     end
   end
 
+  describe "GET /invoices (default sort tiebreak)" do
+    # invoices_controller defaults @q.sorts to ["date desc", "created_at desc", "id desc"]. Ransack
+    # silently ignores an unauthorized sort value, so dropping created_at/id from the allowlist just
+    # removes that key while date DESC stays — the query keeps an ORDER BY. A row-order check on
+    # same-date rows therefore cannot prove the secondary/tertiary keys are present, so assert the
+    # executed SQL, which names every key. id is the unique final key. Regression guard for #179.
+    it "orders by date desc, created_at desc, id desc from the controller default" do
+      sql = []
+      collector = ->(*, payload) { sql << payload[:sql] }
+      ActiveSupport::Notifications.subscribed(collector, "sql.active_record") { get invoices_path }
+      expect(sql.grep(/FROM "invoices"/).join("\n"))
+        .to match(/ORDER BY\s+"invoices"\."date" DESC, "invoices"\."created_at" DESC, "invoices"\."id" DESC/i)
+    end
+  end
+
   describe "GET /payments" do
     let(:lease) { create(:lease, tenant: create(:tenant, name: "ZZ-PayTenant")) }
     let!(:older) do
