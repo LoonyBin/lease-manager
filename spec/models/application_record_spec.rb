@@ -65,28 +65,23 @@ RSpec.describe ApplicationRecord do
   # _sort drawers (or a controller default) but appear in no _search partial, so
   # they have no form-render safety net. Ransack silently drops a non-allowlisted
   # sort, so dropping one of these from an allowlist would quietly stop the sort
-  # working. These assert the sort still reorders (fails closed if the entry goes
-  # away — the attribute would be ignored and the ids come back in insertion order).
+  # working. Assert the ORDER BY clause is actually generated: a dropped sort
+  # vanishes from the SQL, which is what fails closed here — not row order, which
+  # Postgres leaves unspecified without an ORDER BY.
   describe "sort-only allowlist entries stay sortable" do
     it "keeps Invoice#number sortable" do
-      low = create(:invoice, number: "1")
-      high = create(:invoice, number: "2")
-      ordered = Invoice.where(id: [low.id, high.id]).ransack(s: "number desc").result.pluck(:id)
-      expect(ordered).to eq([high.id, low.id])
+      sql = Invoice.ransack(s: "number desc").result.to_sql
+      expect(sql).to match(/ORDER BY\s+"invoices"\."number"\s+DESC/i)
     end
 
     it "keeps Property#capacity sortable" do
-      low = create(:property, capacity: 1)
-      high = create(:property, capacity: 99)
-      ordered = Property.where(id: [low.id, high.id]).ransack(s: "capacity desc").result.pluck(:id)
-      expect(ordered).to eq([high.id, low.id])
+      sql = Property.ransack(s: "capacity desc").result.to_sql
+      expect(sql).to match(/ORDER BY\s+"properties"\."capacity"\s+DESC/i)
     end
 
     it "keeps User#created_at sortable" do
-      older = create(:user, created_at: 2.days.ago)
-      newer = create(:user, created_at: 1.day.ago)
-      ordered = User.where(id: [older.id, newer.id]).ransack(s: "created_at desc").result.pluck(:id)
-      expect(ordered).to eq([newer.id, older.id])
+      sql = User.ransack(s: "created_at desc").result.to_sql
+      expect(sql).to match(/ORDER BY\s+"users"\."created_at"\s+DESC/i)
     end
   end
 end
