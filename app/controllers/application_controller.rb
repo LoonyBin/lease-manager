@@ -27,7 +27,7 @@ class ApplicationController < ActionController::Base
 
   before_action :set_paper_trail_whodunnit
   before_action :require_login
-  before_action :enforce_token_scope, if: :token_request?
+  before_action :enforce_token_permissions, if: :token_request?
   after_action :verify_pundit_authorization
 
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
@@ -58,7 +58,7 @@ class ApplicationController < ActionController::Base
     current_api_token&.tap(&:touch_last_used)&.user
   end
 
-  # Memoized so require_login and enforce_token_scope share one lookup.
+  # Memoized so require_login and enforce_token_permissions share one lookup.
   # `defined?` (not ||=) caches a nil result too — an absent/invalid token is
   # looked up once, not on every predicate.
   def current_api_token
@@ -92,25 +92,42 @@ class ApplicationController < ActionController::Base
     end
   end
 
-  # Credential-level guard: a read_only token may make only safe requests.
-  # This rests on the invariant that no GET/HEAD route reachable by a token
-  # holder mutates domain state. Two known writes-on-a-safe-verb keep that
-  # invariant honest — neither touches domain state:
-  #   - sessions#create (OAuth callback GET; needs omniauth.auth, never a token request)
-  #   - ApiToken#touch_last_used, a benign last_used_at bump. An earlier callback
-  #     (whodunnit/require_login) resolves current_user before this runs, so the
-  #     bump fires on every authenticated token request — including a read_only
-  #     write this method then denies. A denied request is still token usage, so
-  #     recording it is intended.
-  # A route-walk spec (spec/requests/api_token_scope_invariant_spec.rb) guards
-  # this against future drift. Halting here in a before_action means the
-  # after_action verify_pundit_authorization never runs, so a blocked write
-  # raises no spurious "authorize was not called" error.
-  def enforce_token_scope
-    return unless current_api_token&.read_only?
-    return if request.get? || request.head?
+  # Credential-level guard, in front of the policy layer. It answers only "may
+  # THIS CREDENTIAL invoke controller#action?" — never "may this user do this
+  # to this record", which stays Pundit's job. Because this runs as a
+  # before_action and Pundit runs after, a token can only ever *narrow*: Pundit
+  # still refuses afterwards, so a grant can never widen what the user may do.
+  #
+  # A new controller action is denied by construction — it is in no existing
+  # token's permission set until someone grants it (ApiToken::PermissionRegistry
+  # derives grantable rows straight from the routes, with no mapping table to
+  # drift). A grant for an action that no longer routes simply never matches.
+  #
+  # A nil current_api_token now *denies* (the old verb-based guard allowed it):
+  # require_login already 401s an invalid token everywhere it runs, so this is
+  # reached with a nil token only where require_login is skipped
+  # (SessionsController) — a token request there carrying a stray Authorization
+  # header is fail-closed to 403, which is intended.
+  #
+  # Halting here in a before_action means the after_action
+  # verify_pundit_authorization never runs, so a blocked request raises no
+  # spurious "authorize was not called" error.
+  def enforce_token_permissions
+    # HARD INVARIANT: a credential may never manage credentials. Not a
+    # permission that happens to be un-granted — a rule no stored grant, preset,
+    # or registry entry can switch on. Unconditional early exit, before any
+    # permission lookup. ApiTokenPolicy#create?/#destroy? are both `owner?`, so
+    # Pundit would say yes; this early exit is the only thing that says no.
+    # (token_request? is belt-and-braces — the callback already runs only then.)
+    return forbid_token_action if token_request? && is_a?(ApiTokensController)
 
-    render json: { error: t("authorization.read_only_token") }, status: :forbidden
+    return if current_api_token&.permits?("#{controller_path}##{action_name}")
+
+    forbid_token_action
+  end
+
+  def forbid_token_action
+    render json: { error: t("authorization.token_action_forbidden") }, status: :forbidden
   end
 
   def verify_pundit_authorization

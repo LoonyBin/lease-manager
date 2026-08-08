@@ -32,14 +32,33 @@ RSpec.describe "ApiTokens" do
       expect(response.body).not_to match(/lmt_\w+/)
     end
 
-    it "creates a read_only token when that scope is chosen" do
-      post api_tokens_path, params: { api_token: { name: "CI script", scope: "read_only" } }
-      expect(user.api_tokens.last).to be_read_only
+    it "creates a read-only token when that preset is chosen", :aggregate_failures do
+      post api_tokens_path, params: { api_token: { name: "CI script", preset: "read_only" } }
+      token = user.api_tokens.last
+      expect(token.preset).to eq("read_only")
+      expect(token.permissions).to eq(ApiToken::PermissionRegistry.read_preset)
     end
 
-    it "defaults to read_write when no scope is given" do
+    it "expands the full preset to every grantable action", :aggregate_failures do
+      post api_tokens_path, params: { api_token: { name: "CI script", preset: "full" } }
+      token = user.api_tokens.last
+      expect(token.preset).to eq("full")
+      expect(token.permissions).to eq(ApiToken::PermissionRegistry.full_preset)
+    end
+
+    it "resolves a custom selection to the ticked, sanitized actions", :aggregate_failures do
+      # Blank sentinel dropped; non-grantable entries (api_tokens#create,
+      # bogus#nope) dropped by the registry intersection; custom stored as nil.
+      submitted = ["", "invoices#index", "payments#create", "api_tokens#create", "bogus#nope"]
+      post api_tokens_path, params: { api_token: { name: "narrow", preset: "custom", permissions: submitted } }
+      token = user.api_tokens.last
+      expect(token.preset).to be_nil
+      expect(token.permissions).to eq(%w[invoices#index payments#create])
+    end
+
+    it "grants nothing when neither a preset nor permissions are submitted (fail-closed)" do
       post api_tokens_path, params: { api_token: { name: "CI script" } }
-      expect(user.api_tokens.last).to be_read_write
+      expect(user.api_tokens.last.permissions).to be_empty
     end
 
     it "does not create a token without a name" do
@@ -55,13 +74,13 @@ RSpec.describe "ApiTokens" do
   end
 
   describe "GET /users/:id (token UI)" do
-    it "renders the scope selector and the immutability helper text", :aggregate_failures do
+    it "renders the preset control and the immutability helper text", :aggregate_failures do
       get user_path(user)
-      expect(response.body).to include('value="read_only"')
-      expect(response.body).to include("Scope is fixed once created")
+      expect(response.body).to include('value="read_only"') # a preset radio
+      expect(response.body).to include("Permissions are fixed once created")
     end
 
-    it "shows each token's scope in the list" do
+    it "shows each token's permission summary in the list" do
       create(:api_token, :read_only, user: user, name: "RO token")
       get user_path(user)
       expect(response.body).to include("Read only")

@@ -1,5 +1,9 @@
 ---
 en:
+  api_token_presets:
+    custom: Custom
+    full: Full access
+    read_only: Read only
   api_tokens:
     create:
       success: API token was successfully created.
@@ -7,7 +11,7 @@ en:
       success: API token was revoked.
   authorization:
     not_authorized: You are not authorized to perform this action.
-    read_only_token: This API token is read-only and cannot perform write operations.
+    token_action_forbidden: This API token is not permitted to perform this action.
   helpers:
     links:
       clear: Clear

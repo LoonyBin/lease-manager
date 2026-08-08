@@ -1,8 +1,11 @@
 # frozen_string_literal: true
 
 class ApiTokensController < ApplicationController
+  # Token management is browser-session only: no API token can ever reach this
+  # controller (ApplicationController#enforce_token_permissions early-exits on
+  # it). These actions are therefore always session-authenticated.
   def create
-    @api_token = current_user.api_tokens.new(api_token_params)
+    @api_token = current_user.api_tokens.new(create_attributes)
     authorize @api_token
 
     if @api_token.save
@@ -32,7 +35,32 @@ class ApiTokensController < ApplicationController
     @api_token.errors.full_messages.to_sentence
   end
 
-  def api_token_params
-    params.expect(api_token: %i[name expires_at scope])
+  # Presets are resolved server-side — the source of truth — so a submitted
+  # preset expands to its registry set regardless of the checkbox state the
+  # client sent. A "custom" (or unknown) preset is normalised to nil, and the
+  # submitted checkboxes are sanitised: the hidden-field blank sentinel is
+  # dropped and only registry-grantable entries survive the intersection.
+  def create_attributes
+    attrs = token_params
+    preset = attrs[:preset].presence
+    preset = nil unless ApiToken::PRESETS.include?(preset)
+
+    { name: attrs[:name],
+      expires_at: attrs[:expires_at],
+      preset: preset,
+      permissions: permissions_for(preset, attrs[:permissions]) }
+  end
+
+  def permissions_for(preset, submitted)
+    case preset
+    when "read_only" then ApiToken::PermissionRegistry.read_preset
+    when "full" then ApiToken::PermissionRegistry.full_preset
+    else Array(submitted).compact_blank & ApiToken::PermissionRegistry.grantable_actions
+    end
+  end
+
+  def token_params
+    params.permit(api_token: [:name, :expires_at, :preset, { permissions: [] }])
+          .fetch(:api_token, ActionController::Parameters.new)
   end
 end

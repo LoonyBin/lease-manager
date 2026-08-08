@@ -7,14 +7,21 @@ header) and authenticated with an API token.
 ## Creating a token
 
 1. Open your profile (click your name in the sidebar).
-2. In the **API Tokens** section, enter a name, choose a **scope** (`Read write`
-   or `Read only` — see [Token scopes](#token-scopes)), optionally set an expiry
-   date, and click **Create token**.
+2. In the **API Tokens** section, enter a name, choose which **permissions**
+   the token carries (a preset — `Read only` or `Full access` — or `Custom`
+   with an individual controller×action matrix; see
+   [Token permissions](#token-permissions)), optionally set an expiry date, and
+   click **Create token**.
 3. Copy the plaintext token (`lmt_...`) from the banner — it is shown exactly
    once. Only a SHA-256 digest is stored server-side.
 
-Scope is fixed when the token is created; to change it, revoke the token and
-issue a new one (which mints a new secret).
+Permissions are fixed when the token is created; to change them, revoke the
+token and issue a new one (which mints a new secret).
+
+Token creation and revocation are **browser-session only**. No API token can
+create or revoke tokens — a credential may never manage credentials (see
+[Token permissions](#token-permissions)) — so these steps cannot be automated
+with a token.
 
 Tokens can be revoked from the same section at any time. Revocation is
 immediate and permanent; the row is kept for the audit trail.
@@ -22,8 +29,8 @@ immediate and permanent; the row is kept for the audit trail.
 ## Authenticating requests
 
 Send the token as a Bearer token. A token carries the permissions of the user
-who created it — the same Pundit policies apply as in the browser — optionally
-narrowed by its [scope](#token-scopes).
+who created it — the same Pundit policies apply as in the browser — narrowed to
+the set of actions it was [granted](#token-permissions).
 
 ```sh
 curl -H "Authorization: Bearer lmt_..." https://example.com/properties.json
@@ -33,38 +40,82 @@ When an `Authorization` header is present, session cookies are ignored: an
 invalid, revoked, or expired token yields `401 Unauthorized` even if you are
 signed in to the browser session.
 
-## Token scopes
+## Token permissions
 
-Every token carries a coarse scope, chosen at creation:
+A token carries an explicit **set of `controller#action` grants**, chosen at
+creation. On every token request a credential-level guard asks one question —
+*may this token invoke `controller#action`?* — and returns `403 Forbidden` with
+`{"error": "..."}` **before** the action runs if the answer is no. If the
+answer is yes, the request is handed to Pundit unchanged.
 
-- **`read_write`** (default) — the token behaves exactly as before: it carries
-  the full permissions of its user.
-- **`read_only`** — the token may make only safe (`GET`/`HEAD`) requests. Any
-  `POST`, `PATCH`, `PUT` or `DELETE` is rejected with `403 Forbidden` and
-  `{"error": "..."}` **before** the action (and before Pundit) runs. This
-  includes member "action" endpoints that mutate over a `PATCH`
-  (`invoice_notifications`' `approve`/`approve_all`/`retry`/`cancel`) and
-  `invoice_templates#preview` (routed over `POST`/`PATCH`, so verb-blocking
-  denies it even though it only reads — consistent with `invoice_templates`
-  being mutations-only over the API).
+### The model: a chain in front of Pundit, not an intersection
 
-Scope only ever *narrows* the user's Pundit permissions; it never widens them.
-A `read_only` token on an admin account still cannot write, and a `read_write`
-token gets no more than the user's own policies already allow.
+The token check and Pundit are two layers in sequence, not a set intersection:
 
-`read_only` covers "read-only access to my own account" without inventing a
-shadow low-privilege user. For needs narrower than read/write (e.g. access to
-only a subset of resources), issue a token from a dedicated user whose
-`user_associations` grant exactly that — the same pattern used before scopes.
+1. **The token guard** decides whether this *credential* may reach the action
+   at all. It knows nothing about records.
+2. **Pundit** then decides — exactly as it does for a browser session — whether
+   this *user* may perform this action on this *record*, and `policy_scope`
+   decides *which* records an `index` returns.
 
-**The invariant scopes rest on:** no `GET`/`HEAD` route reachable by a token
-holder mutates state, so allowing only safe verbs is a sound read-only gate.
-Two writes-on-a-safe-verb are known and out of reach from a `read_only` token:
-`sessions#create` (the OAuth callback is a `GET`, but it needs
-`omniauth.auth` from the OmniAuth middleware and is never a token request) and
-`ApiToken#touch_last_used` (a benign `last_used_at` bump on every authenticated
-`GET`). A route-walk regression spec guards this invariant against future
-drift.
+Because the guard runs first and Pundit runs after, a token can only ever
+**narrow**, never widen: granting `invoices#index` says only that the token may
+*reach* that action; Pundit still refuses if the user may not, and still limits
+the collection to the invoices they may see. A token whose grant list includes
+an action its user is not authorized for still gets Pundit's `403`.
+
+### Grantable actions are derived from the routes
+
+The grantable rows are not a curated taxonomy — they are every routable action,
+read directly from the route table, so **a new controller action is denied by
+construction**: it is in no existing token's set until someone grants it, and
+there is no mapping layer that could drift or fail open. A grant for an action
+that is later renamed simply stops matching (it fails closed, denying access)
+and is surfaced in the token UI as a **stale grant** you can only fix by
+revoking and re-issuing.
+
+Two kinds of action are not grantable:
+
+- **`new`/`edit` and other HTML-only actions** render forms and have no JSON
+  branch, so a credential could never use them. This is best-effort noise
+  reduction, not a security boundary — the denial still comes from "not in the
+  set".
+- **`api_tokens#*` and `sessions#*`** are excluded as a security boundary.
+  `sessions` needs the browser session / OmniAuth and is never token-usable.
+  `api_tokens` can never be reached by a token at all (below).
+
+### Presets
+
+Two presets expand, server-side, to a canonical set:
+
+- **`Full access`** — every grantable action as of creation. Enumerated, not a
+  wildcard: a full-access token does **not** silently gain a *future* action
+  (denied-by-construction holds for it too).
+- **`Read only`** — the `GET`/`HEAD`-reachable subset. This reproduces the old
+  coarse read-only scope exactly, and is the migration target for tokens that
+  were `read_only` before this feature.
+
+`Custom` grants exactly the actions you tick. For needs narrower still (e.g.
+only a *subset of records*), issue a token from a dedicated user whose
+`user_associations` grant exactly that — record-level scoping stays that
+mechanism's job, deliberately kept out of token permissions.
+
+### Immutability
+
+A token's permissions (and its preset label) are fixed at creation; there is no
+edit endpoint and the columns are `attr_readonly`. Changing what a credential
+may do means revoke-and-reissue, which mints a new secret — a capability change
+is never silent. The cost is that a stale grant (from a renamed route) cannot be
+repaired in place.
+
+### A token may never manage tokens
+
+`ApiTokensController` (token creation and revocation) is unreachable by any API
+token. This is a hard invariant enforced by an unconditional early exit in the
+guard — **not** a permission that happens to be un-granted — so no stored grant,
+preset, or registry entry can ever switch it on. Even a token whose stored
+permission set explicitly contains `api_tokens#create` is refused, and mints
+nothing. Token management is browser-session only.
 
 ## Endpoints
 
@@ -158,8 +209,8 @@ curl -H "Authorization: Bearer $TOKEN" https://example.com/reports/taxes.json
 | 200 / 201 | Success | The record or collection as JSON |
 | 204 | Successful delete | empty |
 | 401 | Missing/invalid/revoked/expired token | `{"error": "Unauthorized"}` |
-| 403 | Token user lacks permission (Pundit) | `{"error": "..."}` |
-| 403 | `read_only` token attempting a write | `{"error": "This API token is read-only and cannot perform write operations."}` |
+| 403 | Token user lacks permission (Pundit) | `{"error": "You are not authorized to perform this action."}` |
+| 403 | Token not granted this `controller#action` (incl. any `api_tokens#*`) | `{"error": "This API token is not permitted to perform this action."}` |
 | 404 | Record not found / not yours | `{"status": 404, "error": "Not Found"}` |
 | 422 | Validation failure | `{"errors": {"field": ["message", ...]}}` |
 | 429 | Rate limit exceeded | `{"error": "Rate limit exceeded"}` |
