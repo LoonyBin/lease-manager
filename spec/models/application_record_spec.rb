@@ -7,10 +7,10 @@ require "rails_helper"
 # on api_tokens.token_digest and use the match/no-match response as an oracle to
 # recover the digest one prefix at a time.
 #
-# These assertions are deliberately scoped to ApplicationRecord descendants.
-# Version (< PaperTrail::Version) knowingly still returns column_names; its wider
-# object/object_changes exposure is tracked separately in #178 and is out of
-# scope here — so the "never returns column_names" claim below is not global.
+# Version (< PaperTrail::Version) is now locked down too (#178: object /
+# object_changes were substring-searchable via _cont on /versions). It's outside
+# the ApplicationRecord.descendants walk, so it's folded into the sweep explicitly
+# below rather than relying on inheritance.
 RSpec.describe ApplicationRecord do
   # Column names that look like a credential and must never be searchable.
   let(:sensitive_column) { /digest|secret|password|token|_key\b|\bkey\b/i }
@@ -19,7 +19,9 @@ RSpec.describe ApplicationRecord do
   # table-less descendant (e.g. an STI root without its own table).
   let(:searchable_models) do
     Rails.application.eager_load!
-    described_class.descendants.reject { |m| m.abstract_class? || !m.table_exists? }
+    # Version < PaperTrail::Version, so it's outside the descendants walk; fold it in
+    # explicitly so it can't silently regress to column_names (#178).
+    (described_class.descendants + [Version]).reject { |m| m.abstract_class? || !m.table_exists? }
   end
 
   let(:secret_leaks) do
@@ -59,6 +61,21 @@ RSpec.describe ApplicationRecord do
       expect(ApiToken.ransackable_attributes).not_to include("token_digest")
       expect(User.ransackable_associations).not_to include("api_tokens")
     end
+
+    # Load-bearing, not redundant with the sweep: `object` / `object_changes` don't
+    # match the sensitive_column regex, so secret_leaks never catches them, and a
+    # future edit re-adding only object_changes would leave column_names - allowlist
+    # non-empty, so wholesale_models would miss it too. This negated multi-arg
+    # include (fails if either is present) is what actually holds the line.
+    it "does not expose Version#object / object_changes to Ransack (AC #178)" do
+      expect(Version.ransackable_attributes).not_to include("object", "object_changes")
+    end
+
+    # The extended sweep inspects attributes only; Version's [] associations state is
+    # true today purely by inheritance and nothing else would catch it changing.
+    it "exposes no Version associations to Ransack (#178)" do
+      expect(Version.ransackable_associations).to eq([])
+    end
   end
 
   # Invoice#number, Invoice#created_at, Invoice#id, Property#capacity and User#created_at
@@ -92,6 +109,29 @@ RSpec.describe ApplicationRecord do
     it "keeps User#created_at sortable" do
       sql = User.ransack(s: "created_at desc").result.to_sql
       expect(sql).to match(/ORDER BY\s+"users"\."created_at"\s+DESC/i)
+    end
+  end
+
+  # Version's created_at / item_type / event all appear as _search fields too, so a
+  # mis-derived allowlist fails loud at render. What has no other net is the sort:
+  # Ransack drops a non-allowlisted sort silently, and the controller default
+  # ("created_at desc", versions_controller.rb:7) would quietly stop ordering.
+  # Assert the ORDER BY clause is generated, not row order (Postgres leaves order
+  # unspecified without one). See #178.
+  describe "Version sorts survive the allowlist (silent sort-drop guard)" do
+    it "keeps Version#created_at sortable (controller default)" do
+      sql = Version.ransack(s: "created_at desc").result.to_sql
+      expect(sql).to match(/ORDER BY\s+"versions"\."created_at"\s+DESC/i)
+    end
+
+    it "keeps Version#item_type sortable" do
+      sql = Version.ransack(s: "item_type asc").result.to_sql
+      expect(sql).to match(/ORDER BY\s+"versions"\."item_type"\s+ASC/i)
+    end
+
+    it "keeps Version#event sortable" do
+      sql = Version.ransack(s: "event asc").result.to_sql
+      expect(sql).to match(/ORDER BY\s+"versions"\."event"\s+ASC/i)
     end
   end
 end
