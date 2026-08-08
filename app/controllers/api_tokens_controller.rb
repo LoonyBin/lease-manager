@@ -33,6 +33,6 @@ class ApiTokensController < ApplicationController
   end
 
   def api_token_params
-    params.expect(api_token: %i[name expires_at])
+    params.expect(api_token: %i[name expires_at scope])
   end
 end

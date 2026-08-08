@@ -24,6 +24,30 @@ RSpec.describe ApiToken do
     end
   end
 
+  describe "scope" do
+    it "defaults to read_write" do
+      expect(build(:api_token).scope).to eq("read_write")
+    end
+
+    it "exposes read_write?/read_only? predicates", :aggregate_failures do
+      expect(build(:api_token)).to be_read_write
+      expect(build(:api_token, :read_only)).to be_read_only
+    end
+
+    it "treats an unknown scope as a validation error, not a raise", :aggregate_failures do
+      token = build(:api_token)
+      expect { token.scope = "bogus" }.not_to raise_error
+      expect(token).not_to be_valid
+      expect(token.errors[:scope]).to be_present
+    end
+
+    it "is immutable after creation (attr_readonly)", :aggregate_failures do
+      token = create(:api_token, :read_only)
+      expect { token.update!(scope: :read_write) }.to raise_error(ActiveRecord::ReadonlyAttributeError)
+      expect(token.reload.scope).to eq("read_only")
+    end
+  end
+
   describe ".authenticate" do
     it "returns the token matching a valid plaintext" do
       token = create(:api_token)
@@ -122,6 +146,14 @@ RSpec.describe ApiToken do
       token = create(:api_token)
       token.revoke!
       serialized = token.versions.reload.map { |v| [v.object, v.object_changes].join }.join
+      expect(serialized).not_to include(token.token_digest)
+    end
+
+    it "captures the scope in the create version, still without the digest", :aggregate_failures do
+      token = create(:api_token, :read_only)
+      create_version = token.versions.find_by(event: "create")
+      serialized = [create_version.object, create_version.object_changes].join
+      expect(serialized).to include("scope")
       expect(serialized).not_to include(token.token_digest)
     end
   end
