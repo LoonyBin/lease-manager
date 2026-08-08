@@ -61,8 +61,8 @@ RSpec.describe ApplicationRecord do
     end
   end
 
-  # Invoice#number, Invoice#created_at, Property#capacity and User#created_at are
-  # sortable from the _sort drawers (or a controller default) but appear in no
+  # Invoice#number, Invoice#created_at, Invoice#id, Property#capacity and User#created_at
+  # are sortable from the _sort drawers (or a controller default) but appear in no
   # _search partial, so they have no form-render safety net. Ransack silently drops
   # a non-allowlisted sort, so dropping one of these from an allowlist would quietly
   # stop the sort working. Assert the ORDER BY clause is actually generated: a
@@ -77,6 +77,11 @@ RSpec.describe ApplicationRecord do
     it "keeps Invoice#created_at sortable" do
       sql = Invoice.ransack(s: "created_at desc").result.to_sql
       expect(sql).to match(/ORDER BY\s+"invoices"\."created_at"\s+DESC/i)
+    end
+
+    it "keeps Invoice#id sortable" do
+      sql = Invoice.ransack(s: "id desc").result.to_sql
+      expect(sql).to match(/ORDER BY\s+"invoices"\."id"\s+DESC/i)
     end
 
     it "keeps Property#capacity sortable" do
