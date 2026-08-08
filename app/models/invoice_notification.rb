@@ -24,6 +24,17 @@ class InvoiceNotification < ApplicationRecord
   scope :queued, -> { where(status: %i[pending approved]) }
   scope :recent_first, -> { order(occurrence_on: :desc, id: :desc) }
 
+  # Ransack allowlist — keep in sync with app/views/invoice_notifications/_search.html.haml,
+  # invoice_notifications_controller.rb's search_params permit list, and its default sort.
+  # The invoice association carries the invoice_lease_* / invoice_lease_tenant_name traversals.
+  def self.ransackable_attributes(_auth_object = nil)
+    %w[status channel occurrence_on]
+  end
+
+  def self.ransackable_associations(_auth_object = nil)
+    %w[invoice]
+  end
+
   def recipient_email=(value)
     super(value.to_s.strip.downcase.presence)
   end

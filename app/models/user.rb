@@ -12,6 +12,16 @@ class User < ApplicationRecord
 
   enum :role, { admin: 0, normal: 1 }, default: :normal
 
+  # Ransack allowlist — keep in sync with app/views/users/_search.html.haml and _sort.html.haml.
+  # Deliberately no associations: api_tokens (token_digest) must never be searchable (see #173).
+  def self.ransackable_attributes(_auth_object = nil)
+    %w[name email role created_at]
+  end
+
+  def self.ransackable_associations(_auth_object = nil)
+    []
+  end
+
   def self.from_omniauth(auth)
     user = find_or_initialize_by(provider: auth.provider, uid: auth.uid)
     user.assign_attributes(

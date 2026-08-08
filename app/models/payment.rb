@@ -24,6 +24,19 @@ class Payment < ApplicationRecord
   enum :status, { draft: 0, confirmed: 1, rejected: 2, partially_allocated: 3, fully_allocated: 4 },
        default: :confirmed, validate: true
 
+  # Ransack allowlist — keep in sync with app/views/payments/_search.html.haml and _sort.html.haml.
+  # created_at is required by payments_controller.rb's default sort ["date desc", "created_at desc"]:
+  # without it the tiebreak node is silently dropped and same-date ordering becomes nondeterministic.
+  # id serves invoices/show's "View payments" (id_in) link; lease_id serves leases/show's "All
+  # payments" link; the lease association carries the lease_tenant_name sort.
+  def self.ransackable_attributes(_auth_object = nil)
+    %w[id lease_id reference_number date amount payment_type mode created_at]
+  end
+
+  def self.ransackable_associations(_auth_object = nil)
+    %w[lease]
+  end
+
   after_save :sync_initial_entry, if: :should_sync_entry?
   after_save :auto_settle, if: :should_auto_settle?
 
