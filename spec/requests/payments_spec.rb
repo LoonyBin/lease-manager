@@ -304,7 +304,7 @@ RSpec.describe "Payments" do
 
       before do
         sign_in_admin
-        patch payment_path(payment), params: { payment: { status: :rejected } }
+        patch payment_path(payment, format: :json), params: { payment: { status: :rejected } }
       end
 
       it "de-allocates the payment over the JSON API", :aggregate_failures do
