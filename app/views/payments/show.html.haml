@@ -7,13 +7,19 @@
     %span.badge.badge-error.ml-2 Rejected
 
 - content_for :page_actions do
-  - if @payment.draft? && policy(@payment).update?
-    = button_to payment_path(@payment), method: :patch, params: { payment: { status: :rejected } }, class: "btn btn-ghost btn-sm text-error", data: { turbo_confirm: "Reject this payment?" } do
-      = heroicon "x-mark", options: { class: "w-4 h-4" }
-      Reject
-    = button_to payment_path(@payment), method: :patch, params: { payment: { status: :confirmed } }, class: "btn btn-primary btn-sm", data: { turbo_confirm: "Confirm this payment? This will allocate it to outstanding invoices." } do
-      = heroicon "check", options: { class: "w-4 h-4" }
-      Confirm
+  - if policy(@payment).update?
+    - if @payment.rejected?
+      = button_to payment_path(@payment), method: :patch, params: { payment: { status: :confirmed } }, class: "btn btn-primary btn-sm", data: { turbo_confirm: "Reinstate this payment? This will re-allocate it to outstanding invoices." } do
+        = heroicon "check", options: { class: "w-4 h-4" }
+        Reinstate
+    - else
+      = button_to payment_path(@payment), method: :patch, params: { payment: { status: :rejected } }, class: "btn btn-ghost btn-sm text-error", data: { turbo_confirm: reject_confirmation_prompt(@payment) } do
+        = heroicon "x-mark", options: { class: "w-4 h-4" }
+        Reject
+      - if @payment.draft?
+        = button_to payment_path(@payment), method: :patch, params: { payment: { status: :confirmed } }, class: "btn btn-primary btn-sm", data: { turbo_confirm: "Confirm this payment? This will allocate it to outstanding invoices." } do
+          = heroicon "check", options: { class: "w-4 h-4" }
+          Confirm
   %label.btn.btn-ghost.btn-sm.btn-square{for: "history-drawer", title: "History"}
     = heroicon "clock", options: { class: "w-5 h-5" }
 

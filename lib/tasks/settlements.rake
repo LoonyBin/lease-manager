@@ -13,6 +13,7 @@ namespace :settlements do
 
     puts "Readjusted settlements for Lease ##{lease.id} (#{lease})"
     puts "  Cleared #{result[:settlement_count]} settlement entries"
+    puts "  Removed #{result[:orphan_count]} orphaned initial entries from rejected payments"
     puts "  Re-settled #{result[:credit_count]} credits"
     puts "  Balance: #{result[:old_balance]} -> #{result[:new_balance]}"
   end

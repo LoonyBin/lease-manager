@@ -77,6 +77,26 @@ RSpec.describe "settlements:readjust", type: :task do # -- Rake task spec
     end
   end
 
+  context "with a lease corrupted by a past rejection" do
+    let!(:rejected) { create_payment_record(amount: 1500) }
+
+    before do
+      rejected.update_column(:status, Payment.statuses[:rejected]) # rubocop:disable Rails/SkipsModelValidations
+      ENV["LEASE_ID"] = lease.id.to_s
+    end
+
+    it "reports the orphaned initial entries it removed" do
+      expect { Rake::Task["settlements:readjust"].invoke }
+        .to output(/Removed 1 orphaned initial entries/).to_stdout
+    end
+
+    it "leaves the ledger consistent with the cache", :aggregate_failures do
+      Rake::Task["settlements:readjust"].invoke
+      expect(rejected.reload.entries.initial.count).to eq(0)
+      expect(lease.entries.sum(:amount)).to eq(lease.reload.cached_balance)
+    end
+  end
+
   it "handles lease with no settlements gracefully" do
     create(:invoice, lease: lease, date: Time.zone.today, status: :draft)
     ENV["LEASE_ID"] = lease.id.to_s
