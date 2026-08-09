@@ -224,6 +224,72 @@ RSpec.describe "Invoices" do
     end
   end
 
+  describe "derived totals in responses" do
+    let(:invoice) { create(:invoice) }
+
+    before do
+      invoice.line_items.destroy_all
+      create(:line_item, invoice: invoice, name: "Rent", amount: 1000, tax_rate: 18)
+      create(:line_item, invoice: invoice, name: "Water", amount: 500, tax_rate: 0)
+    end
+
+    # Standalone per-invoice SUMs, as opposed to the subquery +with_total_amount+
+    # embeds in the listing query (that one starts with SELECT "invoices").
+    def sum_queries
+      seen = []
+      sub = ActiveSupport::Notifications.subscribe("sql.active_record") do |*, payload|
+        seen << payload[:sql] if payload[:sql].start_with?("SELECT SUM")
+      end
+      yield
+      seen
+    ensure
+      ActiveSupport::Notifications.unsubscribe(sub)
+    end
+
+    describe "GET /invoices.json" do
+      it "exposes the gross total alongside the balance", :aggregate_failures do
+        get invoices_path(format: :json)
+        row = response.parsed_body.find { |i| i["id"] == invoice.id }
+        expect(row["total_amount"].to_d).to eq(1680)
+        expect(row).to have_key("balance")
+      end
+
+      it "omits line items to keep the collection payload flat" do
+        get invoices_path(format: :json)
+        expect(response.parsed_body.flat_map(&:keys)).not_to include("line_items")
+      end
+    end
+
+    # Both formats render every invoice's total, so both used to fire one SUM
+    # per row; +with_total_amount+ folds them into the listing query.
+    describe "GET /invoices listing cost" do
+      before { create_list(:invoice, 3).each { |i| create(:line_item, invoice: i) } }
+
+      it "resolves JSON totals without a SUM per invoice" do
+        expect(sum_queries { get invoices_path(format: :json) }).to be_empty
+      end
+
+      it "resolves HTML totals without a SUM per invoice" do
+        expect(sum_queries { get invoices_path }).to be_empty
+      end
+    end
+
+    describe "GET /invoices/:id.json" do
+      it "nests line items with their derived tax and total", :aggregate_failures do
+        get invoice_path(invoice, format: :json)
+        rent = response.parsed_body["line_items"].find { |i| i["name"] == "Rent" }
+        expect(rent["amount"].to_d).to eq(1000)
+        expect(rent["tax_amount"].to_d).to eq(180)
+        expect(rent["total"].to_d).to eq(1180)
+      end
+
+      it "exposes the invoice's gross total" do
+        get invoice_path(invoice, format: :json)
+        expect(response.parsed_body["total_amount"].to_d).to eq(1680)
+      end
+    end
+  end
+
   describe "JSON via API token" do
     it_behaves_like "serves JSON with a valid API token" do
       let(:json_path) { invoices_path(format: :json) }

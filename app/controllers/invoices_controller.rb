@@ -6,14 +6,16 @@ class InvoicesController < ApplicationController
   def index
     @q = policy_scope(Invoice).ransack(params[:q])
     @q.sorts = ["date desc", "created_at desc", "id desc"] if @q.sorts.empty?
-    @invoices = @q.result.includes(lease: %i[property tenant]).page(params[:page]).per(20)
+    @invoices = @q.result.with_total_amount.includes(lease: %i[property tenant]).page(params[:page]).per(20)
     respond_ok @invoices
   end
 
   def show
     @invoice = Invoice.find(params.expect(:id))
     authorize @invoice
-    respond_ok @invoice
+    # Line items are the point of a single invoice, but they would multiply the
+    # index payload by their row count, so they hang off show alone.
+    respond_ok { @invoice.as_json(include: :line_items) }
   end
 
   def new

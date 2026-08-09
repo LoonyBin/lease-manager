@@ -158,6 +158,35 @@ serialized (API tokens have no read endpoint, and token digests are excluded
 from the audit trail). A field-level serializer layer is deferred until a
 consumer needs a stable, narrower contract.
 
+### Invoices carry derived totals
+
+Columns alone would leave an invoice unreadable: `balance` is stored, but the
+gross it is measured against is computed from line items, so a `"0.0"` balance
+on a settled invoice and on an empty one would look identical. Every invoice
+payload therefore adds `total_amount` — the sum of each line item's amount plus
+its tax, rounded per line — on `index`, `show`, `create` and `update` alike.
+`balance` remains the outstanding figure; `total_amount - balance` is what has
+been settled.
+
+`total_amount` is always **unsigned**, on credit notes too. A credit note's
+direction lives in `document_type`, and it is the ledger that negates the
+figure — do not infer a sign from the total.
+
+Line items are nested under **`GET /invoices/:id.json` only**; they would
+multiply the collection payload by their row count, so the index omits them.
+Each nested item adds its derived `tax_amount` and `total` next to the stored
+`amount` and `tax_rate`, so clients never have to reproduce this app's
+rounding.
+
+```sh
+curl -H "Authorization: Bearer $TOKEN" https://example.com/invoices.json        # totals, no line items
+curl -H "Authorization: Bearer $TOKEN" https://example.com/invoices/1.json      # totals + line items
+```
+
+Sorting and filtering by the same figure already work through ransack
+(`?q[s]=total_amount+desc`, `?q[total_amount_gteq]=1000`); the listing computes
+every row's total in one query rather than one per invoice.
+
 ## Reports
 
 The reports are the only place the app computes aggregates, so unlike the REST
