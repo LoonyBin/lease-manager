@@ -152,6 +152,28 @@ RSpec.describe Settlements::Deallocation do
         expect(object).to include("amount", "transaction_id")
       end
     end
+
+    context "with a legacy-corrupted rejected payment on the lease" do
+      # A payment rejected before this fix keeps its initial entry (readjust's
+      # settlement wipe never removed it) and a stale balance. Because deallocate
+      # re-infers the whole lease, it self-heals that orphan too.
+      let!(:invoice) { finalized_invoice(amount: 1000) }
+      let!(:payment) { create(:payment, lease: lease, amount: 1000, status: :confirmed) }
+      let!(:legacy_rejected) do
+        stale = create(:payment, lease: lease, amount: 700, status: :confirmed)
+        # Force rejected without the de-allocation callback, so the footprint survives.
+        stale.update_column(:status, Payment.statuses[:rejected]) # rubocop:disable Rails/SkipsModelValidations
+        stale
+      end
+
+      it "purges the orphaned initial and zeroes the stale balance", :aggregate_failures do
+        described_class.deallocate(payment)
+        expect(legacy_rejected.reload.entries).to be_empty
+        expect(legacy_rejected.balance).to eq(0)
+        expect(invoice.reload.balance).to eq(1000)
+        expect(lease.reload.entries.sum(:amount)).to eq(lease.cached_balance)
+      end
+    end
   end
 
   describe ".reallocate" do
@@ -200,7 +222,9 @@ RSpec.describe Settlements::Deallocation do
       before do
         ActiveRecord::Base.transaction do
           described_class.deallocate(payment)
-          payment.update!(lease: lease2)
+          # update_columns (not update!) so no after_save sync recreates the
+          # initial entry — reallocate itself must rebuild and re-home it.
+          payment.update_columns(lease_id: lease2.id) # rubocop:disable Rails/SkipsModelValidations
           described_class.reallocate(payment)
         end
       end
@@ -225,7 +249,7 @@ RSpec.describe Settlements::Deallocation do
     it "excludes the excepted instrument from the debit sweep" do
       create(:payment, lease: lease, amount: 200, status: :confirmed)
       refund = create(:payment, :refund, lease: lease, amount: 500, status: :confirmed)
-      described_class.send(:reinfer_lease, lease, except: refund)
+      described_class.reinfer_lease(lease, except: refund)
       expect(refund.reload.entries.settlements).to be_empty
     end
   end

@@ -67,6 +67,22 @@ module Settlements
         counts.merge(old_balance: old_balance, new_balance: lease.entries.sum(:amount))
       end
 
+      # deallocate and readjust both funnel through here — the single re-inference
+      # path. +except:+ omits one instrument from every sweep (recalculate,
+      # resettle-credits, and the debit list reached via
+      # SettlementService.auto_settle); +audited:+ routes settlement removal
+      # through destroy_all (versioned) instead of delete_all. Public by design:
+      # it is the load-bearing operation and the exclusion-routing spec drives it
+      # directly rather than reaching past the public surface.
+      def reinfer_lease(lease, except: nil, audited: false)
+        settlement_count = clear_settlements(lease, audited: audited)
+        orphan_count = clear_rejected_initials(lease)
+        recalculate_balances(lease, except: except)
+        credit_count = resettle_credits(lease, except: except)
+
+        { settlement_count: settlement_count, orphan_count: orphan_count, credit_count: credit_count }
+      end
+
       private
 
       # Re-establish a payment's initial entry on its current lease, correcting a
@@ -78,19 +94,6 @@ module Settlements
           entry.transaction_id = nil
           entry.amount = payment.signed_amount
         end.save!
-      end
-
-      # deallocate and readjust both funnel through here. +except:+ omits one
-      # instrument from every sweep (recalculate, resettle-credits, and the
-      # debit list reached via SettlementService.auto_settle); +audited:+ routes
-      # settlement removal through destroy_all (versioned) instead of delete_all.
-      def reinfer_lease(lease, except: nil, audited: false)
-        settlement_count = clear_settlements(lease, audited: audited)
-        orphan_count = clear_rejected_initials(lease)
-        recalculate_balances(lease, except: except)
-        credit_count = resettle_credits(lease, except: except)
-
-        { settlement_count: settlement_count, orphan_count: orphan_count, credit_count: credit_count }
       end
 
       # Destroys both sides of every settlement transaction the payment is part
