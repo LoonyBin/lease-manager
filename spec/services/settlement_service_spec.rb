@@ -151,6 +151,25 @@ RSpec.describe SettlementService do
       end
     end
 
+    context "with a zero-total finalized invoice" do
+      # Pre-existing crash: a finalized invoice whose total is 0 has no initial
+      # entry and stays finalized (so it sits in the unsettled scope with a zero
+      # balance). Settling a credit against it computes a zero allocation, which
+      # +settle+ rejects. The zero-balance guard skips it instead of raising.
+      let!(:zero_invoice) do
+        invoice = create(:invoice, lease: lease, date: 2.months.ago, status: :draft)
+        invoice.update!(status: :finalized)
+        invoice
+      end
+      let!(:real_invoice) { create_invoice(amount: 1000, date: 1.month.ago) }
+
+      it "skips it instead of raising, still settling real invoices", :aggregate_failures do
+        expect { create_payment_record(amount: 1000) }.not_to raise_error
+        expect(zero_invoice.reload).to be_finalized
+        expect(real_invoice.reload.balance).to eq(0)
+      end
+    end
+
     context "with mixed instrument types (payment, credit note, final payment)" do
       before do
         create_invoice(amount: 1000)
@@ -188,6 +207,33 @@ RSpec.describe SettlementService do
         expect(newer_invoice.reload.balance).to eq(50)
         expect(payment.reload.balance).to eq(0)
       end
+    end
+  end
+
+  # Reproduces the old bug: a payment rejected without de-allocation leaves an
+  # orphaned initial entry and a stale balance behind. readjust must repair it
+  # so the ledger and the cache agree again.
+  describe ".readjust repairing a past rejection" do
+    let!(:invoice) { create_invoice(amount: 1000) }
+    let!(:rejected) { create_payment_record(amount: 1500) }
+
+    before do
+      # Reject without firing the de-allocation callback (the legacy path).
+      rejected.update_column(:status, Payment.statuses[:rejected]) # rubocop:disable Rails/SkipsModelValidations
+    end
+
+    it "purges the orphaned initial entry and zeroes the balance", :aggregate_failures do
+      expect(rejected.entries.initial.count).to eq(1)
+      result = described_class.readjust(lease)
+      expect(result[:orphan_count]).to eq(1)
+      expect(rejected.reload.entries.initial.count).to eq(0)
+      expect(rejected.balance).to eq(0)
+    end
+
+    it "reconciles the ledger with the cached balance", :aggregate_failures do
+      described_class.readjust(lease)
+      expect(invoice.reload.balance).to eq(1000)
+      expect(lease.entries.sum(:amount)).to eq(lease.reload.cached_balance)
     end
   end
 

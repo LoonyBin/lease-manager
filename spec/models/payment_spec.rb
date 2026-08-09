@@ -128,11 +128,124 @@ RSpec.describe Payment do
       expect(payment.reload).to be_fully_allocated
     end
 
-    it "does not change status if rejected" do
-      payment = create(:payment, lease: lease, amount: 100, status: :draft)
+    it "does not change status when recalculating a rejected payment" do
+      payment = create(:payment, lease: lease, amount: 100, status: :confirmed)
       payment.update!(status: :rejected)
       payment.recalculate_balance!
       expect(payment).to be_rejected
+    end
+  end
+
+  describe "de-allocation on rejection" do
+    let(:lease) { create(:lease) }
+
+    def finalized_invoice(amount:)
+      invoice = create(:invoice, lease: lease, date: Time.zone.today, status: :draft)
+      create(:line_item, invoice: invoice, amount: amount, tax_rate: nil)
+      invoice.update!(status: :finalized)
+      invoice.reload
+    end
+
+    context "when a partially_allocated payment is rejected" do
+      let!(:invoice) { finalized_invoice(amount: 1000) }
+      let!(:payment) { create(:payment, lease: lease, amount: 1500, status: :confirmed) }
+
+      before { payment.update!(status: :rejected) }
+
+      it "removes all of the payment's entries" do
+        expect(payment.reload.entries).to be_empty
+      end
+
+      it "zeroes the balance and keeps it rejected", :aggregate_failures do
+        payment.reload
+        expect(payment.balance).to eq(0)
+        expect(payment).to be_rejected
+      end
+
+      it "reverts the invoice to finalized with its full balance", :aggregate_failures do
+        invoice.reload
+        expect(invoice.balance).to eq(1000)
+        expect(invoice).to be_finalized
+      end
+
+      it "restores the lease balance so entries and cache agree", :aggregate_failures do
+        lease.reload
+        expect(lease.cached_balance).to eq(1000)
+        expect(lease.entries.sum(:amount)).to eq(lease.cached_balance)
+      end
+    end
+
+    context "when a fully_allocated payment is rejected" do
+      let!(:invoice) { finalized_invoice(amount: 1000) }
+      let!(:payment) { create(:payment, lease: lease, amount: 1000, status: :confirmed) }
+
+      before { payment.update!(status: :rejected) }
+
+      it "removes the entries and zeroes the balance", :aggregate_failures do
+        payment.reload
+        expect(payment.entries).to be_empty
+        expect(payment.balance).to eq(0)
+      end
+
+      it "frees the invoice and restores the lease balance", :aggregate_failures do
+        expect(invoice.reload.balance).to eq(1000)
+        expect(invoice.reload).to be_finalized
+        expect(lease.reload.cached_balance).to eq(1000)
+        expect(lease.entries.sum(:amount)).to eq(lease.cached_balance)
+      end
+    end
+
+    context "when re-inference raises mid-transition" do
+      let(:payment) { create(:payment, lease: lease, amount: 1500, status: :confirmed) }
+
+      before do
+        finalized_invoice(amount: 1000)
+        payment
+        allow(Settlements::Deallocation).to receive(:reinfer_lease).and_raise("boom")
+      end
+
+      it "rolls back completely, leaving the payment allocated", :aggregate_failures do
+        expect { payment.update!(status: :rejected) }.to raise_error("boom")
+        payment.reload
+        expect(payment).to be_partially_allocated
+        expect(payment.balance).to eq(-500)
+        expect(payment.entries.count).to eq(2)
+      end
+    end
+
+    context "when a rejected payment is reinstated to confirmed" do
+      let!(:invoice) { finalized_invoice(amount: 1000) }
+      let!(:payment) { create(:payment, lease: lease, amount: 1500, status: :confirmed) }
+
+      before do
+        payment.update!(status: :rejected)
+        payment.update!(status: :confirmed)
+      end
+
+      it "re-allocates the payment", :aggregate_failures do
+        payment.reload
+        expect(payment).to be_partially_allocated
+        expect(payment.balance).to eq(-500)
+        expect(payment.entries.initial.count).to eq(1)
+      end
+
+      it "re-settles the invoice", :aggregate_failures do
+        expect(invoice.reload.balance).to eq(0)
+        expect(invoice.reload).to be_paid
+      end
+    end
+
+    it "does not de-allocate a draft payment that is rejected" do
+      allow(SettlementService).to receive(:deallocate)
+      payment = create(:payment, lease: lease, amount: 100, status: :draft)
+      payment.update!(status: :rejected)
+      expect(SettlementService).not_to have_received(:deallocate)
+    end
+
+    it "does not de-allocate a payment created already rejected" do
+      allow(SettlementService).to receive(:deallocate)
+      create(:payment, lease: lease, amount: 100, status: :rejected)
+      expect(SettlementService).not_to have_received(:deallocate)
     end
   end
 

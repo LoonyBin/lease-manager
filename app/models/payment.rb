@@ -39,6 +39,7 @@ class Payment < ApplicationRecord
 
   after_save :sync_initial_entry, if: :should_sync_entry?
   after_save :auto_settle, if: :should_auto_settle?
+  after_save :deallocate, if: :should_deallocate?
 
   scope :confirmed_or_later, -> { where(status: %i[confirmed partially_allocated fully_allocated]) }
   scope :unsettled, -> { where(status: %i[confirmed partially_allocated]) }
@@ -87,6 +88,13 @@ class Payment < ApplicationRecord
     saved_change_to_status? && confirmed_or_later? && balance != 0
   end
 
+  # Rejecting an allocated payment must un-do its allocation. The entries.exists?
+  # guard keeps this to payments that were actually confirmed and allocated: a
+  # draft → rejected flip (or a record born rejected) has no footprint to unwind.
+  def should_deallocate?
+    saved_change_to_status? && rejected? && entries.exists?
+  end
+
   def initial_entry_stale?
     initial = entries.initial.first
     initial.nil? || initial.amount != signed_amount
@@ -103,5 +111,9 @@ class Payment < ApplicationRecord
     return unless unsettled?
 
     SettlementService.auto_settle(self)
+  end
+
+  def deallocate
+    SettlementService.deallocate(self)
   end
 end

@@ -291,6 +291,30 @@ RSpec.describe "Payments" do
         expect(draft_payment.reload).to be_partially_allocated
       end
     end
+
+    context "when rejecting an allocated payment (the API corruption path)" do
+      let!(:invoice) do
+        inv = create(:invoice, lease: lease, status: :draft)
+        create(:line_item, invoice: inv, amount: 1000, tax_rate: nil)
+        inv.update!(status: :finalized)
+        inv.reload
+      end
+
+      let!(:payment) { create(:payment, lease: lease, amount: 1000, status: :confirmed) }
+
+      before do
+        sign_in_admin
+        patch payment_path(payment), params: { payment: { status: :rejected } }
+      end
+
+      it "de-allocates the payment over the JSON API", :aggregate_failures do
+        payment.reload
+        expect(payment).to be_rejected
+        expect(payment.entries).to be_empty
+        expect(invoice.reload.balance).to eq(1000)
+        expect(lease.reload.cached_balance).to eq(1000)
+      end
+    end
   end
 
   describe "JSON via API token" do

@@ -75,6 +75,32 @@ RSpec.describe LeaseHelper do
       end
     end
 
+    context "with a rejected (de-allocated) payment" do
+      let!(:invoice) do
+        inv = create(:invoice, lease: lease, date: Date.new(2025, 1, 15), status: :draft)
+        create(:line_item, invoice: inv, amount: 1000, tax_rate: 0)
+        inv.update!(status: :finalized)
+        inv.reload
+      end
+
+      let!(:payment) do
+        create(:payment, lease: lease, date: Date.new(2025, 1, 20), amount: 1000, status: :confirmed)
+      end
+
+      let(:lines) { helper.statement_entries(lease.entries.initial.preload(:instrument)) }
+
+      before { payment.update!(status: :rejected) }
+
+      it "produces no statement line for the rejected payment", :aggregate_failures do
+        expect(lines.map(&:instrument)).to contain_exactly(invoice)
+        expect(lines.map(&:instrument)).not_to include(payment)
+      end
+
+      it "leaves the running balance reflecting only the invoice" do
+        expect(lines.last.balance).to eq(1000)
+      end
+    end
+
     context "with same-date entries" do
       let(:invoice) do
         inv = create(:invoice, lease: lease, date: Date.new(2025, 2, 1), status: :draft)
