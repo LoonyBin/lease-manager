@@ -99,10 +99,13 @@ RSpec.describe Settlements::Deallocation do
       let!(:payment) { create(:payment, lease: lease, amount: 500, status: :confirmed) }
       let!(:refund) { create(:payment, :refund, lease: lease, amount: 200, status: :confirmed) }
 
-      it "de-allocates without ArgumentError and makes the payment whole", :aggregate_failures do
-        expect { described_class.deallocate(refund) }.not_to raise_error
+      it "de-allocates without ArgumentError and returns the payment counterpart", :aggregate_failures do
+        result = nil
+        expect { result = described_class.deallocate(refund) }.not_to raise_error
         expect(refund.reload.entries).to be_empty
         expect(payment.reload.balance).to eq(-500)
+        # Same-type (Payment↔Payment) counterpart: guards where.not(instrument:) NAND semantics.
+        expect(result[:counterparts]).to contain_exactly(payment)
       end
 
       it "recomputes cached_balance with nothing to cascade it" do
@@ -136,20 +139,41 @@ RSpec.describe Settlements::Deallocation do
         payment
       end
 
-      def entry_destroys
-        PaperTrail::Version.where(item_type: "Entry", event: "destroy").count
-      end
-
-      it "records a destroy version for every removed entry" do
-        before_count = entry_destroys
-        result = described_class.deallocate(payment)
-        expect(entry_destroys - before_count).to eq(result[:entries_removed])
-      end
-
       it "captures the destroyed entry in the version object", :aggregate_failures do
         described_class.deallocate(payment)
         object = JSON.parse(PaperTrail::Version.where(item_type: "Entry", event: "destroy").last.object)
         expect(object).to include("amount", "transaction_id")
+      end
+    end
+
+    context "with an unrelated settlement elsewhere on the lease" do
+      # remove_footprint only clears the de-allocated payment's own settlements, so
+      # an unrelated pair is what makes reinfer_lease's clear_settlements actually
+      # run against a non-empty relation — the only way audited: destroy_all is
+      # observable, and the only way to prove the unrelated allocation survives.
+      # (Dates order the sweep so the surviving credit re-settles its own invoice.)
+      let!(:other_invoice) { finalized_invoice(amount: 1000, date: 3.months.ago) }
+      let!(:other_payment) do
+        create(:payment, lease: lease, amount: 1000, date: 3.months.ago, status: :confirmed)
+      end
+      let!(:invoice) { finalized_invoice(amount: 1000, date: 1.month.ago) }
+      let!(:payment) do
+        create(:payment, lease: lease, amount: 1000, date: 1.month.ago, status: :confirmed)
+      end
+
+      it "versions the removal of the unrelated settlement — no orphan create" do
+        ids = Entry.for_transaction(other_payment.reload.entries.settlements.first.transaction_id).ids
+        described_class.deallocate(payment)
+        destroys = PaperTrail::Version.where(item_type: "Entry", item_id: ids, event: "destroy")
+        expect(destroys.count).to eq(ids.size)
+      end
+
+      it "keeps the unrelated allocation, re-created fresh, and frees the target", :aggregate_failures do
+        old_txn = other_payment.reload.entries.settlements.first.transaction_id
+        described_class.deallocate(payment)
+        expect(other_payment.reload.entries.settlements.first.transaction_id).not_to eq(old_txn)
+        expect(other_invoice.reload).to be_paid
+        expect(invoice.reload).to be_finalized # the de-allocated payment's invoice is freed
       end
     end
 
@@ -237,6 +261,17 @@ RSpec.describe Settlements::Deallocation do
       it "moves the balances with the payment", :aggregate_failures do
         expect(lease.reload.cached_balance).to eq(1000)
         expect(lease2.reload.cached_balance).to eq(0)
+      end
+    end
+
+    context "with a rejected payment" do
+      # update_status_from_balance! early-returns on rejected?, so without the guard
+      # auto_settle would give a rejected payment a fresh footprint — the corruption
+      # #194 exists to remove. #193 (the only caller) must not reach this state.
+      it "refuses to reallocate it" do
+        payment = create(:payment, lease: lease, amount: 1000, status: :confirmed)
+        payment.update_column(:status, Payment.statuses[:rejected]) # rubocop:disable Rails/SkipsModelValidations
+        expect { described_class.reallocate(payment) }.to raise_error(ArgumentError, /rejected/)
       end
     end
   end

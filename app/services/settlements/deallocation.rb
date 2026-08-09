@@ -31,7 +31,6 @@ module Settlements
         ActiveRecord::Base.transaction do
           footprint = remove_footprint(payment)
           reinfer_lease(lease, except: payment, audited: true)
-          lease.recalculate_cached_balance!
         end
 
         footprint.merge(payment: payment, old_balance: old_balance, new_balance: lease.entries.sum(:amount))
@@ -42,7 +41,14 @@ module Settlements
       # Unlike +deallocate+ this re-establishes the payment's status. #193 drives
       # cross-lease re-assignment through +transaction { deallocate(p);
       # p.update!(lease: dest); reallocate(p) }+ — see the transaction note below.
+      #
+      # Refuses a rejected payment: update_status_from_balance! early-returns on
+      # rejected?, so auto_settle would re-settle it while it stayed rejected —
+      # recreating the exact corruption #194 removes. #193 confirms/moves before
+      # reallocating, so this only ever fires on misuse.
       def reallocate(payment)
+        raise ArgumentError, "cannot reallocate a rejected payment" if payment.rejected?
+
         ActiveRecord::Base.transaction do
           rebuild_initial_entry(payment)
           payment.recalculate_balance!
@@ -74,11 +80,20 @@ module Settlements
       # through destroy_all (versioned) instead of delete_all. Public by design:
       # it is the load-bearing operation and the exclusion-routing spec drives it
       # directly rather than reaching past the public surface.
+      #
+      # NB: on the #194 reject path +except:+ is inert — a rejected payment already
+      # falls outside confirmed_or_later/unsettled, so no sweep would touch it. It is
+      # load-bearing only for #193's cross-lease move; the direct exclusion-routing
+      # spec, not the (green) reject specs, is what proves it. Don't delete it as dead.
+      # cached_balance is recomputed here, not only in deallocate, so both consumers
+      # stay consistent: clear_rejected_initials can drop unpaired initials, so the
+      # cascade inside Invoice#recalculate_balance! is not guaranteed to fire.
       def reinfer_lease(lease, except: nil, audited: false)
         settlement_count = clear_settlements(lease, audited: audited)
         orphan_count = clear_rejected_initials(lease)
         recalculate_balances(lease, except: except)
         credit_count = resettle_credits(lease, except: except)
+        lease.recalculate_cached_balance!
 
         { settlement_count: settlement_count, orphan_count: orphan_count, credit_count: credit_count }
       end
