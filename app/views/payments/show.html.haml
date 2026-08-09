@@ -13,7 +13,7 @@
         = heroicon "check", options: { class: "w-4 h-4" }
         Reinstate
     - else
-      = button_to payment_path(@payment), method: :patch, params: { payment: { status: :rejected } }, class: "btn btn-ghost btn-sm text-error", data: { turbo_confirm: "Reject this payment? This removes it from every invoice it has paid." } do
+      = button_to payment_path(@payment), method: :patch, params: { payment: { status: :rejected } }, class: "btn btn-ghost btn-sm text-error", data: { turbo_confirm: reject_confirmation_prompt(@payment) } do
         = heroicon "x-mark", options: { class: "w-4 h-4" }
         Reject
       - if @payment.draft?
