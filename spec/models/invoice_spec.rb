@@ -310,6 +310,46 @@ RSpec.describe Invoice do
     end
   end
 
+  describe ".with_total_amount" do
+    let(:invoice) { create(:invoice, status: :draft) }
+
+    before { invoice.line_items.destroy_all }
+
+    it "agrees with the per-record calculation" do
+      create(:line_item, invoice: invoice, amount: 1000, tax_rate: 18)
+      create(:line_item, invoice: invoice, amount: 500, tax_rate: nil)
+      expect(described_class.with_total_amount.find(invoice.id).total_amount).to eq(invoice.reload.total_amount)
+    end
+
+    it "reports zero for an invoice with no line items" do
+      expect(described_class.with_total_amount.find(invoice.id).total_amount).to eq(0)
+    end
+
+    # Deleting the rows out from under the loaded record proves the total came
+    # from the alias captured at load time, not from a fresh SUM.
+    it "reads the preloaded alias instead of querying line items again" do
+      create(:line_item, invoice: invoice, amount: 1000, tax_rate: 18)
+      record = described_class.with_total_amount.find(invoice.id)
+      LineItem.where(invoice_id: invoice.id).delete_all
+      expect(record.total_amount).to eq(1180)
+    end
+
+    context "with a credit note" do
+      let(:credit) do
+        create(:invoice, :credit_note, status: :draft).tap do |note|
+          note.line_items.destroy_all
+          create(:line_item, invoice: note, amount: 200, tax_rate: nil)
+        end
+      end
+
+      it "leaves the total unsigned, so #signed_amount still negates it", :aggregate_failures do
+        loaded = described_class.with_total_amount.find(credit.id)
+        expect(loaded.total_amount).to eq(200)
+        expect(loaded.signed_amount).to eq(-200)
+      end
+    end
+  end
+
   describe "#signed_amount" do
     let(:invoice) { create(:invoice, status: :draft) }
 

@@ -20,4 +20,15 @@ class LineItem < ApplicationRecord
   def taxable?
     %w[rent].include?(category)
   end
+
+  # Ships the derived figures the invoice page shows, so a JSON client reading
+  # nested line items doesn't have to re-derive them from +amount+ and
+  # +tax_rate+ and hope it rounds the same way this does. Hooks
+  # +serializable_hash+ rather than +as_json+ because that is what a parent's
+  # :include option calls on each associated record; +as_json+ routes here too.
+  def serializable_hash(options = nil)
+    options = (options || {}).symbolize_keys
+    options[:methods] = Array(options[:methods]) | %i[tax_amount total]
+    super
+  end
 end
