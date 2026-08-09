@@ -43,6 +43,18 @@ class Payment < ApplicationRecord
   scope :confirmed_or_later, -> { where(status: %i[confirmed partially_allocated fully_allocated]) }
   scope :unsettled, -> { where(status: %i[confirmed partially_allocated]) }
 
+  # Per-row net cash: a payment adds its amount, a refund (a debit) subtracts it.
+  # This is the *negation* of #signed_amount, which follows the ledger convention
+  # (a payment is a credit, so its signed_amount is negative) and would make a
+  # revenue total come out negative. This encodes ONLY the sign — callers MUST
+  # still scope to +confirmed_or_later+ to exclude draft/rejected rows. Built as
+  # an Arel node (not interpolated SQL) so the enum integer is a bound literal,
+  # not a string splice, and works as the argument to both +sum+ and groupdate.
+  NET_CASH_AMOUNT_SQL = Arel::Nodes::Case.new
+                                         .when(arel_table[:payment_type].eq(payment_types[:refund]))
+                                         .then(arel_table[:amount] * -1)
+                                         .else(arel_table[:amount])
+
   def credit?
     payment?
   end

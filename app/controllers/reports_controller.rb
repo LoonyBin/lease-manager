@@ -42,12 +42,13 @@ class ReportsController < ApplicationController
     @total_revenue = finalized_invoices.to_a.sum(&:total_amount)
     @total_outstanding = policy_scope(Invoice).where.not(status: %i[cancelled draft]).sum(:balance)
     @total_taxes = finalized_line_items.sum("ROUND(amount * tax_rate / 100.0, 2)")
-    @total_collected = policy_scope(Payment).sum(:amount)
+    @total_collected = collected_payments.sum(Payment::NET_CASH_AMOUNT_SQL)
   end
 
   def set_chart_data
     @revenue_by_month = revenue_by_month_data
-    @payments_by_month = policy_scope(Payment).group_by_month(:date, last: 12, format: "%b %Y").sum(:amount)
+    @payments_by_month = collected_payments.group_by_month(:date, last: 12, format: "%b %Y")
+                                           .sum(Payment::NET_CASH_AMOUNT_SQL)
     @occupancy_stats = calculate_occupancy_stats
     @invoice_status_distribution = policy_scope(Invoice).group(:status).count.transform_keys(&:titleize)
   end
@@ -65,6 +66,13 @@ class ReportsController < ApplicationController
     total_properties = policy_scope(Property).count
 
     { "Occupied" => active_leases_count, "Vacant" => [total_properties - active_leases_count, 0].max }
+  end
+
+  # Only payments that represent real, accepted money: excludes draft (submitted,
+  # not yet confirmed) and rejected. Both revenue aggregates net refunds against
+  # payments via Payment::NET_CASH_AMOUNT_SQL, so they can go negative.
+  def collected_payments
+    @collected_payments ||= policy_scope(Payment).confirmed_or_later
   end
 
   def finalized_invoices
