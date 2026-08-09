@@ -218,6 +218,12 @@ curl -H "Authorization: Bearer $TOKEN" https://example.com/reports/taxes.json
   `"0.0"`, `"0.13"` — so each figure matches the (half-up) number the matching
   page shows. This 2-decimal rounding is reports-specific; other endpoints emit
   the column's raw scale, unrounded.
+- **`total_collected` and `payments_by_month` count only accepted cash.** They
+  include only `confirmed` / `partially_allocated` / `fully_allocated` payments
+  (`draft` and `rejected` are excluded), and **net refunds against payments** — a
+  confirmed refund subtracts. Because of the netting, a refund-heavy
+  `payments_by_month` bucket (and in principle `total_collected`) **can be
+  negative**; parse them as signed decimals.
 - **`total_outstanding` is two different figures.** On `GET /reports.json` it is
   the balance of every non-cancelled, non-draft invoice — it **includes** paid
   rows and negative credit-note balances. On `GET /reports/outstanding.json` it

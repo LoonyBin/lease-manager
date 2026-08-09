@@ -136,6 +136,44 @@ RSpec.describe "Reports" do
       end
     end
 
+    describe "collected revenue" do
+      let(:lease) { create(:lease) }
+      # The bucket label today's fixtures land in, e.g. "Aug 2026".
+      let(:this_month) { Time.zone.today.strftime("%b %Y") }
+
+      def index_body
+        get reports_path(format: :json), headers: bearer(admin)
+        response.parsed_body
+      end
+
+      it "excludes draft and rejected payments from total_collected", :aggregate_failures do
+        create(:payment, lease: lease, amount: 1000, status: :confirmed, date: Time.zone.today)
+        create(:payment, lease: lease, amount: 500, status: :draft, date: Time.zone.today)
+        create(:payment, lease: lease, amount: 250, status: :rejected, date: Time.zone.today)
+
+        # Positive control: only the confirmed 1000 survives; draft/rejected drop out.
+        expect(index_body["total_collected"]).to eq("1000.0")
+      end
+
+      it "nets a confirmed refund against payments in total_collected" do
+        create(:payment, lease: lease, amount: 1000, status: :confirmed, date: Time.zone.today)
+        create(:payment, :refund, lease: lease, amount: 300, status: :confirmed, date: Time.zone.today)
+
+        # 1000 collected minus a 300 refund (a debit) = 700, pinning the sign.
+        expect(index_body["total_collected"]).to eq("700.0")
+      end
+
+      it "counts only the confirmed amount in the payments_by_month bucket" do
+        create(:payment, lease: lease, amount: 1000, status: :confirmed, date: Time.zone.today)
+        create(:payment, lease: lease, amount: 500, status: :draft, date: Time.zone.today)
+        create(:payment, lease: lease, amount: 250, status: :rejected, date: Time.zone.today)
+
+        # Exact bucket total, not an absence check: draft/rejected in the same
+        # month must not lift it above the confirmed 1000.
+        expect(index_body["payments_by_month"][this_month]).to eq("1000.0")
+      end
+    end
+
     describe "tax total rounding" do
       # Each line's tax is 1.00 * 12.5 / 100 = 0.125, which rounds half-up to
       # 0.13, so two lines total 0.26. Summing unrounded would give 0.25 and
