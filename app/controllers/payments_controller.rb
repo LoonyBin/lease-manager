@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class PaymentsController < ApplicationController
+  include CorrectsPayments
+
   def index
     @q = policy_scope(Payment).ransack(params[:q])
     @q.sorts = ["date desc", "created_at desc"] if @q.sorts.empty?
@@ -20,6 +22,12 @@ class PaymentsController < ApplicationController
     @leases = filtered_leases
   end
 
+  def edit
+    @payment = Payment.find(params.expect(:id))
+    authorize @payment, :update?
+    @leases = edit_leases
+  end
+
   def create
     @payment = build_payment
     authorize @payment
@@ -32,18 +40,30 @@ class PaymentsController < ApplicationController
     end
   end
 
+  # A payment PATCH is one of three things, told apart by the submitted keys:
+  #   status alone    -> the existing reject/confirm/reinstate transition
+  #   editable fields -> a correction (re-inference; may move money)
+  #   status + fields -> a confused client; refuse it (see reject_mixed_payload)
   def update
     @payment = Payment.find(params.expect(:id))
     authorize @payment
 
-    if @payment.update(update_params)
-      respond_updated(@payment) { redirect_to @payment, notice: t(".success") }
+    keys = params.fetch(:payment, {}).keys.map(&:to_s)
+    return respond_status_update if keys == %w[status]
+    return reject_mixed_payload if keys.include?("status")
+
+    correct_payment
+  end
+
+  private
+
+  def respond_status_update
+    if @payment.update(params.expect(payment: %i[status]))
+      respond_updated(@payment) { redirect_to @payment, notice: t("payments.update.success") }
     else
       respond_invalid(@payment) { render :show, status: :unprocessable_content }
     end
   end
-
-  private
 
   def filtered_leases
     active = policy_scope(Lease).by_status("active")
@@ -53,10 +73,6 @@ class PaymentsController < ApplicationController
 
   def payment_params
     params.permit(payment: %i[lease_id date amount mode reference_number attachment payment_type])[:payment]
-  end
-
-  def update_params
-    params.expect(payment: %i[status])
   end
 
   def build_payment

@@ -317,6 +317,155 @@ RSpec.describe "Payments" do
     end
   end
 
+  describe "GET /payments/:id/edit" do
+    before { sign_in_admin }
+
+    let!(:payment) do
+      create(:payment, lease: lease, amount: 1000, date: Date.new(2025, 6, 15), status: :confirmed)
+    end
+
+    it "renders the correction form", :aggregate_failures do
+      get edit_payment_path(payment)
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("Edit Payment")
+    end
+  end
+
+  describe "PATCH /payments/:id (correction)" do
+    def finalize_invoice(on_lease, amount)
+      inv = create(:invoice, lease: on_lease, status: :draft)
+      create(:line_item, invoice: inv, amount: amount, tax_rate: nil)
+      inv.update!(status: :finalized)
+      inv.reload
+    end
+
+    context "when re-assigning to another lease over JSON" do
+      before { sign_in_admin }
+
+      let(:destination) { create(:lease) }
+      let!(:source_invoice) { finalize_invoice(lease, 1000) }
+      let!(:dest_invoice) { finalize_invoice(destination, 1000) }
+      let!(:payment) do
+        create(:payment, lease: lease, amount: 1000, date: Date.new(2025, 6, 15), status: :confirmed)
+      end
+
+      it "moves the payment and re-infers both leases", :aggregate_failures do
+        patch payment_path(payment, format: :json), params: { payment: { lease_id: destination.id } }
+
+        expect(response).to have_http_status(:ok)
+        expect(payment.reload.lease).to eq(destination)
+        expect(source_invoice.reload.balance).to eq(1000)
+        expect(dest_invoice.reload.balance).to eq(0)
+      end
+
+      it "returns a machine-readable cross-tenant warning, still 200", :aggregate_failures do
+        patch payment_path(payment, format: :json), params: { payment: { lease_id: destination.id } }
+
+        expect(response).to have_http_status(:ok)
+        warnings = response.parsed_body["warnings"]
+        expect(warnings).to be_an(Array)
+        expect(warnings.pluck("code")).to include("different_tenant")
+      end
+
+      # Audit trail: a correcting move must leave a payment Version naming both the
+      # source and destination lease. update! (not update_column) is what records
+      # it, so this goes red if the move ever skips PaperTrail.
+      it "records the source and destination lease in the audit trail", :aggregate_failures do
+        patch payment_path(payment, format: :json), params: { payment: { lease_id: destination.id } }
+
+        version = PaperTrail::Version.where(item_type: "Payment", item_id: payment.id, event: "update").last
+        expect(version).to be_present
+        changes = JSON.parse(version.object_changes)
+        expect(changes["lease_id"]).to eq([lease.id, destination.id])
+      end
+    end
+
+    context "when editing the amount over JSON" do
+      before { sign_in_admin }
+
+      let!(:invoice) { finalize_invoice(lease, 1000) }
+      let!(:payment) do
+        create(:payment, lease: lease, amount: 1000, date: Date.new(2025, 6, 15), status: :confirmed)
+      end
+
+      it "re-infers allocations on the payment's lease", :aggregate_failures do
+        patch payment_path(payment, format: :json), params: { payment: { amount: 500 } }
+
+        expect(response).to have_http_status(:ok)
+        expect(payment.reload.amount).to eq(500)
+        expect(invoice.reload.balance).to eq(500)
+      end
+    end
+
+    context "with a payload mixing status and an editable field" do
+      before { sign_in_admin }
+
+      let!(:payment) do
+        create(:payment, lease: lease, amount: 1000, date: Date.new(2025, 6, 15), status: :confirmed)
+      end
+
+      it "refuses it with 422 and changes nothing", :aggregate_failures do
+        patch payment_path(payment, format: :json), params: { payment: { status: :rejected, amount: 500 } }
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(response.parsed_body["errors"]).to have_key("base")
+        expect(payment.reload).not_to be_rejected
+        expect(payment.amount).to eq(1000)
+      end
+    end
+
+    context "when correcting a draft" do
+      before { sign_in_admin }
+
+      let(:draft) { create(:payment, lease: lease, amount: 1000, date: Date.new(2025, 6, 15), status: :draft) }
+
+      it "does not escalate it to confirmed", :aggregate_failures do
+        patch payment_path(draft, format: :json), params: { payment: { amount: 500 } }
+        expect(draft.reload).to be_draft
+        expect(draft.amount).to eq(500)
+      end
+    end
+
+    context "when a tenant attempts a correction" do
+      let(:user) { create(:user) }
+      let!(:payment) do
+        create(:payment, lease: lease, amount: 1000, date: Date.new(2025, 6, 15), status: :confirmed)
+      end
+
+      before do
+        create(:user_association, user: user, associable: lease.tenant)
+        sign_in_as(user)
+      end
+
+      it "is denied and changes nothing", :aggregate_failures do
+        patch payment_path(payment), params: { payment: { amount: 500 } }
+
+        expect(response).to redirect_to(root_path)
+        expect(payment.reload.amount).to eq(1000)
+      end
+    end
+
+    context "when an owner moves onto a lease they cannot see" do
+      let(:user) { create(:user) }
+      let(:foreign_lease) { create(:lease) }
+      let!(:payment) do
+        create(:payment, lease: lease, amount: 1000, date: Date.new(2025, 6, 15), status: :confirmed)
+      end
+
+      before do
+        create(:user_association, user: user, associable: lease.property.owner)
+        sign_in_as(user)
+      end
+
+      it "is denied by the destination policy and does not move", :aggregate_failures do
+        patch payment_path(payment), params: { payment: { lease_id: foreign_lease.id } }
+
+        expect(response).to redirect_to(root_path)
+        expect(payment.reload.lease).to eq(lease)
+      end
+    end
+  end
+
   describe "JSON via API token" do
     it_behaves_like "serves JSON with a valid API token" do
       let(:json_path) { payments_path(format: :json) }

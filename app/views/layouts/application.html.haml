@@ -30,6 +30,11 @@
           - if alert
             .alert.alert-error.mb-4
               %span= alert
+          -# Non-blocking warnings (e.g. a payment correction across tenants);
+          -# may be a single message or a list.
+          - Array(flash[:warning]).each do |warning_message|
+            .alert.alert-warning.mb-4
+              %span= warning_message
 
           -# Page content
           .page-content

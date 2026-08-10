@@ -1,0 +1,5 @@
+- content_for :title, @payment.refund? ? "Edit Refund" : "Edit Payment"
+.max-w-4xl.mx-auto.card.bg-base-100.shadow-xl
+  .card-body
+    %h2.card-title.mb-5= @payment.refund? ? "Edit Refund" : "Edit Payment"
+    = render 'form', payment: @payment, leases: @leases
