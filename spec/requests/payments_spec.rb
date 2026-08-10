@@ -466,6 +466,268 @@ RSpec.describe "Payments" do
     end
   end
 
+  describe "DELETE /payments/:id" do
+    before { sign_in_admin }
+
+    def finalize_invoice(on_lease, amount, date: Time.zone.today)
+      inv = create(:invoice, lease: on_lease, date: date, status: :draft)
+      create(:line_item, invoice: inv, amount: amount, tax_rate: nil)
+      inv.update!(status: :finalized)
+      inv.reload
+    end
+
+    context "with an unallocated payment (pure credit, no invoice to settle)" do
+      let!(:payment) { create(:payment, lease: lease, amount: 1000, status: :confirmed) }
+
+      it "starts with an initial entry but no settlements", :aggregate_failures do
+        expect(payment.entries.initial).to be_present
+        expect(payment.entries.settlements).to be_empty
+      end
+
+      it "removes the payment and its footprint, reconciling the lease", :aggregate_failures do
+        delete payment_path(payment)
+        expect(Payment.exists?(payment.id)).to be(false)
+        expect(Entry.where(instrument_type: "Payment", instrument_id: payment.id)).to be_empty
+        expect(lease.reload.cached_balance).to eq(0)
+        expect(lease.entries.sum(:amount)).to eq(lease.cached_balance)
+      end
+
+      it "redirects to the payments list" do
+        delete payment_path(payment)
+        expect(response).to redirect_to(payments_path)
+      end
+    end
+
+    context "with a partially allocated payment (leftover credit)" do
+      let!(:invoice) { finalize_invoice(lease, 1000) }
+      let!(:payment) { create(:payment, lease: lease, amount: 1500, status: :confirmed) }
+      let!(:txn_ids) { payment.entries.settlements.pluck(:transaction_id) }
+
+      before { delete payment_path(payment) }
+
+      it "removes the payment with no orphaned settlement rows on either side", :aggregate_failures do
+        expect(Payment.exists?(payment.id)).to be(false)
+        expect(Entry.where(instrument_type: "Payment", instrument_id: payment.id)).to be_empty
+        expect(Entry.for_transaction(txn_ids)).to be_empty
+      end
+
+      it "frees the invoice back to finalized", :aggregate_failures do
+        expect(invoice.reload.balance).to eq(1000)
+        expect(invoice).to be_finalized
+      end
+
+      it "reconciles the lease and clears the statement of the payment", :aggregate_failures do
+        lease.reload
+        expect(lease.cached_balance).to eq(1000)
+        expect(lease.entries.sum(:amount)).to eq(lease.cached_balance)
+        expect(lease.entries.initial.map(&:instrument)).not_to include(payment)
+      end
+    end
+
+    context "with a fully allocated payment" do
+      let!(:invoice) { finalize_invoice(lease, 1000) }
+      let!(:payment) { create(:payment, lease: lease, amount: 1000, status: :confirmed) }
+      let!(:txn_ids) { payment.entries.settlements.pluck(:transaction_id) }
+
+      before { delete payment_path(payment) }
+
+      it "removes the payment with no orphaned settlement rows on either side", :aggregate_failures do
+        expect(Payment.exists?(payment.id)).to be(false)
+        expect(Entry.where(instrument_type: "Payment", instrument_id: payment.id)).to be_empty
+        expect(Entry.for_transaction(txn_ids)).to be_empty
+      end
+
+      it "frees the invoice from paid back to finalized and reconciles the lease", :aggregate_failures do
+        expect(invoice.reload.balance).to eq(1000)
+        expect(invoice).to be_finalized
+        expect(lease.reload.cached_balance).to eq(1000)
+        expect(lease.entries.sum(:amount)).to eq(lease.cached_balance)
+      end
+    end
+
+    context "with a refund" do
+      let!(:payment) { create(:payment, lease: lease, amount: 500, status: :confirmed) }
+      let!(:refund) { create(:payment, :refund, lease: lease, amount: 200, status: :confirmed) }
+
+      it "de-allocates and deletes the refund, leaving the payment intact", :aggregate_failures do
+        delete payment_path(refund)
+
+        expect(Payment.exists?(refund.id)).to be(false)
+        expect(payment.reload.balance).to eq(-500) # the credit is whole again
+        expect(lease.reload.cached_balance).to eq(0) # no unsettled invoices remain
+      end
+    end
+
+    # The three single-payment states can only prove counterpart handling for the
+    # payment being deleted; they cannot observe what re-inference does to *other*
+    # allocations, because there are none. deallocate re-infers the whole lease —
+    # wiping every settlement and re-settling from scratch — so an independent,
+    # already-settled pair is destroyed and re-created with a fresh transaction_id.
+    context "with an unrelated, already-settled pair on the same lease" do
+      let!(:other_invoice) { finalize_invoice(lease, 1000, date: 3.months.ago) }
+      let!(:other_payment) do
+        create(:payment, lease: lease, amount: 1000, date: 3.months.ago, status: :confirmed)
+      end
+      let!(:invoice) { finalize_invoice(lease, 1000, date: 1.month.ago) }
+      let!(:payment) do
+        create(:payment, lease: lease, amount: 1000, date: 1.month.ago, status: :confirmed)
+      end
+
+      before { delete payment_path(payment) }
+
+      it "frees the deleted payment's invoice", :aggregate_failures do
+        expect(Payment.exists?(payment.id)).to be(false)
+        expect(invoice.reload).to be_finalized
+        expect(invoice.balance).to eq(1000)
+      end
+
+      it "keeps the unrelated allocation intact in effect", :aggregate_failures do
+        expect(other_payment.reload).to be_fully_allocated
+        expect(other_invoice.reload).to be_paid
+        expect(other_invoice.balance).to eq(0)
+      end
+
+      # transaction_id instability itself is proven at the service level; here we
+      # only need both sides of the surviving settlement still paired together.
+      it "re-pairs the surviving settlement against its own invoice" do
+        txn = other_payment.reload.entries.settlements.first.transaction_id
+        counterparts = Entry.for_transaction(txn).where.not(instrument: other_payment).map(&:instrument)
+        expect(counterparts).to contain_exactly(other_invoice)
+      end
+    end
+
+    context "when deleting over the JSON API" do
+      let!(:payment) { create(:payment, lease: lease, amount: 1000, status: :confirmed) }
+
+      it "responds 204 No Content and removes the payment", :aggregate_failures do
+        delete payment_path(payment, format: :json)
+        expect(response).to have_http_status(:no_content)
+        expect(Payment.exists?(payment.id)).to be(false)
+      end
+    end
+
+    # Discriminating atomicity spec: with the outer transaction wrapper the raise
+    # in destroy! rolls the de-allocation back with it; remove the wrapper and
+    # deallocate would commit on its own, leaving the invoice freed while the
+    # payment lingers — this spec goes red.
+    context "when destroy! raises after de-allocation" do
+      let!(:invoice) { finalize_invoice(lease, 1000) }
+      let!(:payment) { create(:payment, lease: lease, amount: 1000, status: :confirmed) }
+
+      before do
+        allow(Payment).to receive(:find).and_return(payment)
+        allow(payment).to receive(:destroy!).and_raise("boom")
+      end
+
+      it "rolls the de-allocation back — payment and ledger intact", :aggregate_failures do
+        expect { delete payment_path(payment) }.to raise_error("boom")
+        expect(Payment.exists?(payment.id)).to be(true)
+        expect(Payment.where(id: payment.id).first.entries.settlements).not_to be_empty
+        expect(invoice.reload).to be_paid
+        expect(lease.reload.cached_balance).to eq(0)
+      end
+    end
+
+    describe "audit trail" do
+      # Invoice first, then payment, so the payment settles it and both ledger
+      # sides exist to be versioned on removal.
+      let(:payment) { create(:payment, lease: lease, amount: 1000, status: :confirmed) }
+
+      before do
+        finalize_invoice(lease, 1000)
+        payment
+      end
+
+      it "records the payment destroy carrying enough of its object to reconstruct it", :aggregate_failures do
+        delete payment_path(payment)
+        version = PaperTrail::Version.where(item_type: "Payment", item_id: payment.id, event: "destroy").last
+        object = JSON.parse(version.object) # object is a JSON string; see PaperTrail jsonb note
+        expect(object["lease_id"]).to eq(lease.id)
+        expect(object).to include("amount", "date", "status")
+      end
+
+      it "versions every removed ledger entry, both sides of the settlement" do
+        ids = payment.entries.ids | Entry.for_transaction(payment.entries.settlements.pluck(:transaction_id)).ids
+        delete payment_path(payment)
+        destroyed = PaperTrail::Version.where(item_type: "Entry", item_id: ids, event: "destroy").pluck(:item_id)
+        expect(destroyed).to match_array(ids)
+      end
+    end
+
+    context "with an attachment (purged, not blocked)" do
+      let!(:payment) do
+        create(:payment, lease: lease, amount: 1000, status: :confirmed).tap do |p|
+          p.attachment.attach(io: StringIO.new("scan"), filename: "receipt.png", content_type: "image/png")
+        end
+      end
+
+      it "deletes a payment that has an attachment", :aggregate_failures do
+        expect(payment.attachment).to be_attached # fixture guard
+        delete payment_path(payment)
+
+        expect(Payment.exists?(payment.id)).to be(false)
+        expect(response).to redirect_to(payments_path)
+      end
+    end
+
+    context "with the Delete control on the show page" do
+      let!(:payment) { create(:payment, lease: lease, amount: 1000, status: :confirmed) }
+
+      # The trap #196 names: two destructive controls side by side. Guard that both
+      # render and read distinctly — Delete "never existed", Reject "bounced".
+      it "renders a Delete control worded distinctly from Reject", :aggregate_failures do
+        get payment_path(payment)
+
+        expect(response.body).to include("Delete")
+        expect(response.body).to include("as if it never existed")
+        expect(response.body).to include("This removes it from every invoice it has paid.")
+      end
+    end
+  end
+
+  describe "DELETE /payments/:id authorization" do
+    let!(:payment) { create(:payment, lease: lease, amount: 1000, status: :confirmed) }
+
+    context "when a tenant attempts deletion" do
+      let(:user) { create(:user) }
+
+      before do
+        create(:user_association, user: user, associable: lease.tenant)
+        sign_in_as(user)
+      end
+
+      it "is denied and the payment survives", :aggregate_failures do
+        delete payment_path(payment)
+
+        expect(response).to redirect_to(root_path)
+        expect(Payment.exists?(payment.id)).to be(true)
+      end
+    end
+
+    context "when the property owner deletes" do
+      let(:user) { create(:user) }
+
+      before do
+        create(:user_association, user: user, associable: lease.property.owner)
+        sign_in_as(user)
+      end
+
+      it "succeeds" do
+        delete payment_path(payment)
+        expect(Payment.exists?(payment.id)).to be(false)
+      end
+    end
+
+    context "when an admin deletes" do
+      before { sign_in_admin }
+
+      it "succeeds" do
+        delete payment_path(payment)
+        expect(Payment.exists?(payment.id)).to be(false)
+      end
+    end
+  end
+
   describe "JSON via API token" do
     it_behaves_like "serves JSON with a valid API token" do
       let(:json_path) { payments_path(format: :json) }

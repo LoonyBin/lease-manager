@@ -55,6 +55,28 @@ class PaymentsController < ApplicationController
     correct_payment
   end
 
+  # Delete a payment that should never have existed (a duplicate, a phantom
+  # receipt) — distinct from rejecting one, which asserts a real attempt bounced.
+  # A naive destroy is broken: Payment#entries (dependent: :destroy) reaches only
+  # the payment's own rows and would orphan the paired invoice-side settlement
+  # rows. So route through SettlementService.deallocate first — it removes both
+  # sides of every settlement, drops the initial entry, and re-infers the lease
+  # (recomputing every touched invoice and cached_balance) — then destroy the now
+  # footprint-less payment row. deallocate opens its own transaction but joins
+  # this outer one (no requires_new), so the two share a single physical
+  # transaction: a raise in destroy! rolls the de-allocation back with it. See #196.
+  def destroy
+    @payment = Payment.find(params.expect(:id))
+    authorize @payment
+
+    ActiveRecord::Base.transaction do
+      SettlementService.deallocate(@payment)
+      @payment.destroy!
+    end
+
+    respond_destroyed { redirect_to payments_path, notice: t(".success") }
+  end
+
   private
 
   def respond_status_update

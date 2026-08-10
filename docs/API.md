@@ -150,6 +150,14 @@ Available resources: `properties`, `tenants`, `owners`, `leases`, `payments`,
 (mutations only), and `versions` (the audit trail; read and delete).
 Session endpoints are HTML-only; the reports endpoints are documented below.
 
+Deleting a payment (`DELETE /payments/:id`) is a **hard delete** for a record
+that should never have existed — not the same as rejecting one (a real attempt
+that bounced). It first de-allocates the ledger, removing both sides of every
+settlement the payment was part of and recomputing every invoice it had touched
+along with the lease's cached balance, then removes the payment row and purges
+any attached file; the whole operation is atomic and captured in the audit
+trail.
+
 Responses serialize a record's full attribute set (Rails' default
 `render json:`) — a deliberate v1 decision, bounded by two guardrails: you
 only ever receive records the token's user is authorized to see (the same

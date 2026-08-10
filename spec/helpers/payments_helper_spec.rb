@@ -26,4 +26,33 @@ RSpec.describe PaymentsHelper do
         .to eq("Reject this payment? This removes it from every invoice it has paid.")
     end
   end
+
+  describe "#delete_confirmation_prompt" do
+    it "frames deletion as 'never existed' for a payment" do
+      payment = build(:payment, payment_type: :payment)
+      expect(helper.delete_confirmation_prompt(payment))
+        .to eq("Delete this payment? This removes it from the books entirely, as if it never existed.")
+    end
+
+    it "names the refund" do
+      payment = build(:payment, payment_type: :refund)
+      expect(helper.delete_confirmation_prompt(payment))
+        .to eq("Delete this refund? This removes it from the books entirely, as if it never existed.")
+    end
+
+    it "reads as distinct from the reject prompt (never a bounce)", :aggregate_failures do
+      payment = build(:payment, status: :confirmed, payment_type: :payment)
+      expect(helper.delete_confirmation_prompt(payment)).to include("as if it never existed")
+      expect(helper.delete_confirmation_prompt(payment))
+        .not_to eq(helper.reject_confirmation_prompt(payment))
+    end
+
+    it "warns that the attachment will be purged when one is attached" do
+      payment = create(:payment)
+      payment.attachment.attach(io: StringIO.new("scan"), filename: "receipt.png", content_type: "image/png")
+      expect(helper.delete_confirmation_prompt(payment))
+        .to eq("Delete this payment? This removes it from the books entirely, as if it never existed. " \
+               "The attached file will also be permanently deleted.")
+    end
+  end
 end
