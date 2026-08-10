@@ -70,6 +70,8 @@ en:
         source_newly_outstanding: The original lease now has an outstanding balance.
     create:
       success: Payment recorded successfully.
+    destroy:
+      success: Payment deleted.
     update:
       success: Payment updated successfully.
   properties:

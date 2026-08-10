@@ -25,6 +25,12 @@
           Confirm
   %label.btn.btn-ghost.btn-sm.btn-square{for: "history-drawer", title: "History"}
     = heroicon "clock", options: { class: "w-5 h-5" }
+  -# Delete ("never happened") is deliberately distinct from Reject ("bounced"):
+  -# a trash icon, set apart past the history control. See #196.
+  - if policy(@payment).destroy?
+    = button_to payment_path(@payment), method: :delete, class: "btn btn-ghost btn-sm text-error", data: { turbo_confirm: delete_confirmation_prompt(@payment) } do
+      = heroicon "trash", options: { class: "w-4 h-4" }
+      Delete
 
 .drawer.drawer-end
   %input#history-drawer.drawer-toggle{type: "checkbox"}

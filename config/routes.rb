@@ -20,7 +20,7 @@ Rails.application.routes.draw do
       patch :approve_all
     end
   end
-  resources :payments, only: %i[index show new create edit update]
+  resources :payments, only: %i[index show new create edit update destroy]
   resources :properties
   resources :tenants
   resources :owners
