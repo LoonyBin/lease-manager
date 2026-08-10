@@ -187,6 +187,33 @@ Sorting and filtering by the same figure already work through ransack
 (`?q[s]=total_amount+desc`, `?q[total_amount_gteq]=1000`); the listing computes
 every row's total in one query rather than one per invoice.
 
+### Correcting a payment
+
+`PATCH /payments/:id` is also the correction surface for a mis-entered payment.
+It accepts the payment's full editable attribute set — `lease_id`, `date`,
+`amount`, `mode`, `reference_number`, `payment_type`, `attachment` — and any
+change that moves money (`lease_id`, `date`, `amount`, `payment_type`) re-infers
+the affected leases **atomically**: the source is de-allocated and both source
+and destination end up exactly as if the payment had been recorded correctly.
+
+```sh
+# Re-assign a payment to another lease (even one belonging to a different tenant)
+curl -X PATCH -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"payment": {"lease_id": 42}}' \
+  https://example.com/payments/1.json
+```
+
+Re-assignment is **warned, never blocked**. The response is `200` with a
+machine-readable `warnings` array alongside the payment; each warning is a
+`{ "code", "message" }` object. Codes: `different_tenant`, `date_outside_term`,
+`destination_inactive`, `source_newly_outstanding`. An empty array means the
+correction raised no concerns.
+
+`status` is **not** an editable field here: it moves through its own transitions
+(reject / confirm / reinstate) submitted on their own. A payload mixing `status`
+with any editable field is refused with `422` — send them separately.
+
 ## Reports
 
 The reports are the only place the app computes aggregates, so unlike the REST

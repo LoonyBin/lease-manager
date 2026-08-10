@@ -8,6 +8,9 @@
 
 - content_for :page_actions do
   - if policy(@payment).update?
+    = link_to edit_payment_path(@payment), class: "btn btn-ghost btn-sm" do
+      = heroicon "pencil-square", options: { class: "w-4 h-4" }
+      Edit
     - if @payment.rejected?
       = button_to payment_path(@payment), method: :patch, params: { payment: { status: :confirmed } }, class: "btn btn-primary btn-sm", data: { turbo_confirm: "Reinstate this payment? This will re-allocate it to outstanding invoices." } do
         = heroicon "check", options: { class: "w-4 h-4" }

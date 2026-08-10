@@ -61,6 +61,13 @@ en:
     update:
       success: Owner was successfully updated.
   payments:
+    correction:
+      status_not_editable: Status cannot be changed while editing other fields. Submit a status change on its own.
+      warnings:
+        date_outside_term: The payment date falls outside the destination lease term.
+        destination_inactive: The destination lease is archived or terminated.
+        different_tenant: This lease belongs to a different tenant.
+        source_newly_outstanding: The original lease now has an outstanding balance.
     create:
       success: Payment recorded successfully.
     update:
