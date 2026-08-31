@@ -24,6 +24,7 @@ Style/StringLiterals:
 Metrics/BlockLength:
   Exclude:
     - "Guardfile"
+    - config/environments/*.rb
     - config/initializers/simple_form.rb
     - config/routes.rb
 
