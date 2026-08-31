@@ -72,6 +72,14 @@ else
   echo "  ssh $DOKKU_HOST config:set $APP RAILS_MASTER_KEY=<key>" >&2
   exit 1
 fi
+# Warns rather than fails: the app boots without it, but reminder mail then
+# claims to come from no-reply@example.com and Gmail rejects the mismatch.
+if [[ -n "$(dokku config:get "$APP" MAIL_FROM 2>/dev/null || true)" ]]; then
+  ok "MAIL_FROM is set"
+else
+  echo "WARNING: MAIL_FROM is not set; reminder mail would be sent from no-reply@example.com:" >&2
+  echo "  ssh $DOKKU_HOST config:set $APP MAIL_FROM=<the Gmail address reminders send from>" >&2
+fi
 
 # Dokku defaults non-web proctypes to 0, so a fresh app never runs its
 # solid_queue worker. Only fix that zero; scale is otherwise operator-owned.
