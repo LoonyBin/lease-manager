@@ -54,6 +54,9 @@ You are an intelligent agent working on this project. Your first step is to iden
 - Managing git branches, merges, or PR creation/updates.
 - Interacting with `gh` CLI.
 
+For triaging CodeRabbit or other review threads on a PR, follow
+`.agents/review_feedback.md`.
+
 ## Core Directives
 
 ### 1. Token Efficiency
