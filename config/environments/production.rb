@@ -65,14 +65,25 @@ Rails.application.configure do
   # app password (Google rejects the account password), both added via
   # `rails credentials:edit`. Gmail rewrites the From header unless MAIL_FROM is
   # that same address or a verified "Send mail as" alias on it.
+  smtp_user_name = Rails.application.credentials.dig(:smtp, :user_name)
+  smtp_password = Rails.application.credentials.dig(:smtp, :password)
   config.action_mailer.smtp_settings = {
-    user_name: Rails.application.credentials.dig(:smtp, :user_name),
-    password: Rails.application.credentials.dig(:smtp, :password),
+    user_name: smtp_user_name,
+    password: smtp_password,
     address: "smtp.gmail.com",
     port: 587,
     authentication: :plain,
-    enable_starttls_auto: true
+    # :always over :auto so a server that fails to advertise STARTTLS aborts
+    # rather than authenticating in the clear.
+    enable_starttls: :always
   }
+
+  # Warns rather than raises: mail is a dormant feature, so missing credentials
+  # must not stop the app booting. Without this the misconfiguration would
+  # surface only in invoice_notifications.last_error, long after deploy.
+  if smtp_user_name.blank? || smtp_password.blank?
+    warn "WARNING: smtp credentials are not configured; reminder email delivery will fail."
+  end
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
   # the I18n.default_locale when a translation cannot be found).

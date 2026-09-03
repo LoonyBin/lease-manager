@@ -69,7 +69,7 @@ if dokku config:get "$APP" RAILS_MASTER_KEY >/dev/null 2>&1; then
   ok "RAILS_MASTER_KEY is set"
 else
   echo "ERROR: RAILS_MASTER_KEY is not set. Set it manually (never commit it):" >&2
-  echo "  ssh $DOKKU_HOST config:set $APP RAILS_MASTER_KEY=<key>" >&2
+  echo "  ssh $DOKKU_HOST config:set $APP RAILS_MASTER_KEY=the-contents-of-config-master-key" >&2
   exit 1
 fi
 # Warns rather than fails: the app boots without it, but reminder mail then
@@ -78,7 +78,7 @@ if [[ -n "$(dokku config:get "$APP" MAIL_FROM 2>/dev/null || true)" ]]; then
   ok "MAIL_FROM is set"
 else
   echo "WARNING: MAIL_FROM is not set; reminder mail would be sent from no-reply@example.com:" >&2
-  echo "  ssh $DOKKU_HOST config:set $APP MAIL_FROM=<the Gmail address reminders send from>" >&2
+  echo "  ssh $DOKKU_HOST config:set $APP MAIL_FROM=your-gmail-address@example.com" >&2
 fi
 
 # Dokku defaults non-web proctypes to 0, so a fresh app never runs its
