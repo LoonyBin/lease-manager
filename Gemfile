@@ -6,7 +6,7 @@ gem "aws-sdk-s3"
 gem "bootsnap", require: false
 gem "chartkick", "~> 5.2"
 gem "dartsass-rails"
-gem "dentaku", "~> 3.5"
+gem "dentaku", "~> 4.0"
 gem "groupdate", "~> 6.8"
 gem "haml-rails"
 gem "heroicons"
