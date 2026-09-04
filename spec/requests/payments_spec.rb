@@ -125,7 +125,7 @@ RSpec.describe "Payments" do
         expect(payment.balance).to eq(-100)
       end
 
-      it "redirects to the payments list" do
+      it "redirects to the payments list by default" do
         post payments_path, params: valid_params
         expect(response).to redirect_to(payments_path)
       end
@@ -172,7 +172,7 @@ RSpec.describe "Payments" do
         expect(payment.balance).to eq(0)
       end
 
-      it "redirects to the payments list" do
+      it "redirects to the payments list by default" do
         post payments_path, params: valid_params
         expect(response).to redirect_to(payments_path)
       end
