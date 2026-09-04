@@ -12,16 +12,18 @@ export default class extends Controller {
     const path = window.location.pathname
     if (NON_CHECKPOINT_PATTERNS.some(re => re.test(path))) return
 
+    const checkpoint = path + window.location.search
     const stack = this.#load()
-    if (stack[stack.length - 1] !== path) {
-      stack.push(path)
+    if (stack[stack.length - 1] !== checkpoint) {
+      stack.push(checkpoint)
       this.#save(stack)
     }
   }
 
   #load() {
     try {
-      return JSON.parse(sessionStorage.getItem(HISTORY_KEY) || "[]")
+      const parsed = JSON.parse(sessionStorage.getItem(HISTORY_KEY) || "[]")
+      return Array.isArray(parsed) ? parsed : []
     } catch {
       return []
     }
