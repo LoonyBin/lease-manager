@@ -40,9 +40,8 @@ RSpec.describe ReminderStep do
     # non-advancing repeat sneaking past it via update_column or raw SQL.
     it "rejects a zero repeat interval at the database too" do
       step = create(:reminder_step, repeat_every_days: 7)
-      # rubocop:disable Rails/SkipsModelValidations -- skipping them is exactly what is under test
+      # rubocop:disable-next Rails/SkipsModelValidations -- skipping them is exactly what is under test
       sneak_past_validations = -> { step.update_column(:repeat_every_days, 0) }
-      # rubocop:enable Rails/SkipsModelValidations
 
       expect(&sneak_past_validations)
         .to raise_error(ActiveRecord::StatementInvalid, /reminder_steps_repeat_every_days_positive/)

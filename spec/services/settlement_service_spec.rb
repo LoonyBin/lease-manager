@@ -23,13 +23,12 @@ RSpec.describe SettlementService do
     let!(:invoice) { create_invoice(amount: 100) }
     let!(:payment) { create_payment_record(amount: 100) }
 
-    # rubocop:disable Rails/SkipsModelValidations -- Reset auto-settled state for manual settlement tests
+    # rubocop:disable-next Rails/SkipsModelValidations -- Reset auto-settled state for manual settlement tests
     def reset_balances(invoice_balance: 100, payment_balance: -100)
       Entry.delete_all
       invoice.update_column(:balance, invoice_balance)
       payment.update_column(:balance, payment_balance)
     end
-    # rubocop:enable Rails/SkipsModelValidations
 
     context "when settling a partial amount" do
       before { reset_balances }

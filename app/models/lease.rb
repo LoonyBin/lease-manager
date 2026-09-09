@@ -70,11 +70,10 @@ class Lease < ApplicationRecord
   validate :termination_date_after_start_date
   validates :archived_at, absence: true, unless: :terminated_on?
 
-  # rubocop:disable Rails/SkipsModelValidations -- Intentionally skip callbacks to avoid infinite loops
+  # rubocop:disable-next Rails/SkipsModelValidations -- Intentionally skip callbacks to avoid infinite loops
   def recalculate_cached_balance!
     update_column(:cached_balance, invoices.unsettled.sum(:balance))
   end
-  # rubocop:enable Rails/SkipsModelValidations
 
   def overdue_balance
     @overdue_balance ||= invoices.overdue.sum(:balance)

@@ -78,18 +78,16 @@ class InvoiceNotification < ApplicationRecord
   # Atomically moves this row from +approved+ to +sending+, returning false if
   # another worker (or an admin cancelling) got there first. The conditional
   # UPDATE is the claim: only the caller whose write matched a row proceeds.
-  # rubocop:disable Naming/PredicateMethod -- reports whether this caller won the claim
+  # rubocop:disable-next Naming/PredicateMethod -- reports whether this caller won the claim
   def claim_for_delivery!
-    # rubocop:disable Rails/SkipsModelValidations -- the conditional UPDATE is the lock
+    # rubocop:disable-next Rails/SkipsModelValidations -- the conditional UPDATE is the lock
     claimed = self.class.where(id: id, status: self.class.statuses[:approved])
                   .update_all(status: self.class.statuses[:sending], updated_at: Time.current)
-    # rubocop:enable Rails/SkipsModelValidations
     return false unless claimed == 1
 
     reload
     true
   end
-  # rubocop:enable Naming/PredicateMethod
 
   def mark_sent!
     update!(status: :sent, sent_at: Time.current, last_error: nil)
@@ -104,9 +102,8 @@ class InvoiceNotification < ApplicationRecord
     update!(status: :failed, last_error: message)
   rescue ActiveRecord::ActiveRecordError => e
     Rails.logger.error("Could not save failure on notification #{id}, forcing terminal state: #{e.message}")
-    # rubocop:disable Rails/SkipsModelValidations -- validations are what is blocking the write
+    # rubocop:disable-next Rails/SkipsModelValidations -- validations are what is blocking the write
     update_columns(status: self.class.statuses[:failed], last_error: message, updated_at: Time.current)
-    # rubocop:enable Rails/SkipsModelValidations
   end
 
   def to_s

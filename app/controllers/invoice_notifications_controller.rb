@@ -64,20 +64,18 @@ class InvoiceNotificationsController < ApplicationController
   # A conditional UPDATE rather than a read-then-write: only the request whose
   # write actually matched the expected status proceeds, so two admins clicking
   # Approve at once cannot both enqueue a send for the same reminder.
-  # rubocop:disable Naming/PredicateMethod -- reports whether this caller won the transition
+  # rubocop:disable-next Naming/PredicateMethod -- reports whether this caller won the transition
   def transition(notification, from:, to:, **attributes)
     statuses = InvoiceNotification.statuses
     expected = Array(from).map { |status| statuses.fetch(status.to_s) }
     updates = attributes.merge(status: statuses.fetch(to.to_s), updated_at: Time.current)
-    # rubocop:disable Rails/SkipsModelValidations -- the conditional UPDATE is the lock
+    # rubocop:disable-next Rails/SkipsModelValidations -- the conditional UPDATE is the lock
     changed = InvoiceNotification.where(id: notification.id, status: expected).update_all(updates)
-    # rubocop:enable Rails/SkipsModelValidations
     return false unless changed == 1
 
     notification.reload
     true
   end
-  # rubocop:enable Naming/PredicateMethod
 
   def set_notification
     @notification = policy_scope(InvoiceNotification).find(params.expect(:id))
