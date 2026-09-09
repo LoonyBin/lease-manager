@@ -11,7 +11,7 @@ RSpec.describe TemplateInvoiceGenerator do
   # Reference implementation: the exact arithmetic of the legacy
   # InvoiceGenerator (rent line + conditional pro-rated discount line),
   # kept verbatim rather than restructured for the metrics cops.
-  # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
+  # rubocop:disable-next Metrics/AbcSize, Metrics/MethodLength
   def legacy_invoice_attributes(lease, date)
     date = date.beginning_of_month
     rent = lease.current_rent_at(date)
@@ -31,7 +31,6 @@ RSpec.describe TemplateInvoiceGenerator do
 
     { date: date, due_date: date + lease.payment_due_in, line_items: line_items }
   end
-  # rubocop:enable Metrics/AbcSize, Metrics/MethodLength
 
   def generated_invoice_attributes(lease, date)
     invoice = described_class.new(lease.invoice_templates.first, date).call
