@@ -10,7 +10,7 @@ gem "dentaku", "~> 4.0"
 gem "groupdate", "~> 6.8"
 gem "haml-rails"
 gem "heroicons"
-gem "image_processing", "~> 2.0"
+gem "image_processing", "~> 2.1"
 gem "importmap-rails"
 gem "jbuilder"
 gem "kamal", require: false
