@@ -79,5 +79,22 @@ RSpec.describe InvoiceTemplates::AmountEvaluator do
       expect { described_class.unknown_identifiers("rent +* 2") }
         .to raise_error(InvoiceTemplates::EvaluationError)
     end
+
+    it "lists unknown identifiers on the untaken branch of a CASE" do
+      expect(described_class.unknown_identifiers("CASE 1 WHEN 1 THEN rent WHEN 2 THEN typo_var END"))
+        .to eq(["typo_var"])
+    end
+
+    it "lists unknown identifiers short-circuited away by OR" do
+      expect(described_class.unknown_identifiers("true OR typo_var")).to eq(["typo_var"])
+    end
+
+    it "lists unknown identifiers short-circuited away by AND" do
+      expect(described_class.unknown_identifiers("false AND typo_var")).to eq(["typo_var"])
+    end
+
+    it "lists unknown identifiers in the untaken arm of an IF" do
+      expect(described_class.unknown_identifiers("IF(1 > 0, rent, typo_var)")).to eq(["typo_var"])
+    end
   end
 end
