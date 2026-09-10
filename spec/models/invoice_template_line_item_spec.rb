@@ -38,6 +38,14 @@ RSpec.describe InvoiceTemplateLineItem do
         .to include("references unknown variables: maintenance_fee")
     end
 
+    it "rejects unknown variables hidden on a branch that is never taken", :aggregate_failures do
+      line_item = build(:invoice_template_line_item,
+                        amount_expression: "CASE 1 WHEN 1 THEN rent WHEN 2 THEN maintenance_fee END")
+      expect(line_item).not_to be_valid
+      expect(line_item.errors[:amount_expression])
+        .to include("references unknown variables: maintenance_fee")
+    end
+
     it "rejects malformed expressions", :aggregate_failures do
       line_item = build(:invoice_template_line_item, amount_expression: "rent * (")
       expect(line_item).not_to be_valid
