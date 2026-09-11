@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class InvoicesController < ApplicationController
+  include InvoiceAuditSerialization
+
   respond_to :html, :json
 
   def index
@@ -56,41 +58,6 @@ class InvoicesController < ApplicationController
   end
 
   private
-
-  # Hand-picked rather than a record dump, like the reports payloads: the audit's
-  # answer is an aggregate over leases and templates, so there is no model whose
-  # attributes would serialize it. See #187 — "which months are missing invoices?"
-  # was previously answerable only by rendering the HTML page and scraping it.
-  def audit_payload
-    {
-      missing_invoices: @missing_invoices.map { |item| missing_invoice_payload(item) },
-      leases_without_templates: @leases_without_templates.map { |lease| audit_lease_payload(lease) }
-    }
-  end
-
-  # expected_amount is null when the template's amount expression could not be
-  # evaluated for that month (InvoiceTemplates::EvaluationError). The month is
-  # still genuinely missing; the figure is simply not knowable. A consumer must
-  # not read null as zero — that is the one ambiguity this payload has to carry.
-  def missing_invoice_payload(item)
-    {
-      date: item.date,
-      lease_id: item.lease.id,
-      invoice_template_id: item.template.id,
-      invoice_template_name: item.template.name,
-      property: { id: item.property.id, name: item.property.name },
-      tenant: { id: item.tenant.id, name: item.tenant.name },
-      expected_amount: item.expected_amount
-    }
-  end
-
-  def audit_lease_payload(lease)
-    {
-      id: lease.id,
-      property: { id: lease.property.id, name: lease.property.name },
-      tenant: { id: lease.tenant.id, name: lease.tenant.name }
-    }
-  end
 
   # Prefills rental invoices from an invoice template when a lease and date
   # are given without explicit line items (invoice form and audit page).

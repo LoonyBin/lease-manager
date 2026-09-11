@@ -136,13 +136,16 @@ RSpec.describe "Invoices" do
     let(:today) { Date.current }
     let!(:lease) { create(:lease, start_date: today - 1.month, duration_months: 12) }
     let(:payload) { response.parsed_body }
+    let(:entry) { payload["missing_invoices"].find { |item| item["lease_id"] == lease.id } }
 
     before { get audit_invoices_path(format: :json) }
 
-    it "returns the missing months with the lease, template and parties", :aggregate_failures do
+    it "returns a missing month for the lease", :aggregate_failures do
       expect(response).to have_http_status(:success)
-      entry = payload["missing_invoices"].find { |item| item["lease_id"] == lease.id }
       expect(entry).to be_present
+    end
+
+    it "names the template and both parties on each missing month", :aggregate_failures do
       expect(entry["tenant"]).to include("id" => lease.tenant.id, "name" => lease.tenant.name)
       expect(entry["property"]).to include("id" => lease.property.id, "name" => lease.property.name)
       expect(lease.invoice_templates.ids).to include(entry["invoice_template_id"])
