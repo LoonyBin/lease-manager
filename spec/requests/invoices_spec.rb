@@ -81,9 +81,13 @@ RSpec.describe "Invoices" do
   end
 
   describe "POST /invoices" do
-    context "with document_type credit_note" do
-      let(:lease) { create(:lease) }
+    let(:lease) { create(:lease) }
+    let(:valid_params) do
+      { invoice: { lease_id: lease.id, date: Date.current.beginning_of_month.iso8601,
+                   status: "draft", document_type: "invoice" } }
+    end
 
+    context "with document_type credit_note" do
       it "creates a credit note", :aggregate_failures do
         params = { invoice: { lease_id: lease.id, date: Date.current, document_type: "credit_note",
                               line_items_attributes: { "0" => { name: "Refund", amount: 500, tax_rate: 0,
@@ -91,6 +95,11 @@ RSpec.describe "Invoices" do
         expect { post invoices_path, params: params }.to change(Invoice, :count).by(1)
         expect(Invoice.last).to be_credit_note
       end
+    end
+
+    it "redirects to the new invoice on success" do
+      post invoices_path, params: valid_params
+      expect(response).to redirect_to(invoice_path(Invoice.last))
     end
   end
 
