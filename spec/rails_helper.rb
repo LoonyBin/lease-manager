@@ -77,6 +77,30 @@ RSpec.configure do |config|
   config.filter_rails_from_backtrace!
   # arbitrary gems may also be filtered via:
   # config.filter_gems_from_backtrace("gem name")
+
+  # Specs that attach files upload to the Active Storage :test service, a Disk
+  # service rooted at tmp/storage (config/storage.yml). use_transactional_fixtures
+  # rolls the ActiveRecord rows back but leaves the uploaded blobs — and their
+  # processed variants — on disk, so tmp/storage grows without bound across runs.
+  # tmp/ is gitignored, so this is disk hygiene on long-lived local and CI hosts,
+  # not a correctness problem. See #189.
+  #
+  # This is an rm_rf, so it refuses any root it cannot prove is throwaway scratch:
+  # a non-Disk service (which has no root at all), the real storage/ directory, or
+  # anything outside Rails.root/tmp. A mis-set storage.yml must fail closed here —
+  # skipping the cleanup costs disk, deleting the wrong tree costs uploads.
+  #
+  # Note: if Rails parallel testing is ever enabled, each worker needs its own
+  # service root before this hook is safe — otherwise the first worker to finish
+  # deletes blobs the others are still using.
+  config.after(:suite) do
+    service = ActiveStorage::Blob.service
+    if Rails.env.test? && service.respond_to?(:root)
+      root = Pathname.new(service.root.to_s).expand_path
+      tmp = Rails.root.join("tmp").expand_path
+      FileUtils.rm_rf(root) if root.to_s.start_with?("#{tmp}/")
+    end
+  end
 end
 
 Shoulda::Matchers.configure do |config|
