@@ -33,7 +33,7 @@ the `main` branch, and runs when that CI run concluded `success`. It then pushes
 tested to the Dokku host:
 
 ```
-git push dokku@91.98.73.173:lease-manager HEAD:refs/heads/main --force
+git push "dokku@${DOKKU_HOST}:lease-manager" "<the SHA CI tested>:refs/heads/main" --force
 ```
 
 So:
@@ -47,20 +47,79 @@ So:
   serving.
 - CI failing is the only thing standing between a bad commit and production. A red CI run means no
   deploy; a green one means a deploy.
-- The deploy job uses `concurrency: deploy-production` with `cancel-in-progress: true`, so rapid
-  merges can cancel an in-flight deploy.
+- The deploy job uses `concurrency: deploy-production` with `cancel-in-progress: false`, so rapid
+  merges **queue** rather than interrupting a push that is already underway — an interrupted release
+  can leave the host between containers.
 
 Whether this should remain the arrangement is an open question for the repository owner, not a
 settled design.
 
-### Deploy credentials
+### Deploy credentials and host trust
+
+> **Landing with [PR #227](https://github.com/LoonyBin/lease-manager/pull/227).** Both variables
+> below are already set on the repository and the fingerprint is verified. The workflow steps that
+> consume them — and the `cancel-in-progress: false` behaviour described above — arrive with that
+> pull request. Until it merges, `main` still runs `ssh-keyscan -H` at deploy time and still cancels
+> an in-flight deploy. **Delete this note when #227 is merged.**
 
 | Where | Name | What it is |
 |---|---|---|
-| GitHub Actions secret | `DOKKU_SSH_PRIVATE_KEY` | Private key whose public half is registered with `dokku ssh-keys:add` on the host |
+| Actions **secret** | `DOKKU_SSH_PRIVATE_KEY` | Private key whose public half is registered on the host with `dokku ssh-keys:add` |
+| Actions **variable** | `DOKKU_HOST` | `91.98.73.173` — the host the workflow pushes to |
+| Actions **variable** | `DOKKU_HOST_KEY` | The `known_hosts` line for that host, below |
 
-The workflow currently trusts the host key on first contact (`ssh-keyscan` at deploy time) rather
-than pinning a known fingerprint. Pinning it is tracked as deploy-safety work and is not done here.
+The workflow does **not** run `ssh-keyscan`. It writes `DOKKU_HOST_KEY` to `~/.ssh/known_hosts` and
+pushes with `StrictHostKeyChecking=yes`, so a host answering with a different key is refused rather
+than trusted. `ssh-keyscan` trusts whatever is listening on port 22, which made every deploy a fresh
+trust-on-first-use; that is the weakness being removed.
+
+The pinned value:
+
+```
+91.98.73.173 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILCRqWM3z6JzNEyKRfroFTGqtWp82nXGyP7GtuO6D3dx
+```
+
+Fingerprint: `SHA256:/xVM9kPjM+fIwOcY+YtADi1Clufa7x32Sb2oANa9LTY`
+
+A host public key is not a secret, so a repository **variable** is the right home for it: it stays
+readable in the repository settings and in workflow logs, which is what you want for a value whose
+whole purpose is to be audited.
+
+#### If a deploy fails with `REMOTE HOST IDENTIFICATION HAS CHANGED`
+
+The host key no longer matches the pinned one. **Do not re-scan the host to make the error go away.**
+Re-scanning is precisely the weakness the pin removes, and this error is indistinguishable from
+something else answering on that address.
+
+1. Account for *why* it changed. A legitimate cause is a host rebuild or a deliberate rekey. If you
+   cannot account for it, treat it as a security incident and stop here.
+2. Capture the new line:
+
+   ```sh
+   ssh-keyscan -t ed25519 "$DOKKU_HOST"
+   ```
+
+3. **Cross-check the fingerprint against the Hetzner console** before trusting it. The console shows
+   the host's key independently of the network path you just scanned over — that independence is the
+   entire value of the check.
+4. Re-pin, and update the value recorded above in this file:
+
+   ```sh
+   gh variable set DOKKU_HOST_KEY --body "<the scanned line>"
+   ```
+
+#### If the host moves
+
+Set both variables. The `known_hosts` line must name the **same host string** the workflow connects
+to, or it will not match:
+
+```sh
+gh variable set DOKKU_HOST     --body "<new address>"
+gh variable set DOKKU_HOST_KEY --body "<new address> ssh-ed25519 AAAA..."
+```
+
+The workflow verifies this with `ssh-keygen -F "$DOKKU_HOST"` before pushing, so a mismatch fails
+fast with a clear error instead of deploying.
 
 ---
 
@@ -227,7 +286,9 @@ The `predeploy` task creates the schema on an empty database.
 
 ### 7. Restore the data
 
-See [Database backup and restore](#database-backup-and-restore) below.
+See [Database backup and restore](#database-backup-and-restore) below. **Read the warning at the top
+of that section first:** if you are here because the old host is gone, there may be no dump to
+restore, and the steps that follow will stand up a working application with an empty database.
 
 ### 8. Issue the certificate
 
@@ -245,8 +306,9 @@ In the [Cloudflare dashboard](https://dash.cloudflare.com) for `loonyb.in`, upda
 
 ### 10. Update the things that hold the old IP address
 
-- `.github/workflows/deploy.yml` — the host address appears in the push target and in the
-  `ssh-keyscan` step.
+- The `DOKKU_HOST` and `DOKKU_HOST_KEY` repository variables — see
+  [If the host moves](#if-the-host-moves). The workflow takes the address from `DOKKU_HOST`, so there
+  is no host address to edit in `.github/workflows/deploy.yml`.
 - Google OAuth: the authorised origin and redirect URI
   (`https://lease-manager.loonyb.in/auth/google_oauth2/callback`) are keyed to the domain, not the
   IP, so they only need attention if the domain changes.
@@ -268,10 +330,18 @@ the B2 bucket in one go.
 
 ## Database backup and restore
 
-> **Scheduled off-host backups are not in place yet.** At the time of writing, the only copy of
-> production data is the Postgres service on the application host. Establishing off-host backups and
-> rehearsing a restore end to end is tracked separately and is not done. **Do not treat the commands
-> below as evidence that a backup exists — check for one before you rely on it.**
+> **There is no off-host backup of this database today.** The only copy of production data is the
+> Postgres service running on the application host. If that host is lost, the data is lost with it.
+> There is no automated dump, no off-site copy, and no restore that anyone has ever rehearsed.
+>
+> **Do not read the commands below as evidence that a backup exists.** They are how you would *take*
+> one, by hand, right now. Establishing a scheduled off-host backup and rehearsing a restore end to
+> end is open work, tracked as Gate 1b (`LOO-18`, document `sop-bcdr`); it is blocked on production
+> host access and on a pending decision about where the backups go.
+>
+> This paragraph is the honest state of affairs as of 2026-09-11. Until Gate 1b lands, **the first
+> thing to do in a data-loss incident is to establish whether any copy of the data exists at all** —
+> do not assume one does.
 
 ### Take a dump now
 
@@ -316,6 +386,28 @@ dokku postgres:backup-set-encryption lease-manager-db PASSPHRASE
 
 Use a **separate bucket and a separate application key** from the one the app uses for uploads — a
 backup that a compromised application can delete is not a backup.
+
+These commands are the shape the solution is expected to take. **None of them has been run.** Treat
+them as a proposal, not as a record of configuration.
+
+### Disaster recovery procedure — not yet written
+
+The section that should live here is a tested recovery procedure: a backup schedule, a stated
+recovery point and recovery time objective, and a restore that somebody has actually performed and
+timed. **None of that exists yet**, and this file will not pretend otherwise — the previous version of
+this document claimed automated daily backups with point-in-time recovery, which was false for the
+entire life of the current deployment, and that claim is exactly the kind of thing that does its
+damage mid-incident.
+
+What does exist today:
+
+- [Rebuilding from scratch](#rebuilding-from-scratch) above — verified against the repository, and
+  enough to stand the application back up on a new host.
+- The manual dump and restore commands above — correct, but nobody runs them on a schedule.
+
+What is missing is everything about the *data*. That work is Gate 1b (`LOO-18`), whose `sop-bcdr`
+document holds the procedure being drafted. Replace this subsection with the real thing when it
+lands; do not soften it before then.
 
 ---
 
@@ -454,13 +546,16 @@ the deploy workflow.
 
 Recorded here so a reader is not misled by omission:
 
-- **No scheduled off-host database backup, and no rehearsed restore.** Tracked separately.
-- **The deploy workflow does not pin the Dokku host key**; it trusts it on first contact at deploy
-  time.
-- **The host IP is hardcoded** in `.github/workflows/deploy.yml` rather than held in a repository
-  variable.
+- **No scheduled off-host database backup, and no rehearsed restore.** The largest gap here, and the
+  only one that can lose data outright. Tracked as Gate 1b (`LOO-18`). See
+  [Disaster recovery procedure — not yet written](#disaster-recovery-procedure--not-yet-written).
 - **No monitoring or alerting.** Nothing pages anyone if `/up` stops answering, if the certificate
   approaches expiry, or if the `worker` process stops.
+- **Stale Google Cloud repository variables are still set** — `GCP_PROJECT_ID`, `GCP_REGION`,
+  `CICD_SERVICE_ACCOUNT` and `WIF_PROVIDER`, all dated 2026-03-23, left behind by the migration off
+  Cloud Run. No workflow reads them. They are harmless but misleading to anyone reading the
+  repository settings; delete them, and check whether the Google Cloud project and its service
+  account are still live and still billing.
 - **`RAILS_MASTER_KEY` exists in exactly one place** outside the repository owner's own copy: the
   Dokku config for this app.
 - **The live values of `HTTP_PORT` and the port mapping are not recorded in this repository** — they
