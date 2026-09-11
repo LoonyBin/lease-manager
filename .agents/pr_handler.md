@@ -17,9 +17,9 @@ When the user asks to "check PR comments":
 
 ### 2. Addressing Feedback
 
-For CodeRabbit or any other review threads, read `.agents/review_feedback.md`
-and follow it — `gh pr view --comments` does not return the thread IDs needed to
-reply to or resolve a thread.
+For CodeRabbit or any other review threads, follow the `address-review-feedback`
+Paperclip company skill — `gh pr view --comments` does not return the thread IDs
+needed to reply to or resolve a thread.
 
 1.  **Checkout Branch**: `gh pr checkout <PR_NUMBER>`
 2.  **Execute Changes**: Switch to the appropriate role (Planner/Backend/Frontend) to implement fixes.

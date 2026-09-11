@@ -54,8 +54,10 @@ You are an intelligent agent working on this project. Your first step is to iden
 - Managing git branches, merges, or PR creation/updates.
 - Interacting with `gh` CLI.
 
-For triaging CodeRabbit or other review threads on a PR, follow
-`.agents/review_feedback.md`.
+For triaging CodeRabbit or other review threads on a PR, follow the
+`address-review-feedback` Paperclip company skill. It is attached at the company
+level, so it loads automatically for agents that have it — there is no repo file
+to read.
 
 ## Core Directives
 
