@@ -289,7 +289,9 @@ immediately.
 ssh dokku@NEW_HOST postgres:import lease-manager-db < lease-manager-2026-01-01.dump
 ```
 
-Restore into an **empty** service. `postgres:import` does not drop existing objects first.
+Restore into an **empty** service. If the service already holds data, destroy and recreate it
+(`postgres:destroy lease-manager-db`, `postgres:create lease-manager-db`, `postgres:link`) rather
+than importing on top — importing over live data is not something to find out about mid-incident.
 
 ### After any restore
 

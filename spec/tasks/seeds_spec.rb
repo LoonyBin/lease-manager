@@ -32,7 +32,6 @@ RSpec.describe "db/seeds.rb", type: :task do # -- Seed file spec
     $stdout = original
   end
 
-  # rubocop:disable RSpec/ExampleLength -- seeding is slow; one run, asserted once
   it "seeds a dataset the application can actually use", :aggregate_failures do
     expect { run_seed }.not_to raise_error
 
@@ -41,7 +40,6 @@ RSpec.describe "db/seeds.rb", type: :task do # -- Seed file spec
     expect(Payment.count).to be_positive
     expect(User.pluck(:email)).to include("admin@example.com", "user@example.com")
   end
-  # rubocop:enable RSpec/ExampleLength
 
   it "refuses to seed a production database" do
     allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new("production"))
