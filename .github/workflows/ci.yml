@@ -47,6 +47,33 @@ jobs:
       - name: Scan for security vulnerabilities in JavaScript dependencies
         run: bin/importmap audit
 
+  # Brakeman reads our code; this reads our gems. Without it a published CVE in
+  # a dependency reaches production unremarked.
+  scan_gems:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          # bundler-audit reads Gemfile.lock directly and needs none of the
+          # app's gems installed, so skip the bundle. Keeping it out of the
+          # Gemfile also keeps this job off the Gemfile.lock merge path that
+          # Dependabot touches daily.
+          bundler-cache: false
+
+      - name: Install bundler-audit
+        run: gem install bundler-audit --no-document
+
+      # --update refreshes the ruby-advisory-db before checking, so a CVE
+      # published this morning is caught this morning.
+      - name: Scan Ruby dependencies for known advisories
+        run: bundle-audit check --update
+
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -114,3 +141,28 @@ jobs:
 
       - name: Run tests
         run: bundle exec rspec
+
+  # Dokku builds this same Dockerfile on the production host at deploy time. If
+  # the build is broken we want to find out on a runner, on the pull request,
+  # not on the host halfway through a release.
+  build_image:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build the production image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          # Nothing consumes the image — Dokku builds its own. This job exists
+          # to prove the Dockerfile still builds, so there is nothing to push
+          # and nothing to load into the runner's daemon.
+          push: false
+          load: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

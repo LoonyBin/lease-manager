@@ -8,7 +8,9 @@ on:
 
 concurrency:
   group: deploy-production
-  cancel-in-progress: true
+  # Never cancel a deploy that is already pushing to Dokku — an interrupted
+  # release can leave the host between containers. Queue instead.
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -27,11 +29,50 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.DOKKU_SSH_PRIVATE_KEY }}
 
-      - name: Add Dokku host to known_hosts
-        run: ssh-keyscan -H 91.98.73.173 >> ~/.ssh/known_hosts
+      # The host key is pinned in a repository variable rather than scanned at
+      # deploy time. ssh-keyscan trusts whatever answers on port 22, which makes
+      # every deploy a fresh trust-on-first-use. DOKKU_HOST_KEY holds the
+      # known_hosts line(s) for DOKKU_HOST; a host public key is not a secret,
+      # so a variable is the right home for it — it stays readable in the repo
+      # settings and in logs, which is what you want for a value you audit.
+      #
+      # Rotating the host or its key means updating DOKKU_HOST_KEY. See
+      # DEPLOYMENT.md for how to capture and verify the value.
+      - name: Pin the Dokku host key
+        env:
+          DOKKU_HOST: ${{ vars.DOKKU_HOST }}
+          DOKKU_HOST_KEY: ${{ vars.DOKKU_HOST_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "$DOKKU_HOST" ] || [ -z "$DOKKU_HOST_KEY" ]; then
+            echo "::error::Repository variables DOKKU_HOST and DOKKU_HOST_KEY must both be set. See DEPLOYMENT.md."
+            exit 1
+          fi
+          # Absolute paths throughout: ssh expands a leading ~ from the passwd
+          # entry rather than from $HOME, so a literal ~ in an ssh option can
+          # quietly resolve somewhere other than the file we just wrote.
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          printf '%s\n' "$DOKKU_HOST_KEY" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+          # Fail here with a clear message, rather than at git-push time, if the
+          # pinned line does not actually cover the host we are about to reach.
+          if ! ssh-keygen -F "$DOKKU_HOST" -f "$HOME/.ssh/known_hosts" > /dev/null; then
+            echo "::error::DOKKU_HOST_KEY contains no known_hosts entry for $DOKKU_HOST."
+            exit 1
+          fi
 
       - name: Deploy to Dokku
-        run: git push dokku@91.98.73.173:lease-manager HEAD:refs/heads/main --force
+        env:
+          DOKKU_HOST: ${{ vars.DOKKU_HOST }}
+          # StrictHostKeyChecking=yes refuses the connection on a mismatch
+          # instead of falling back to an interactive prompt. GlobalKnownHostsFile
+          # is neutered so the pinned key in the user known_hosts is the only
+          # trust anchor — a system-wide file cannot silently supply another.
+          GIT_SSH_COMMAND: ssh -o StrictHostKeyChecking=yes -o GlobalKnownHostsFile=/dev/null
+        run: |
+          git push "dokku@${DOKKU_HOST}:lease-manager" \
+            "${{ github.event.workflow_run.head_sha }}:refs/heads/main" --force
 
       - name: Smoke test
         run: curl --fail --silent --show-error --max-time 30 https://lease-manager.loonyb.in/up
