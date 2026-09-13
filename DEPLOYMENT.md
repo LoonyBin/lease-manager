@@ -46,7 +46,11 @@ So:
   the new release takes traffic. A failing migration fails the deploy and the old release keeps
   serving.
 - CI failing is the only thing standing between a bad commit and production. A red CI run means no
-  deploy; a green one means a deploy.
+  deploy; a green one means a deploy. CI's jobs are `scan_ruby`, `scan_js`, `scan_gems`, `lint`,
+  `test` and `build_image`; **all** of them must pass.
+- `build_image` builds the production `Dockerfile` on the runner and throws the image away — nothing
+  consumes it, because Dokku builds its own on the host. It exists so that a `Dockerfile` that no
+  longer builds fails CI instead of failing mid-deploy on the host.
 - The deploy job uses `concurrency: deploy-production` with `cancel-in-progress: false`, so rapid
   merges **queue** rather than interrupting a push that is already underway — an interrupted release
   can leave the host between containers.
