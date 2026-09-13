@@ -56,12 +56,6 @@ settled design.
 
 ### Deploy credentials and host trust
 
-> **Landing with [PR #227](https://github.com/LoonyBin/lease-manager/pull/227).** Both variables
-> below are already set on the repository and the fingerprint is verified. The workflow steps that
-> consume them — and the `cancel-in-progress: false` behaviour described above — arrive with that
-> pull request. Until it merges, `main` still runs `ssh-keyscan -H` at deploy time and still cancels
-> an in-flight deploy. **Delete this note when #227 is merged.**
-
 | Where | Name | What it is |
 |---|---|---|
 | Actions **secret** | `DOKKU_SSH_PRIVATE_KEY` | Private key whose public half is registered on the host with `dokku ssh-keys:add` |
@@ -71,7 +65,7 @@ settled design.
 The workflow does **not** run `ssh-keyscan`. It writes `DOKKU_HOST_KEY` to `~/.ssh/known_hosts` and
 pushes with `StrictHostKeyChecking=yes`, so a host answering with a different key is refused rather
 than trusted. `ssh-keyscan` trusts whatever is listening on port 22, which made every deploy a fresh
-trust-on-first-use; that is the weakness being removed.
+trust-on-first-use; pinning is what removed that.
 
 The pinned value:
 
