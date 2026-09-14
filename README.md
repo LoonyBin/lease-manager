@@ -141,7 +141,14 @@ The last one is the awkward case: for about a minute after the switch the
 previous release's worker is still alive and still heartbeating, so "a worker is
 up" is not the same as "the new worker is up". `/health/workers` reports how long
 ago the newest live worker started, and the deploy compares that against how long
-its own deploy has been running.
+its own deploy has been running, passed in as `DEPLOY_STARTED_AT`.
+
+Run by hand there is no deploy to be newer than, so that half of the check is
+skipped and the run says so at the end. Run from a deploy it is mandatory: a
+missing or malformed `DEPLOY_STARTED_AT` is an error, not a quieter pass, because
+"a worker is alive" is true of the release being replaced — exactly the failure
+the check exists to catch. `REQUIRE_FRESH_WORKER` decides which of those applies
+and defaults to on wherever `CI` is set.
 
 ### The health endpoints
 
