@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class InvoicesController < ApplicationController
+  include InvoiceAuditSerialization
+
   respond_to :html, :json
 
   def index
@@ -34,6 +36,7 @@ class InvoicesController < ApplicationController
     detector = MissingInvoiceDetector.new
     @missing_invoices = detector.call
     @leases_without_templates = detector.leases_without_templates
+    respond_ok { audit_payload }
   end
 
   def create

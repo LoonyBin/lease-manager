@@ -195,6 +195,51 @@ Sorting and filtering by the same figure already work through ransack
 (`?q[s]=total_amount+desc`, `?q[total_amount_gteq]=1000`); the listing computes
 every row's total in one query rather than one per invoice.
 
+### The invoice audit
+
+`GET /invoices/audit.json` answers *"which months were never invoiced?"* — the
+same question the audit page renders, as data.
+
+It is an aggregate over every non-upcoming, non-archived lease's templates, not
+a record listing, so (like the reports) it serializes an explicit, hand-picked
+payload rather than a model's attributes. A consumer cannot reproduce it without
+reimplementing the detector: it walks each template's effective window month by
+month and excludes months already billed under the `covering` rule, so a
+template-linked credit note does not mask its own template.
+
+```sh
+curl -H "Authorization: Bearer $TOKEN" https://example.com/invoices/audit.json
+```
+
+```json
+{
+  "missing_invoices": [
+    {
+      "date": "2026-03-01",
+      "lease_id": 42,
+      "invoice_template_id": 7,
+      "invoice_template_name": "Monthly rent",
+      "property": { "id": 3, "name": "Villa" },
+      "tenant": { "id": 9, "name": "A. Tenant" },
+      "expected_amount": "1180.0"
+    }
+  ],
+  "leases_without_templates": [
+    { "id": 51, "property": { "id": 4, "name": "Cottage" },
+      "tenant": { "id": 12, "name": "B. Tenant" } }
+  ]
+}
+```
+
+`date` is always the first of the missing month. `expected_amount` is **`null`**
+when the template's amount expression could not be evaluated for that month —
+the month is still genuinely missing, the figure simply is not knowable. Do not
+read `null` as zero.
+
+`leases_without_templates` lists leases that generate no invoices at all because
+every template was deleted. Generation skips them silently, so they would
+otherwise be invisible.
+
 ### Correcting a payment
 
 `PATCH /payments/:id` is also the correction surface for a mis-entered payment.
