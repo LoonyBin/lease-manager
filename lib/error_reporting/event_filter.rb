@@ -10,6 +10,11 @@ module ErrorReporting
   # the event message, the extra/contexts/tags hashes and the breadcrumb trail
   # — and runs each string through MessageScrubber.
   #
+  # It scrubs hash *values* and never hash keys. Nothing puts free text in a key
+  # position today — Rails' error reporter nests its context under
+  # developer-chosen symbols — so this is a known limit rather than a gap, and
+  # it is written down so it stays one.
+  #
   # It fails closed. sentry-ruby calls `before_send` without a rescue of its
   # own, so an exception raised here would escape into whatever the application
   # was doing at the time; and a half-scrubbed event is worse than a useless

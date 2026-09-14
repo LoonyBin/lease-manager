@@ -54,6 +54,29 @@ RSpec.describe ErrorReporting::MessageScrubber do
       end
     end
 
+    context "with a Postgres not-null violation" do
+      let(:message) do
+        <<~MESSAGE
+          PG::NotNullViolation: ERROR:  null value in column "reference" of relation "tenants" violates not-null constraint
+          DETAIL:  Failing row contains (482, Alice Whitfield, 12 High Street, 40-47-84, 71234567).
+        MESSAGE
+      end
+
+      it "removes the whole row and keeps the column and constraint names", :aggregate_failures do
+        expect(scrubbed(message)).to include("Failing row contains ([FILTERED])")
+        expect(scrubbed(message)).to include(%(column "reference"), "not-null constraint")
+        expect(scrubbed(message)).not_to include("Alice Whitfield", "40-47-84", "71234567")
+      end
+    end
+
+    context "with a row value that itself contains parentheses" do
+      let(:message) { "DETAIL:  Failing row contains (1, Acme (UK) Ltd, 12 High Street)." }
+
+      it "removes the row to the end of the line rather than stopping inside it" do
+        expect(scrubbed(message)).to eq("DETAIL:  Failing row contains ([FILTERED]).")
+      end
+    end
+
     context "with the failing statement quoted in the message" do
       let(:message) do
         <<~MESSAGE
@@ -76,6 +99,15 @@ RSpec.describe ErrorReporting::MessageScrubber do
         expect(scrubbed(message)).to include("token: [FILTERED]")
         expect(scrubbed(message)).to include("api_rate_limit: 300")
         expect(scrubbed(message)).not_to include("sk_live_9f21")
+      end
+    end
+
+    context "with a JSON-shaped name the application refuses to log" do
+      let(:message) { %(invalid payload {"ssn":"123-45-6789","token":"sk_live_9f21"}) }
+
+      it "removes the values even though a quote sits before the colon", :aggregate_failures do
+        expect(scrubbed(message)).to include(%("ssn":[FILTERED]), %("token":[FILTERED]))
+        expect(scrubbed(message)).not_to include("123-45-6789", "sk_live_9f21")
       end
     end
   end

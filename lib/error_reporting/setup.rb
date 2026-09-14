@@ -8,11 +8,17 @@ module ErrorReporting
   #
   # This lives in lib/ rather than inline in config/initializers/sentry.rb so
   # that a spec can build a real Sentry::Configuration, apply it, and assert
-  # what will and will not leave the server. Every one of those settings has a
-  # safe default in sentry-ruby 7 today; the point of stating them anyway is
-  # that a default is a promise the gem makes to itself, not to us, and a
-  # future release changing one must fail a test rather than quietly start
-  # posting request bodies to a third party.
+  # what will and will not leave the server. Most of those settings match a safe
+  # default in sentry-ruby 7 today, and are stated anyway because a default is a
+  # promise the gem makes to itself, not to us: a future release changing one
+  # must fail a test rather than quietly start posting request bodies to a third
+  # party.
+  #
+  # The two header settings are the exception, and are stricter than the default
+  # rather than equal to it. With send_default_pii falsey the gem backfills both
+  # header collections to mode: :deny_list, so headers ARE sent minus the ones
+  # whose names look like PII. Setting :off sends none. Do not delete those two
+  # lines on the assumption that they restate a default.
   #
   # Nothing is sent unless SENTRY_DSN is set on the host AND the application is
   # running in production. Until someone with server access sets that variable

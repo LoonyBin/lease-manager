@@ -40,6 +40,15 @@ module ErrorReporting
     # The column name is the useful half and the value never is.
     PG_KEY_DETAIL = /(Key \([^()]*\)=\()[^()]*(\))/
 
+    # Postgres reports a NOT NULL or CHECK violation differently, as
+    #   DETAIL:  Failing row contains (482, Alice Whitfield, 12 High Street, ...).
+    # Unlike the Key form this line has no useful half: the column and the
+    # constraint are already named on the ERROR: line above it, so what is left
+    # is the whole row. Greedy to the last `)` on the line on purpose — a row
+    # value can itself contain parentheses, and over-reaching to the end of the
+    # line is the safe direction.
+    PG_ROW_DETAIL = /(Failing row contains \()[^\n]*(\))/
+
     # Applied only when the text carries the statement itself, so that ordinary
     # prose containing an apostrophe is left alone.
     SQL_STATEMENT = /\b(?:SELECT|INSERT INTO|UPDATE|DELETE FROM)\b/i
@@ -49,7 +58,10 @@ module ErrorReporting
     # The `:(?!:)` is load-bearing: without it "uninitialized constant
     # ApiToken::PermissionRegistry" is read as an assignment to `ApiToken` and
     # the half that names the missing constant is thrown away.
-    ASSIGNMENT = /(\s*(?::(?!:)|=>|=)\s*)/
+    # The optional quote lets a JSON-shaped name match: in {"token":"..."} the
+    # name's closing quote sits between the name and the separator, so without
+    # it the rule never fires and the value goes out in clear.
+    ASSIGNMENT = /(\s*["']?\s*(?::(?!:)|=>|=)\s*)/
     VALUE = /(?:"[^"]*"|'[^']*'|\S+)/
 
     def initialize(sensitive_terms: self.class.default_sensitive_terms)
@@ -92,6 +104,7 @@ module ErrorReporting
       result = text
       result = result.gsub(SQL_LITERAL, "'#{FILTERED}'") if SQL_STATEMENT.match?(result)
       result = result.gsub(PG_KEY_DETAIL) { "#{Regexp.last_match(1)}#{FILTERED}#{Regexp.last_match(2)}" }
+      result = result.gsub(PG_ROW_DETAIL) { "#{Regexp.last_match(1)}#{FILTERED}#{Regexp.last_match(2)}" }
       result = result.gsub(@sensitive_assignment) { "#{Regexp.last_match(1)}#{Regexp.last_match(2)}#{FILTERED}" }
       result.gsub(EMAIL, FILTERED_EMAIL)
     end
