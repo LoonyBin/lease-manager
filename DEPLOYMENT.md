@@ -55,8 +55,10 @@ So:
   merges **queue** rather than interrupting a push that is already underway — an interrupted release
   can leave the host between containers.
 
-Whether this should remain the arrangement is an open question for the repository owner, not a
-settled design.
+**This is deliberate.** The repository owner confirmed the arrangement in September 2026 (`LOO-402`):
+merge-to-`main` deploys, and CI is the only gate. Do not add a staging environment or an approval
+step on the assumption that their absence is an oversight — it is a decision, and changing it is a
+decision for the repository owner to take again.
 
 ### Deploy credentials and host trust
 
@@ -129,16 +131,22 @@ Read them with `ssh dokku@91.98.73.173 config:show lease-manager`.
 
 | Var | Set by | Purpose |
 |---|---|---|
-| `DATABASE_URL` | `dokku postgres:link` | Primary database. Also holds the Solid Queue, Solid Cache and Solid Cable tables — there is no separate queue database. |
-| `RAILS_MASTER_KEY` | **the repository owner, by hand** | Decrypts `config/credentials.yml.enc`: Google OAuth client ID/secret and the Backblaze B2 keys. |
+| `DATABASE_URL` | `dokku postgres:link` | Primary database. Also holds the Solid Queue tables — there is no separate queue database. |
+| `RAILS_MASTER_KEY` | **the repository owner, by hand** | Decrypts `config/credentials.yml.enc`: Google OAuth client ID/secret, the Gmail SMTP username and app password, and the Backblaze B2 keys. |
 | `APP_HOST` | `bin/bootstrap` | `lease-manager.loonyb.in`. Feeds `config.hosts` (DNS-rebinding protection) and mailer URL generation. Without it, mailer links are generated against `example.com`. |
+| `MAIL_FROM` | **by hand** | The Gmail address the app sends from, or a verified "Send mail as" alias on it. Treat it as required, not optional: `ApplicationMailer` falls back to `no-reply@example.com`, and Gmail rewrites or rejects a `From` it does not own, so payment reminders stop arriving. `bin/bootstrap` warns when it is unset but does not fail. |
+
+`solid_cache` and `solid_cable` are in the `Gemfile` but **neither is configured**: no `cache_store`
+is set in `config/environments/production.rb`, `config/cable.yml` uses the `async` adapter in
+production, and `db/schema.rb` has no tables for either. Only Solid Queue is actually backed by this
+database. A dump therefore contains no cache or cable state, and there is none to restore.
 
 Optional vars the application reads, all with working defaults — see
 `config/environments/production.rb`, `config/puma.rb` and `config/queue.yml`:
 
 `FORCE_SSL` (default `true`), `RAILS_LOG_LEVEL` (`info`), `RAILS_MAX_THREADS` (`3`),
-`WEB_CONCURRENCY`, `JOB_CONCURRENCY` (`1`), `SOLID_QUEUE_IN_PUMA`, `API_RATE_LIMIT`,
-`API_RATE_LIMIT_PERIOD`, `MAIL_FROM`.
+`WEB_CONCURRENCY`, `JOB_CONCURRENCY` (`1`), `SOLID_QUEUE_IN_PUMA`, `API_RATE_LIMIT` (`300`),
+`API_RATE_LIMIT_PERIOD` (`300` seconds).
 
 ### `config/master.key` is owned by the repository owner
 

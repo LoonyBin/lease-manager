@@ -41,9 +41,15 @@ RSpec.describe "db/seeds.rb", type: :task do # -- Seed file spec
     expect(User.pluck(:email)).to include("admin@example.com", "user@example.com")
   end
 
-  it "refuses to seed a production database" do
+  # Seed against a database that already holds a row. "Created nothing" is not
+  # enough on its own: the file's first act after the guard is destroy_all
+  # across eight tables, so a guard placed one line too late would wipe a live
+  # database and still leave an empty one unchanged.
+  it "refuses to seed a production database, and destroys nothing", :aggregate_failures do
+    existing = create(:user)
     allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new("production"))
 
     expect { run_seed }.not_to change(User, :count)
+    expect(User.exists?(existing.id)).to be(true)
   end
 end
