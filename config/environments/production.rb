@@ -32,8 +32,12 @@ Rails.application.configure do
   # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
   config.force_ssl = ENV.fetch("FORCE_SSL", "true") == "true"
 
-  # Skip http-to-https redirect for the default health check endpoint.
-  config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
+  # Skip http-to-https redirect for the health check endpoints (see
+  # config.x.health_check_paths in config/application.rb). A check that reaches
+  # the container directly speaks plain http and must be answered, not
+  # redirected to a hostname it is not asking for.
+  health_check_paths = config.x.health_check_paths
+  config.ssl_options = { redirect: { exclude: ->(request) { health_check_paths.include?(request.path) } } }
 
   # Log to STDOUT with the current request id as a default log tag.
   config.log_tags = [:request_id]
@@ -100,6 +104,8 @@ Rails.application.configure do
     ENV.fetch("APP_HOST", nil)
   ].compact
 
-  # Skip DNS rebinding protection for the default health check endpoint.
-  config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
+  # Skip DNS rebinding protection for the health check endpoints. Dokku's own
+  # container checks curl the container's IP address, so the Host header is
+  # never APP_HOST and every one of them would otherwise be refused with a 403.
+  config.host_authorization = { exclude: ->(request) { health_check_paths.include?(request.path) } }
 end
