@@ -109,6 +109,59 @@ We enforce strict code quality standards using RuboCop and fast suites, automate
 bin/rubocop
 ```
 
+## Releases
+
+A merge to `main` goes live on its own: CI passes, `.github/workflows/deploy.yml`
+pushes to Dokku, and eight to twelve minutes later the new version is serving.
+There is no human gate, so the deploy has to check its own work.
+
+### What is checked after a release
+
+`bin/verify-release` runs at the end of every deploy, and can be run by hand
+against production at any time:
+
+```bash
+bin/verify-release                                  # production
+APP_URL=http://127.0.0.1:3000 bin/verify-release    # anywhere else
+```
+
+It makes a handful of real unauthenticated requests and fails the deploy run —
+visibly, in red — if any of them are wrong:
+
+| Request           | What it proves                                          |
+| ----------------- | ------------------------------------------------------- |
+| `/up`             | the process booted and answers                           |
+| `/health/ready`   | the database is reachable, migrated, and readable        |
+| `/login`          | a real page still renders (HAML, layout, assets)         |
+| `/`               | routing and the sign-in redirect still work              |
+| `/invoices.json`  | the JSON API refuses anonymous callers rather than 500ing |
+| `/health/workers` | a Solid Queue worker **from this release** is alive       |
+
+The last one is the awkward case: for about a minute after the switch the
+previous release's worker is still alive and still heartbeating, so "a worker is
+up" is not the same as "the new worker is up". `/health/workers` reports how long
+ago the newest live worker started, and the deploy compares that against how long
+its own deploy has been running.
+
+### The health endpoints
+
+`/up` is Rails' own health check and answers exactly one question: did the
+process boot? It never touches the database, so a release running against an
+unreachable or unmigrated database still answers 200. `HealthController` adds two
+endpoints that answer the questions a release actually turns on — `/health/ready`
+and `/health/workers`. Both are public, like `/up`, both are exempt from host
+authorization and the https redirect (`config.x.health_check_paths`), and both
+are deliberately data-free: statuses, counts, timestamps and durations, with
+exception class names and never exception messages.
+
+### What none of this catches
+
+Everything behind the login. A broken invoice run, a form that no longer saves, a
+page that 500s for a signed-in user — none of that is visible to an
+unauthenticated check, and a green deploy does not mean none of it happened. The
+application does not yet report its own errors; until it does, someone opening
+the page is still the way we find out.
+
 ## Documentation
 
 For more detailed information, check the `docs/` directory:

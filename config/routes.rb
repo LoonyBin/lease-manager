@@ -51,6 +51,15 @@ Rails.application.routes.draw do
   # Can be used by load balancers and uptime monitors to verify that the app is live.
   get "up" => "rails/health#show", as: :rails_health_check
 
+  # /up proves the process booted and nothing more — it never touches the
+  # database. These two say whether the release can actually serve; see
+  # HealthController. They are exempt from host authorization and the
+  # http-to-https redirect in production via config.x.health_check_paths, so
+  # that a check reaching the container directly (Dokku, bin/verify-release)
+  # is answered rather than refused.
+  get "health/ready" => "health#ready", as: :health_ready
+  get "health/workers" => "health#workers", as: :health_workers
+
   # Render dynamic PWA files from app/views/pwa/* (remember to link manifest in application.html.erb)
   # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker

@@ -1,0 +1,196 @@
+#!/usr/bin/env bash
+#
+# Verify that a release actually works, rather than that it merely booted.
+#
+# Run automatically by .github/workflows/deploy.yml after the push to Dokku,
+# and safe to run by hand against production at any time:
+#
+#   bin/verify-release
+#   APP_URL=https://lease-manager.loonyb.in bin/verify-release
+#
+# Every request it makes is unauthenticated, so it reads no tenant or lease
+# data and none can appear in a workflow log. It checks the things an
+# unauthenticated caller can still prove:
+#
+#   - the application answers at all                      (/up)
+#   - the database is reachable, migrated, and readable   (/health/ready)
+#   - a real page still renders                           (/login)
+#   - routing and the sign-in redirect still work         (/)
+#   - the JSON API refuses rather than 500s               (/invoices.json)
+#   - a Solid Queue worker from THIS release is alive     (/health/workers)
+#
+# What it cannot prove, and nobody should read it as proving: anything behind
+# the login. Invoice generation, a form that no longer saves, a page that 500s
+# for a signed-in user — none of that is visible from here. Catching those
+# needs the application to report its own errors, which is parts 2 and 3 of
+# LOO-417.
+#
+# Exit status is 0 only when every check passed.
+
+set -euo pipefail
+
+APP_URL="${APP_URL:-https://lease-manager.loonyb.in}"
+APP_URL="${APP_URL%/}"
+
+# Unix epoch seconds from just before the deploy started. When set, the worker
+# check additionally requires the live worker to have started after that
+# moment — see check_workers.
+DEPLOY_STARTED_AT="${DEPLOY_STARTED_AT:-}"
+
+CURL_TIMEOUT="${CURL_TIMEOUT:-20}"
+RETRY_INTERVAL="${RETRY_INTERVAL:-10}"
+# How long each check may keep retrying. The page checks tolerate a proxy still
+# settling after the container swap; the worker check has to outlast Dokku's
+# grace period for retiring the previous release's containers (60s by default),
+# so it gets considerably longer.
+PAGE_DEADLINE="${PAGE_DEADLINE:-90}"
+WORKER_DEADLINE="${WORKER_DEADLINE:-300}"
+
+WORK_DIR="$(mktemp -d)"
+trap 'rm -rf "$WORK_DIR"' EXIT
+BODY="$WORK_DIR/body"
+HEADERS="$WORK_DIR/headers"
+
+failure=""
+failed_checks=0
+
+# Fetches PATH into $BODY/$HEADERS and echoes the HTTP status. A transport
+# failure — DNS, TLS, connection refused, timeout — echoes 000 and retries like
+# any other bad answer; the reason curl gave is kept for the failure message.
+fetch() {
+  : >"$BODY"
+  : >"$HEADERS"
+  : >"$WORK_DIR/curl_error"
+
+  local status
+  status="$(curl --silent --show-error --max-time "$CURL_TIMEOUT" \
+    --output "$BODY" --dump-header "$HEADERS" --write-out '%{http_code}' \
+    "$APP_URL$1" 2>"$WORK_DIR/curl_error" || true)"
+
+  # %{http_code} is always three digits, and curl may print it even when it
+  # then exits non-zero, so take the tail rather than the whole string.
+  status="${status: -3}"
+  printf '%s' "${status:-000}"
+}
+
+# Why a request never arrived, for the 000 case.
+transport_error() {
+  tr '\n' ' ' <"$WORK_DIR/curl_error" | sed 's/  */ /g;s/ $//'
+}
+
+# Response bodies are echoed back only for the health endpoints, which are
+# data-free by construction (see HealthController). Every other body stays out
+# of the log even on failure.
+body_excerpt() {
+  if [ ! -s "$BODY" ]; then
+    printf 'no response (%s)' "$(transport_error)"
+    return
+  fi
+
+  case "$1" in
+    /up | /health/*) head -c 300 "$BODY" | tr -d '\r' ;;
+    *) printf '(body withheld)' ;;
+  esac
+}
+
+expect_status() {
+  local path="$1" expected="$2" content="${3:-}" status
+  status="$(fetch "$path")"
+
+  if [ "$status" != "$expected" ]; then
+    failure="expected HTTP $expected, got $status — $(body_excerpt "$path")"
+    return 1
+  fi
+
+  if [ -n "$content" ] && ! grep -qF "$content" "$BODY"; then
+    failure="HTTP $status but the response does not contain '$content'"
+    return 1
+  fi
+}
+
+expect_redirect() {
+  local path="$1" location="$2" status
+  status="$(fetch "$path")"
+
+  if [ "$status" != "302" ]; then
+    failure="expected HTTP 302, got $status — $(body_excerpt "$path")"
+    return 1
+  fi
+
+  if ! grep -qi "^location:.*$location" "$HEADERS"; then
+    failure="redirected somewhere other than $location"
+    return 1
+  fi
+}
+
+# A worker that is heartbeating is not necessarily THIS release's worker: for a
+# minute or so after the switch the previous release's worker is still alive and
+# still heartbeating, which would report a cheerful green for a new worker that
+# never came up. started_seconds_ago is measured on the server, so comparing it
+# against how long the deploy has been running answers the real question —
+# did a worker start after this deploy began? — without trusting either clock
+# to agree with the other about what time it is.
+check_workers() {
+  local status started_seconds_ago elapsed
+  status="$(fetch /health/workers)"
+
+  if [ "$status" != "200" ]; then
+    failure="expected HTTP 200, got $status — $(body_excerpt /health/workers)"
+    return 1
+  fi
+
+  if [ -z "$DEPLOY_STARTED_AT" ]; then
+    return 0
+  fi
+
+  started_seconds_ago="$(sed -n 's/.*"started_seconds_ago":\([0-9][0-9]*\).*/\1/p' "$BODY")"
+  if [ -z "$started_seconds_ago" ]; then
+    failure="could not read started_seconds_ago — $(body_excerpt /health/workers)"
+    return 1
+  fi
+
+  elapsed=$(( $(date +%s) - DEPLOY_STARTED_AT ))
+  if [ "$started_seconds_ago" -gt "$elapsed" ]; then
+    failure="the only live worker started ${started_seconds_ago}s ago, before this deploy began ${elapsed}s ago — it is the previous release's worker, so the new one has not come up"
+    return 1
+  fi
+}
+
+run_check() {
+  local description="$1" deadline_seconds="$2"
+  shift 2
+
+  local deadline attempts=1
+  deadline=$(( $(date +%s) + deadline_seconds ))
+  failure=""
+
+  while ! "$@"; do
+    if [ "$(date +%s)" -ge "$deadline" ]; then
+      printf 'FAIL  %s\n      %s (%d attempt(s) over %ds)\n' \
+        "$description" "$failure" "$attempts" "$deadline_seconds"
+      failed_checks=$(( failed_checks + 1 ))
+      return 0
+    fi
+    sleep "$RETRY_INTERVAL"
+    attempts=$(( attempts + 1 ))
+    failure=""
+  done
+
+  printf 'ok    %s\n' "$description"
+}
+
+printf 'Verifying release at %s\n\n' "$APP_URL"
+
+run_check "the application answers"                 "$PAGE_DEADLINE"   expect_status   /up 200
+run_check "database reachable, migrated, readable"  "$PAGE_DEADLINE"   expect_status   /health/ready 200 '"status":"ok"'
+run_check "the sign-in page renders"                "$PAGE_DEADLINE"   expect_status   /login 200 '/auth/google_oauth2'
+run_check "the root path sends visitors to sign in" "$PAGE_DEADLINE"   expect_redirect / /login
+run_check "the JSON API refuses anonymous callers"  "$PAGE_DEADLINE"   expect_status   /invoices.json 401
+run_check "a worker from this release is alive"     "$WORKER_DEADLINE" check_workers
+
+if [ "$failed_checks" -gt 0 ]; then
+  printf '\n%d check(s) failed. This release is live and broken.\n' "$failed_checks"
+  exit 1
+fi
+
+printf '\nAll checks passed.\n'

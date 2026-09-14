@@ -62,6 +62,13 @@ jobs:
             exit 1
           fi
 
+      # Recorded before the push so the verification step can tell this
+      # release's Solid Queue worker from the previous one, which keeps
+      # heartbeating for up to a minute after the switch.
+      - name: Record when the deploy started
+        id: deploy_start
+        run: echo "epoch=$(date -u +%s)" >> "$GITHUB_OUTPUT"
+
       - name: Deploy to Dokku
         env:
           DOKKU_HOST: ${{ vars.DOKKU_HOST }}
@@ -74,5 +81,15 @@ jobs:
           git push "dokku@${DOKKU_HOST}:lease-manager" \
             "${{ github.event.workflow_run.head_sha }}:refs/heads/main" --force
 
-      - name: Smoke test
-        run: curl --fail --silent --show-error --max-time 30 https://lease-manager.loonyb.in/up
+      # A request to /up only proves the process booted: Rails' health check
+      # never touches the database, so a release serving 500s to every signed-in
+      # page still answers it. bin/verify-release makes a handful of real
+      # unauthenticated requests instead — the sign-in page, the root redirect,
+      # the JSON API's refusal — and asks the application itself whether its
+      # database is migrated and whether a worker from THIS release is alive.
+      # A broken release fails here, in red, instead of reporting success.
+      - name: Verify the release
+        env:
+          APP_URL: https://lease-manager.loonyb.in
+          DEPLOY_STARTED_AT: ${{ steps.deploy_start.outputs.epoch }}
+        run: bin/verify-release
