@@ -252,12 +252,19 @@ cat ~/.ssh/id_ed25519.pub | ssh root@NEW_HOST dokku ssh-keys:add admin
 ssh root@NEW_HOST dokku ssh-keys:add github-actions < deploy_key.pub
 ```
 
-### 4. Create the app and set the master key
+### 4. Create the app and set the by-hand config vars
 
 ```bash
 ssh dokku@NEW_HOST apps:create lease-manager
 ssh dokku@NEW_HOST config:set lease-manager RAILS_MASTER_KEY=<key from the repository owner>
+ssh dokku@NEW_HOST config:set lease-manager MAIL_FROM=<the Gmail address the app sends from>
 ```
+
+These are the two vars nothing else sets — see [Config vars on the Dokku app](#config-vars-on-the-dokku-app).
+`bin/bootstrap` sets everything else, and it **fails** on a missing `RAILS_MASTER_KEY` but only
+**warns** on a missing `MAIL_FROM`. Set `MAIL_FROM` here rather than relying on noticing that warning
+in the next step's output: the application boots and looks healthy without it, and the failure
+surfaces later as payment reminders that Gmail rewrites or rejects.
 
 ### 5. Run the bootstrap script
 
@@ -327,6 +334,7 @@ curl -sSf https://lease-manager.loonyb.in/up                 # health endpoint, 
 ssh dokku@NEW_HOST ps:scale lease-manager                    # web: 1, worker: 1
 ssh dokku@NEW_HOST ps:report lease-manager --deployed        # true
 ssh dokku@NEW_HOST letsencrypt:list                          # certificate present, not expiring
+ssh dokku@NEW_HOST config:get lease-manager MAIL_FROM        # set, and an address Gmail owns
 ```
 
 Then log in through Google OAuth and open a lease — that exercises the master key, the database and
@@ -539,6 +547,13 @@ not be the tip of `main` if merges raced. Check `ps:report lease-manager` for th
 **Deploy never ran after a merge.**
 The deploy workflow only fires when the CI run concluded `success` on `main`. Check the CI run, not
 the deploy workflow.
+
+**The deploy job is red, but the change is live.**
+The workflow's last step is a smoke test — `curl --fail` against
+<https://lease-manager.loonyb.in/up>, with a 30-second timeout. It runs *after* the push, so the
+release is already out when it fails. A red job here means the deploy happened and the application
+is not answering: read it as an alert about production, not as a failed release, and do not re-run
+the job expecting it to deploy again.
 
 **`Blocked hosts` error in the logs.**
 `APP_HOST` is unset or does not match the domain being requested. `bin/bootstrap` fixes it.

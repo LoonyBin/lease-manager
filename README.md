@@ -111,6 +111,9 @@ bin/rubocop
 
 ## Documentation
 
+- [Deployment and BC/DR runbook](DEPLOYMENT.md): how production is deployed, how to rebuild it, and
+  what to do when it breaks. **Read this before merging anything — a merged PR deploys to production.**
+
 For more detailed information, check the `docs/` directory:
 - [Architecture](docs/ARCHITECTURE.md): System design, data models, and patterns.
 - [Requirements](docs/REQUIREMENTS.md): Detailed feature specifications.
