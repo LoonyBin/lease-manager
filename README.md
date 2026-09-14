@@ -165,9 +165,54 @@ exception class names and never exception messages.
 
 Everything behind the login. A broken invoice run, a form that no longer saves, a
 page that 500s for a signed-in user — none of that is visible to an
-unauthenticated check, and a green deploy does not mean none of it happened. The
-application does not yet report its own errors; until it does, someone opening
-the page is still the way we find out.
+unauthenticated check, and a green deploy does not mean none of it happened.
+That is what error reporting is for.
+
+## Error reporting
+
+Unhandled exceptions from the website and from the Solid Queue worker are
+reported to Sentry, so that a release which boots but is broken behind the
+sign-in page says so instead of waiting to be noticed.
+
+**It is inert until someone sets `SENTRY_DSN` on the host.** Without that
+variable the gems load, the middleware sees an uninitialised client and passes
+every request straight through; nothing is collected and nothing is sent. It is
+also never enabled outside production.
+
+```bash
+dokku config:set lease-manager SENTRY_DSN='https://…@…ingest.de.sentry.io/…'
+dokku config:set lease-manager SENTRY_RELEASE="$(git rev-parse --short HEAD)"  # optional
+```
+
+`SENTRY_RELEASE` is optional and only tags reports with the version that
+produced them.
+
+### What leaves the server, and what does not
+
+This application holds real tenant and lease data, so the configuration is
+written out explicitly in `lib/error_reporting/setup.rb` rather than left to the
+gem's defaults, and `spec/lib/error_reporting/setup_spec.rb` asserts every line
+of it — a future release of `sentry-ruby` that changes a default has to fail the
+build rather than quietly widen what we disclose.
+
+**Not sent:** request and response bodies, cookies, headers of any kind, the
+query string, the signed-in user's identity, the caller's IP address, values
+bound to a SQL query, queued job payloads, and the local variables in each stack
+frame.
+
+**Sent:** the exception's class and message, the stack trace, the URL path — so
+record identifiers, `/leases/482/invoices/9911` — the controller and action, and
+a breadcrumb trail of what the request was doing.
+
+The message is the unavoidable one. A report without it says only "something
+raised `ActiveRecord::StatementInvalid` somewhere", and messages quote values.
+`ErrorReporting::MessageScrubber` removes what can be recognised by shape —
+email addresses, the value in a Postgres constraint violation's detail line, SQL
+string literals, and values assigned to any name in `config.filter_parameters` —
+before the report leaves the process. It cannot remove a name or an amount
+sitting in prose, and does not pretend to. If scrubbing itself fails, the free
+text is withheld wholesale and the report is still sent: the class and the stack
+trace are enough to say the site is broken.
 
 ## Documentation
 
