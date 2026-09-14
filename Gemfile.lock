@@ -688,6 +688,7 @@ DEPENDENCIES
   image_processing (~> 2.1)
   importmap-rails
   jbuilder
+  json (< 3)
   kamal
   kaminari (~> 1.2)
   omniauth
