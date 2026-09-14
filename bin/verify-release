@@ -37,6 +37,38 @@ APP_URL="${APP_URL%/}"
 # moment — see check_workers.
 DEPLOY_STARTED_AT="${DEPLOY_STARTED_AT:-}"
 
+# Whether that stronger question is mandatory. Run by hand there is no deploy to
+# be newer than, so the check degrades to "a worker is alive" and says so. Run
+# from a deploy the degraded check is worthless — "a worker is alive" is true of
+# the release being replaced, which is the exact failure /health/workers exists
+# to catch — so a missing DEPLOY_STARTED_AT has to be an error rather than a
+# quieter pass. Defaults on under CI; set REQUIRE_FRESH_WORKER=0 to override.
+case "${REQUIRE_FRESH_WORKER-${CI:+1}}" in
+  "" | 0 | false | no) require_fresh_worker="" ;;
+  *) require_fresh_worker=1 ;;
+esac
+
+# Checked here rather than where it is used, so a deploy that cannot ask the
+# real question fails in a second instead of five minutes later. A non-numeric
+# value is refused outright: bash reads it as an unset name worth 0, which makes
+# every worker look newer than a deploy that apparently began in 1970, so it
+# would pass the check rather than fail it.
+case "$DEPLOY_STARTED_AT" in
+  "")
+    if [ -n "$require_fresh_worker" ]; then
+      printf 'DEPLOY_STARTED_AT is not set, so this run cannot tell this release'\''s worker\n' >&2
+      printf 'from the previous one — the check it exists to make. Set it to the epoch\n' >&2
+      printf 'seconds recorded before the deploy, or REQUIRE_FRESH_WORKER=0 to accept the\n' >&2
+      printf 'weaker check that any worker is alive.\n' >&2
+      exit 1
+    fi
+    ;;
+  *[!0-9]*)
+    printf 'DEPLOY_STARTED_AT must be Unix epoch seconds, got: %s\n' "$DEPLOY_STARTED_AT" >&2
+    exit 1
+    ;;
+esac
+
 CURL_TIMEOUT="${CURL_TIMEOUT:-20}"
 RETRY_INTERVAL="${RETRY_INTERVAL:-10}"
 # How long each check may keep retrying. The page checks tolerate a proxy still
@@ -53,6 +85,7 @@ HEADERS="$WORK_DIR/headers"
 
 failure=""
 failed_checks=0
+worker_freshness_unchecked=""
 
 # Fetches PATH into $BODY/$HEADERS and echoes the HTTP status. A transport
 # failure — DNS, TLS, connection refused, timeout — echoes 000 and retries like
@@ -81,13 +114,27 @@ transport_error() {
 # Response bodies are echoed back only for the health endpoints, which are
 # data-free by construction (see HealthController). Every other body stays out
 # of the log even on failure.
+#
+# "The request never arrived" and "it arrived and the body was empty" are
+# different problems and send an operator to different places, so they are
+# reported differently. Only a 000 means no response: production's 404 is zero
+# bytes, and calling that unreachable would point at the network when the site
+# answered fine.
 body_excerpt() {
-  if [ ! -s "$BODY" ]; then
-    printf 'no response (%s)' "$(transport_error)"
+  local path="$1" status="$2" reason
+
+  if [ "$status" = "000" ]; then
+    reason="$(transport_error)"
+    printf 'no response from the server (%s)' "${reason:-curl gave no reason}"
     return
   fi
 
-  case "$1" in
+  if [ ! -s "$BODY" ]; then
+    printf 'empty body'
+    return
+  fi
+
+  case "$path" in
     /up | /health/*) head -c 300 "$BODY" | tr -d '\r' ;;
     *) printf '(body withheld)' ;;
   esac
@@ -98,7 +145,7 @@ expect_status() {
   status="$(fetch "$path")"
 
   if [ "$status" != "$expected" ]; then
-    failure="expected HTTP $expected, got $status — $(body_excerpt "$path")"
+    failure="expected HTTP $expected, got $status — $(body_excerpt "$path" "$status")"
     return 1
   fi
 
@@ -113,7 +160,7 @@ expect_redirect() {
   status="$(fetch "$path")"
 
   if [ "$status" != "302" ]; then
-    failure="expected HTTP 302, got $status — $(body_excerpt "$path")"
+    failure="expected HTTP 302, got $status — $(body_excerpt "$path" "$status")"
     return 1
   fi
 
@@ -135,17 +182,22 @@ check_workers() {
   status="$(fetch /health/workers)"
 
   if [ "$status" != "200" ]; then
-    failure="expected HTTP 200, got $status — $(body_excerpt /health/workers)"
+    failure="expected HTTP 200, got $status — $(body_excerpt /health/workers "$status")"
     return 1
   fi
 
+  # Only reachable by hand: a deploy without DEPLOY_STARTED_AT has already
+  # exited above. The weaker claim passes, but the report has to say which claim
+  # it proved, or an operator reads "a worker from this release is alive" off a
+  # run that never established the "from this release" half.
   if [ -z "$DEPLOY_STARTED_AT" ]; then
+    worker_freshness_unchecked=1
     return 0
   fi
 
   started_seconds_ago="$(sed -n 's/.*"started_seconds_ago":\([0-9][0-9]*\).*/\1/p' "$BODY")"
   if [ -z "$started_seconds_ago" ]; then
-    failure="could not read started_seconds_ago — $(body_excerpt /health/workers)"
+    failure="could not read started_seconds_ago — $(body_excerpt /health/workers "$status")"
     return 1
   fi
 
@@ -187,6 +239,11 @@ run_check "the sign-in page renders"                "$PAGE_DEADLINE"   expect_st
 run_check "the root path sends visitors to sign in" "$PAGE_DEADLINE"   expect_redirect / /login
 run_check "the JSON API refuses anonymous callers"  "$PAGE_DEADLINE"   expect_status   /invoices.json 401
 run_check "a worker from this release is alive"     "$WORKER_DEADLINE" check_workers
+
+if [ -n "$worker_freshness_unchecked" ]; then
+  printf '\nnote: DEPLOY_STARTED_AT was not set, so the worker check proved only that a\n'
+  printf '      worker is alive, not that it belongs to the current release.\n'
+fi
 
 if [ "$failed_checks" -gt 0 ]; then
   printf '\n%d check(s) failed. This release is live and broken.\n' "$failed_checks"

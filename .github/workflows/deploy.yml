@@ -92,4 +92,9 @@ jobs:
         env:
           APP_URL: https://lease-manager.loonyb.in
           DEPLOY_STARTED_AT: ${{ steps.deploy_start.outputs.epoch }}
+          # Stated rather than left to the CI default: should that expression
+          # ever arrive empty, this run has to fail rather than fall back to the
+          # weaker "some worker is alive", which the release being replaced
+          # satisfies for about a minute after the switch.
+          REQUIRE_FRESH_WORKER: 1
         run: bin/verify-release
