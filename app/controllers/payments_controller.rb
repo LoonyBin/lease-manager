@@ -5,7 +5,7 @@ class PaymentsController < ApplicationController
 
   def index
     @q = policy_scope(Payment).ransack(params[:q])
-    @q.sorts = ["date desc", "created_at desc"] if @q.sorts.empty?
+    @q.sorts = ["date desc", "created_at desc", "id desc"] if @q.sorts.empty?
     @payments = @q.result.includes(:lease).page(params[:page]).per(20)
     respond_ok @payments
   end
