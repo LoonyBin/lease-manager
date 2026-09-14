@@ -46,6 +46,13 @@ module LeaseManager
     config.x.api_rate_limit.limit = Integer(ENV.fetch("API_RATE_LIMIT", 300))
     config.x.api_rate_limit.period = Integer(ENV.fetch("API_RATE_LIMIT_PERIOD", 300)).seconds
 
+    # Paths that must answer even when the request does not carry the
+    # production hostname or arrives over plain http: health checks reach the
+    # container directly, not through the proxy. production.rb reads this list
+    # for both exemptions, and a spec asserts it still matches the routes, so
+    # adding a health route without exempting it cannot pass unnoticed.
+    config.x.health_check_paths = ["/up", "/health/ready", "/health/workers"].freeze
+
     config.generators do |g|
       g.template_engine :haml
       g.test_framework :rspec,
