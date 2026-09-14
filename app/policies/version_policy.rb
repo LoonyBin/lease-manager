@@ -1,10 +1,17 @@
 # frozen_string_literal: true
 
 class VersionPolicy < ApplicationPolicy
+  # PaperTrail tracks every ApplicationRecord, so a model can end up in the
+  # audit trail before it has a policy of its own. Pundit.policy returns nil in
+  # that case; fall back to admin-only rather than raising NoMethodError and
+  # turning the whole page into a 500.
   def show?
     return admin? if record.item.nil?
 
-    Pundit.policy(user, record.item).show?
+    item_policy = Pundit.policy(user, record.item)
+    return admin? if item_policy.nil?
+
+    item_policy.show?
   end
 
   def destroy?
@@ -26,8 +33,15 @@ class VersionPolicy < ApplicationPolicy
       version_ids = []
 
       scope.distinct.pluck(:item_type).each do |item_type|
-        klass = item_type.constantize
+        # A version outlives its model: the class may since have been renamed or
+        # dropped, and a tracked model may have no policy scope. Skip those
+        # instead of raising and taking down the index.
+        klass = item_type.safe_constantize
+        next if klass.nil?
+
         policy_scope = Pundit.policy_scope(user, klass)
+        next if policy_scope.nil?
+
         item_ids = policy_scope.pluck(:id)
         version_ids += scope.where(item_type: item_type, item_id: item_ids).pluck(:id)
       end
