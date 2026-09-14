@@ -18,6 +18,17 @@ RSpec.describe ErrorReporting::EventFilter do
     filtered.exception.values.map(&:value)
   end
 
+  # The depth limit replaces rather than descends, so the cycle collapses to a
+  # string. Nine hops is one past MAX_DEPTH, where that replacement happens.
+  def self_referencing_extra
+    { email: "alice@example.com" }.tap { |hash| hash[:self] = hash }
+  end
+
+  def deepest_self(node)
+    9.times { node = node[:self] }
+    node
+  end
+
   def chained_exception
     raise "inner alice@example.com"
   rescue StandardError
@@ -71,9 +82,21 @@ RSpec.describe ErrorReporting::EventFilter do
   end
 
   it "does not recurse for ever through a self-referencing context" do
-    event.extra = { email: "alice@example.com" }.tap { |hash| hash[:self] = hash }
+    event.extra = self_referencing_extra
 
     expect { filter.call(event) }.not_to raise_error
+  end
+
+  it "filters a subtree deeper than it will walk rather than passing it through" do
+    event.extra = self_referencing_extra
+
+    expect(deepest_self(filter.call(event).extra)).to eq("[FILTERED]")
+  end
+
+  it "leaves no cleartext below the depth it walks" do
+    event.extra = self_referencing_extra
+
+    expect(filter.call(event).extra.to_s).not_to include("alice@example.com")
   end
 
   context "with breadcrumbs" do

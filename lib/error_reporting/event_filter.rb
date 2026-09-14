@@ -22,6 +22,11 @@ module ErrorReporting
 
     # Guards against a self-referencing hash in a report's context. Rails'
     # own payloads are shallow; something else's need not be.
+    #
+    # Anything below this is replaced wholesale rather than passed through:
+    # returning the untouched subtree would send exactly the half-scrubbed
+    # event this class exists to prevent. Replacing it also breaks the cycle,
+    # which is what the depth limit was put here for.
     MAX_DEPTH = 8
 
     def self.call(event, hint = nil)
@@ -66,7 +71,7 @@ module ErrorReporting
     end
 
     def scrub_structure(value, depth: 0)
-      return value if depth > MAX_DEPTH
+      return MessageScrubber::FILTERED if depth > MAX_DEPTH
 
       case value
       when String then scrub(value)
