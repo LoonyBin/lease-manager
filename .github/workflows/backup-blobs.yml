@@ -1,0 +1,87 @@
+name: Backup Active Storage blobs
+
+# Nightly mirror of the live Active Storage bucket into the backup bucket.
+#
+# Why this runs here and not on the Dokku host or in Solid Queue: a GitHub runner
+# keeps both B2 keys off the single production host this backup exists to survive,
+# and a failed scheduled run is loud (red in the Actions tab, email to the owner).
+# A silent cron that stopped working is worse than no backup, because it is trusted.
+# Full reasoning: LOO-33 plan document; procedure: BCDR SOP parts B0b, B4, B5.
+
+on:
+  schedule:
+    - cron: "20 3 * * *"   # 20 min after the Postgres dump (SOP B3 schedules 03:00 UTC)
+  workflow_dispatch:
+
+concurrency:
+  group: backup-blobs
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    env:
+      LIVE: b2live:lease-manager
+      MIRROR: b2backup:lease-manager-backups/blobs
+
+      # rclone reads remotes straight from the environment, so no credentials are
+      # ever written to disk on the runner and there is no rclone.conf to leak.
+      # Each key is scoped to exactly one bucket: read on live, write on backup.
+      RCLONE_CONFIG_B2LIVE_TYPE: b2
+      RCLONE_CONFIG_B2LIVE_ACCOUNT: ${{ secrets.B2_LIVE_KEY_ID }}
+      RCLONE_CONFIG_B2LIVE_KEY: ${{ secrets.B2_LIVE_APP_KEY }}
+      RCLONE_CONFIG_B2BACKUP_TYPE: b2
+      RCLONE_CONFIG_B2BACKUP_ACCOUNT: ${{ secrets.B2_BACKUP_KEY_ID }}
+      RCLONE_CONFIG_B2BACKUP_KEY: ${{ secrets.B2_BACKUP_APP_KEY }}
+
+    steps:
+      # From the Ubuntu archive rather than rclone.org's install script: this job
+      # holds the backup credentials, so it does not pipe an unpinned remote
+      # script into a root shell.
+      - name: Install rclone
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends rclone
+          rclone version
+
+      - name: Check the secrets are all set
+        run: |
+          missing=
+          for var in RCLONE_CONFIG_B2LIVE_ACCOUNT RCLONE_CONFIG_B2LIVE_KEY \
+                     RCLONE_CONFIG_B2BACKUP_ACCOUNT RCLONE_CONFIG_B2BACKUP_KEY; do
+            [ -n "${!var}" ] || missing="$missing $var"
+          done
+          if [ -n "$missing" ]; then
+            echo "Missing repository secrets for:$missing" >&2
+            echo "See the LOO-33 plan document for the four secret names." >&2
+            exit 1
+          fi
+
+      - name: Mirror blobs
+        run: |
+          rclone sync "$LIVE" "$MIRROR" \
+            --fast-list --transfers 8 --stats-one-line --stats 30s
+
+      # `rclone sync` exits 0 when it successfully does nothing. Without this check a
+      # remote that silently resolves to an empty prefix is green every night and the
+      # failure surfaces during a restore, which is the one moment it cannot be fixed.
+      - name: Verify the mirror matches the live bucket
+        run: |
+          live=$(rclone size "$LIVE" --json | jq -r .count)
+          mirror=$(rclone size "$MIRROR" --json | jq -r .count)
+          echo "live=$live mirror=$mirror"
+          echo "Live objects: \`$live\` — mirrored: \`$mirror\`" >> "$GITHUB_STEP_SUMMARY"
+
+          # Object Lock means the mirror can legitimately hold more than the live
+          # bucket: objects deleted from live stay under the 30-day retention window.
+          # `rclone size` counts current objects only, so an exact match is expected —
+          # but if this ever fails with mirror > live, that is retention working, not a
+          # fault. mirror < live is always a real failure.
+          if [ "$live" != "$mirror" ]; then
+            echo "Mirror does not match the live bucket." >&2
+            exit 1
+          fi
