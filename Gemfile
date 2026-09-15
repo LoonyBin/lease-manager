@@ -16,7 +16,7 @@ gem "jbuilder"
 # json 3.x drops the two-argument JSON.parse(source, opts) that
 # ActiveSupport::JSON.decode still calls, so every jsonb attribute read raises
 # ArgumentError. Pinned until Rails ships a decoder that works with json 3.
-gem "json", "< 3"
+gem "json", "< 4"
 gem "kamal", require: false
 gem "kaminari", "~> 1.2"
 gem "omniauth"
