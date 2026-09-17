@@ -5,6 +5,17 @@ updates:
   schedule:
     interval: daily
   open-pull-requests-limit: 10
+  # json 3.x drops the two-argument JSON.parse(source, opts) that
+  # ActiveSupport::JSON.decode still calls, so every jsonb attribute read
+  # raises ArgumentError. The Gemfile pins "< 3" for that reason; without
+  # this, Dependabot re-proposes the same red PR on every 3.x release.
+  # Major versions only: 2.x patch and minor updates still arrive, and
+  # bundle-audit in the scan_gems job reads Gemfile.lock directly, so a
+  # json advisory still fails CI regardless of what is ignored here.
+  # Lift this with the Gemfile pin when Rails ships a json 3 decoder.
+  ignore:
+  - dependency-name: json
+    update-types: [ "version-update:semver-major" ]
 - package-ecosystem: github-actions
   directory: "/"
   schedule:
