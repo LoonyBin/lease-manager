@@ -148,6 +148,13 @@ Optional vars the application reads, all with working defaults — see
 `WEB_CONCURRENCY`, `JOB_CONCURRENCY` (`1`), `SOLID_QUEUE_IN_PUMA`, `API_RATE_LIMIT` (`300`),
 `API_RATE_LIMIT_PERIOD` (`300` seconds).
 
+`SENTRY_DSN` is optional in the sense that the application boots and serves without it, but setting
+it is what makes the app report its own errors — error reporting is inert until it is set, and only
+ever active in production (`lib/error_reporting/setup.rb`). A rebuilt host that omits it runs
+perfectly and tells nobody when a signed-in page starts failing, which is invisible to every check
+in this document. Set it on a rebuild. `SENTRY_RELEASE` is optional alongside it and only tags
+events with a version.
+
 ### `config/master.key` is owned by the repository owner
 
 **Standing rule: agents never read, copy, move or regenerate the Rails master key.** It is not in the
@@ -329,8 +336,22 @@ In the [Cloudflare dashboard](https://dash.cloudflare.com) for `loonyb.in`, upda
 
 ### 11. Verify
 
+Run the release check the deploy workflow runs. It is safe against production at any time, and it
+asks the questions that matter rather than just whether the process booted:
+
 ```bash
-curl -sSf https://lease-manager.loonyb.in/up                 # health endpoint, 200
+APP_URL=https://lease-manager.loonyb.in bin/verify-release
+```
+
+It checks that the application answers, that the database is reachable and migrated
+(`/health/ready`), that the sign-in page renders, that the root path redirects, that the JSON API
+refuses anonymous callers, and that a Solid Queue worker is alive (`/health/workers`). Run by hand
+there is no deploy for the worker to be newer than, so that last check relaxes to "a worker is
+alive" and says so. Exit status is 0 only when every check passed.
+
+Then the host-side facts it cannot see:
+
+```bash
 ssh dokku@NEW_HOST ps:scale lease-manager                    # web: 1, worker: 1
 ssh dokku@NEW_HOST ps:report lease-manager --deployed        # true
 ssh dokku@NEW_HOST letsencrypt:list                          # certificate present, not expiring
@@ -338,7 +359,8 @@ ssh dokku@NEW_HOST config:get lease-manager MAIL_FROM        # set, and an addre
 ```
 
 Then log in through Google OAuth and open a lease — that exercises the master key, the database and
-the B2 bucket in one go.
+the B2 bucket in one go. `bin/verify-release` makes only unauthenticated requests, so nothing behind
+the sign-in page is covered by it.
 
 ---
 
@@ -515,12 +537,50 @@ Certificate issuance needs port 80 reachable from the internet for the ACME HTTP
 Cloudflare proxying interferes with issuance, pause the proxy (grey cloud) for the duration.
 
 The application trusts the proxy in front of it: `config.assume_ssl` and `config.force_ssl` are both
-on by default in production, controlled by `FORCE_SSL`. `/up` is excluded from the HTTPS redirect
-and from host authorisation so health checks work regardless.
+on by default in production, controlled by `FORCE_SSL`. The health check paths — `/up`,
+`/health/ready` and `/health/workers`, listed in `config.x.health_check_paths` in
+`config/application.rb` — are excluded from both the HTTPS redirect and host authorisation, so a
+check that reaches the container directly over plain HTTP is answered rather than redirected or
+refused with a 403.
+
+**Cloudflare's SSL/TLS encryption mode must be Full (strict).** The origin redirects HTTP to HTTPS,
+so if Cloudflare is set to "Flexible" it fetches the origin over HTTP, gets that redirect, hands it
+back to the browser, and every URL on the site becomes an endless redirect loop. See
+[Every URL redirects to itself](#troubleshooting) below — this has happened.
 
 ---
 
 ## Troubleshooting
+
+**Every URL redirects to itself, and browsers report too many redirects.**
+The whole site is unreachable, including `/up`. The response is a `301` whose `Location` is the
+address that was just requested, with an explicit `:443`:
+
+```bash
+curl -sS -o /dev/null -D - https://lease-manager.loonyb.in/up
+# HTTP/2 301
+# location: https://lease-manager.loonyb.in:443/up
+# server: cloudflare
+```
+
+Check the origin directly, bypassing Cloudflare. If it answers `200` over HTTPS and `301` over
+HTTP, the application is healthy and the loop is Cloudflare's:
+
+```bash
+curl --resolve lease-manager.loonyb.in:443:91.98.73.173 https://lease-manager.loonyb.in/up   # 200
+curl --resolve lease-manager.loonyb.in:80:91.98.73.173  http://lease-manager.loonyb.in/up    # 301
+```
+
+**Cause:** Cloudflare's SSL/TLS encryption mode is set to **Flexible**, so it fetches the origin
+over plain HTTP. The origin's nginx redirects HTTP to HTTPS, Cloudflare returns that redirect to the
+browser, the browser comes back over HTTPS, and Cloudflare fetches the origin over HTTP again —
+forever. **Fix:** set the mode to **Full (strict)** in the Cloudflare dashboard. The origin holds a
+valid Let's Encrypt certificate for the domain, so strict mode works immediately. Nothing needs
+deploying and no code changes.
+
+This took the site down for several days from 2026-10-02. It is invisible from the host — every
+Dokku check passes, the containers are healthy, and the application is serving correctly — so check
+the edge before you touch the app.
 
 **The site returns 502, but `ps:report` says the app is deployed and running.**
 Check the port mapping against what the web process is actually listening on:
@@ -549,11 +609,18 @@ The deploy workflow only fires when the CI run concluded `success` on `main`. Ch
 the deploy workflow.
 
 **The deploy job is red, but the change is live.**
-The workflow's last step is a smoke test — `curl --fail` against
-<https://lease-manager.loonyb.in/up>, with a 30-second timeout. It runs *after* the push, so the
-release is already out when it fails. A red job here means the deploy happened and the application
-is not answering: read it as an alert about production, not as a failed release, and do not re-run
-the job expecting it to deploy again.
+The workflow's last step is `bin/verify-release`, which runs *after* the push — so the release is
+already out when it fails. **Read a red job here as an alert about production, not as a failed
+release**, and do not re-run it expecting it to deploy again.
+
+The step names the check that failed, so start there rather than guessing. Failures of *every*
+check with `301` mean the site is in the redirect loop described at the top of this section, not
+that the application is broken. The worker check is the one that fails on an otherwise fine
+release: it requires a Solid Queue worker started by *this* deploy, which catches a release whose
+`worker` process never came up while the previous one is still heartbeating.
+
+Nothing alerts on this job. A red Deploy run is currently the only automated signal that production
+is broken, and it pages nobody — see [Known gaps](#known-gaps).
 
 **`Blocked hosts` error in the logs.**
 `APP_HOST` is unset or does not match the domain being requested. `bin/bootstrap` fixes it.
@@ -570,8 +637,15 @@ Recorded here so a reader is not misled by omission:
 - **No scheduled off-host database backup, and no rehearsed restore.** The largest gap here, and the
   only one that can lose data outright. Tracked as Gate 1b (`LOO-18`). See
   [Disaster recovery procedure — not yet written](#disaster-recovery-procedure--not-yet-written).
-- **No monitoring or alerting.** Nothing pages anyone if `/up` stops answering, if the certificate
-  approaches expiry, or if the `worker` process stops.
+- **No uptime monitoring or alerting.** Nothing pages anyone if the site stops answering, if the
+  certificate approaches expiry, or if the `worker` process stops. The application does report its
+  own exceptions to Sentry when `SENTRY_DSN` is set, which covers errors raised by code that runs —
+  but an outage in front of the application raises nothing, so Sentry stays silent through it. The
+  only automated signal that production is broken is a red Deploy run, which happens solely when
+  someone merges and notifies nobody. **This gap has already cost a multi-day outage:** on
+  2026-10-02 the deploy verification reported the site returning `301` on all six checks, in red,
+  and the site stayed down until someone looked. Closing it means an external uptime check against
+  `/health/ready` that can alert.
 - **Stale Google Cloud repository variables are still set** — `GCP_PROJECT_ID`, `GCP_REGION`,
   `CICD_SERVICE_ACCOUNT` and `WIF_PROVIDER`, all dated 2026-03-23, left behind by the migration off
   Cloud Run. No workflow reads them. They are harmless but misleading to anyone reading the
