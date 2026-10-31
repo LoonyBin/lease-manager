@@ -10,7 +10,7 @@ gem "dentaku", "~> 4.0"
 gem "groupdate", "~> 6.8"
 gem "haml-rails"
 gem "heroicons"
-gem "image_processing", "~> 2.1"
+gem "image_processing", "~> 2.2"
 gem "importmap-rails"
 gem "jbuilder"
 # json 3.x drops the two-argument JSON.parse(source, opts) that
