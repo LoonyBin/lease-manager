@@ -553,7 +553,8 @@ back to the browser, and every URL on the site becomes an endless redirect loop.
 
 **Every URL redirects to itself, and browsers report too many redirects.**
 The whole site is unreachable, including `/up`. The response is a `301` whose `Location` is the
-address that was just requested, with an explicit `:443`:
+address that was just requested, with an explicit `:443`. This is the output seen during the
+October–November 2026 incident, shown as an example of the symptom (the incident is resolved):
 
 ```bash
 curl -sS -o /dev/null -D - https://lease-manager.loonyb.in/up
@@ -563,20 +564,30 @@ curl -sS -o /dev/null -D - https://lease-manager.loonyb.in/up
 ```
 
 Check the origin directly, bypassing Cloudflare. If it answers `200` over HTTPS and `301` over
-HTTP, the application is healthy and the loop is Cloudflare's:
+HTTP, the application is healthy and the loop is most likely Cloudflare's (example responses):
 
 ```bash
 curl --resolve lease-manager.loonyb.in:443:91.98.73.173 https://lease-manager.loonyb.in/up   # 200
 curl --resolve lease-manager.loonyb.in:80:91.98.73.173  http://lease-manager.loonyb.in/up    # 301
 ```
 
-**Cause:** Cloudflare's SSL/TLS encryption mode is **Flexible** (this is how the 2026-10 outage
-started; it is now set to Full (strict)), so it fetches the origin
-over plain HTTP. The origin's nginx redirects HTTP to HTTPS, Cloudflare returns that redirect to the
-browser, the browser comes back over HTTPS, and Cloudflare fetches the origin over HTTP again —
-forever. **Fix:** set the mode to **Full (strict)** in the Cloudflare dashboard. The origin holds a
-valid Let's Encrypt certificate for the domain, so strict mode works immediately. Nothing needs
-deploying and no code changes.
+**Cause, if the origin checks above pass:** Cloudflare's SSL/TLS encryption mode is probably
+**Flexible**, so it fetches the origin over plain HTTP. The origin's nginx redirects HTTP to HTTPS,
+Cloudflare returns that redirect to the browser, the browser comes back over HTTPS, and Cloudflare
+fetches the origin over HTTP again — forever. That is how the 2026-10 outage started. It is now set
+to Full (strict), so on a healthy site this is not the current state; confirm the effective mode in
+the Cloudflare dashboard rather than assuming it.
+
+**Fix:** first verify the origin certificate is valid for the domain and unexpired:
+
+```bash
+echo | openssl s_client -connect 91.98.73.173:443 -servername lease-manager.loonyb.in 2>/dev/null \
+  | openssl x509 -noout -subject -issuer -dates
+```
+
+If it is, set the mode to **Full (strict)** in the Cloudflare dashboard; strict mode then works
+immediately. If it is not, renew the certificate first (`letsencrypt:list` and `letsencrypt:auto-renew` on the host), or strict mode will
+fail with a 526. Nothing needs deploying and no code changes.
 
 This took the site down for 30 days, from 2026-10-02 to 2026-11-01. It is invisible from the host — every
 Dokku check passes, the containers are healthy, and the application is serving correctly — so check
