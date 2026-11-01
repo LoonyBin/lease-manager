@@ -465,7 +465,7 @@ GEM
       zeitwerk (~> 2.6)
     rainbow (3.1.1)
     rake (13.4.2)
-    ransack (4.4.1)
+    ransack (4.4.4)
       activerecord (>= 7.2)
       activesupport (>= 7.2)
       i18n
@@ -709,7 +709,7 @@ DEPENDENCIES
   pundit
   pundit-matchers (~> 4.0)
   rails (~> 8.1.4)
-  ransack
+  ransack (~> 4.4.4)
   responders
   rspec-its
   rspec-rails (~> 8.0)
