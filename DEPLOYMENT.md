@@ -55,7 +55,7 @@ So:
   merges **queue** rather than interrupting a push that is already underway — an interrupted release
   can leave the host between containers.
 
-**This is deliberate.** The repository owner confirmed the arrangement in September 2026 (`LOO-402`):
+**This is deliberate.** The repository owner confirmed the arrangement in September 2026:
 merge-to-`main` deploys, and CI is the only gate. Do not add a staging environment or an approval
 step on the assumption that their absence is an oversight — it is a decision, and changing it is a
 decision for the repository owner to take again.
@@ -372,10 +372,9 @@ the sign-in page is covered by it.
 >
 > **Do not read the commands below as evidence that a backup exists.** They are how you would *take*
 > one, by hand, right now. Establishing a scheduled off-host backup and rehearsing a restore end to
-> end is open work, tracked as Gate 1b (`LOO-18`, document `sop-bcdr`); it is blocked on production
-> host access and on a pending decision about where the backups go.
+> end is open work: it needs production host access and a decision about where the backups go.
 >
-> This paragraph is the honest state of affairs as of 2026-09-11. Until Gate 1b lands, **the first
+> This paragraph is the honest state of affairs as of 2026-09-11. Until that work is done, **the first
 > thing to do in a data-loss incident is to establish whether any copy of the data exists at all** —
 > do not assume one does.
 
@@ -441,8 +440,8 @@ What does exist today:
   enough to stand the application back up on a new host.
 - The manual dump and restore commands above — correct, but nobody runs them on a schedule.
 
-What is missing is everything about the *data*. That work is Gate 1b (`LOO-18`), whose `sop-bcdr`
-document holds the procedure being drafted. Replace this subsection with the real thing when it
+What is missing is everything about the *data*. That work (a scheduled off-host backup and a
+rehearsed restore) is still open. Replace this subsection with the real thing when it
 lands; do not soften it before then.
 
 ---
@@ -635,7 +634,7 @@ is broken, and it pages nobody — see [Known gaps](#known-gaps).
 Recorded here so a reader is not misled by omission:
 
 - **No scheduled off-host database backup, and no rehearsed restore.** The largest gap here, and the
-  only one that can lose data outright. Tracked as Gate 1b (`LOO-18`). See
+  only one that can lose data outright. Still open work. See
   [Disaster recovery procedure — not yet written](#disaster-recovery-procedure--not-yet-written).
 - **No uptime monitoring or alerting.** Nothing pages anyone if the site stops answering, if the
   certificate approaches expiry, or if the `worker` process stops. The application does report its
