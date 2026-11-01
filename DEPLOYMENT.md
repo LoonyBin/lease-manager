@@ -310,19 +310,24 @@ See [Database backup and restore](#database-backup-and-restore) below. **Read th
 of that section first:** if you are here because the old host is gone, there may be no dump to
 restore, and the steps that follow will stand up a working application with an empty database.
 
-### 8. Issue the certificate
+### 8. Point DNS at the new host
 
-Run `bin/bootstrap` a second time. The first run skips certificate issuance because Let's Encrypt
-cannot validate a domain for an app that has never deployed.
+In the [Cloudflare dashboard](https://dash.cloudflare.com) for `loonyb.in`, update the
+`lease-manager` record to the new host's IP address. Do this **before** issuing the certificate:
+Let's Encrypt validates the domain over HTTP (port 80) through the public hostname, so it must already
+resolve to the new host. While the certificate is being issued, keep that challenge reachable: either
+set the record to **DNS only** (grey cloud), or turn off "Always Use HTTPS" in Cloudflare until the
+certificate exists. Once it is issued, restore the proxy and set SSL/TLS mode to **Full (strict)**.
+
+### 9. Issue the certificate
+
+Run `bin/bootstrap` a second time, now that DNS points at the new host. The first run skips
+certificate issuance because Let's Encrypt cannot validate a domain for an app that has never
+deployed, and a run made before step 8 would fail validation for the same reason.
 
 ```bash
 DOKKU_HOST=dokku@NEW_HOST bin/bootstrap
 ```
-
-### 9. Point DNS at the new host
-
-In the [Cloudflare dashboard](https://dash.cloudflare.com) for `loonyb.in`, update the
-`lease-manager` record to the new host's IP address.
 
 ### 10. Update the things that hold the old IP address
 
@@ -578,13 +583,14 @@ fetches the origin over HTTP again — forever. That is how the 2026-10 outage s
 to Full (strict), so on a healthy site this is not the current state; confirm the effective mode in
 the Cloudflare dashboard rather than assuming it.
 
-**Fix:** first verify the origin certificate. This request goes straight to the origin and exits
-non-zero if the certificate chain, the hostname or the validity dates are wrong (curl exit code 60
-means an untrusted or expired certificate); it also exits non-zero if the app does not answer 200:
+**Fix:** first verify the origin certificate. This request goes straight to the origin. curl exits
+non-zero if the certificate chain, the hostname or the validity dates are wrong (exit code 60 means an
+untrusted or expired certificate). curl does not treat a redirect as a failure, so the command also
+checks that the app answers exactly 200 and prints the confirmation only then:
 
 ```bash
-curl --resolve lease-manager.loonyb.in:443:91.98.73.173 -sS -o /dev/null --fail \
-  https://lease-manager.loonyb.in/up && echo "origin certificate OK"
+test "$(curl --resolve lease-manager.loonyb.in:443:91.98.73.173 -sS -o /dev/null \
+  -w '%{http_code}' https://lease-manager.loonyb.in/up)" = 200 && echo "origin certificate OK"
 ```
 
 If it prints `origin certificate OK`, set the mode to **Full (strict)** in the Cloudflare dashboard;
