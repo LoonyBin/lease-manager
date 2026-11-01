@@ -78,9 +78,9 @@ RSpec.describe ApplicationRecord do
     end
   end
 
-  # Invoice#number, Invoice#created_at, Invoice#id, Property#capacity and User#created_at
-  # are sortable from the _sort drawers (or a controller default) but appear in no
-  # _search partial, so they have no form-render safety net. Ransack silently drops
+  # Invoice#number, Invoice#created_at, Invoice#id, Payment#id, Property#capacity and
+  # User#created_at are sortable from the _sort drawers (or a controller default) but
+  # appear in no _search partial, so they have no form-render safety net. Ransack drops
   # a non-allowlisted sort, so dropping one of these from an allowlist would quietly
   # stop the sort working. Assert the ORDER BY clause is actually generated: a
   # dropped sort vanishes from the SQL, which is what fails closed here — not row
@@ -99,6 +99,13 @@ RSpec.describe ApplicationRecord do
     it "keeps Invoice#id sortable" do
       sql = Invoice.ransack(s: "id desc").result.to_sql
       expect(sql).to match(/ORDER BY\s+"invoices"\."id"\s+DESC/i)
+    end
+
+    # payments_controller's default sort ends in "id desc" (#182); if id left the
+    # allowlist the unique final tiebreak would vanish without any other failure.
+    it "keeps Payment#id sortable" do
+      sql = Payment.ransack(s: "id desc").result.to_sql
+      expect(sql).to match(/ORDER BY\s+"payments"\."id"\s+DESC/i)
     end
 
     it "keeps Property#capacity sortable" do
