@@ -570,14 +570,15 @@ curl --resolve lease-manager.loonyb.in:443:91.98.73.173 https://lease-manager.lo
 curl --resolve lease-manager.loonyb.in:80:91.98.73.173  http://lease-manager.loonyb.in/up    # 301
 ```
 
-**Cause:** Cloudflare's SSL/TLS encryption mode is set to **Flexible**, so it fetches the origin
+**Cause:** Cloudflare's SSL/TLS encryption mode is **Flexible** (this is how the 2026-10 outage
+started; it is now set to Full (strict)), so it fetches the origin
 over plain HTTP. The origin's nginx redirects HTTP to HTTPS, Cloudflare returns that redirect to the
 browser, the browser comes back over HTTPS, and Cloudflare fetches the origin over HTTP again —
 forever. **Fix:** set the mode to **Full (strict)** in the Cloudflare dashboard. The origin holds a
 valid Let's Encrypt certificate for the domain, so strict mode works immediately. Nothing needs
 deploying and no code changes.
 
-This took the site down for several days from 2026-10-02. It is invisible from the host — every
+This took the site down for 30 days, from 2026-10-02 to 2026-11-01. It is invisible from the host — every
 Dokku check passes, the containers are healthy, and the application is serving correctly — so check
 the edge before you touch the app.
 
@@ -641,9 +642,9 @@ Recorded here so a reader is not misled by omission:
   own exceptions to Sentry when `SENTRY_DSN` is set, which covers errors raised by code that runs —
   but an outage in front of the application raises nothing, so Sentry stays silent through it. The
   only automated signal that production is broken is a red Deploy run, which happens solely when
-  someone merges and notifies nobody. **This gap has already cost a multi-day outage:** on
+  someone merges and notifies nobody. **This gap has already cost a 30-day outage:** on
   2026-10-02 the deploy verification reported the site returning `301` on all six checks, in red,
-  and the site stayed down until someone looked. Closing it means an external uptime check against
+  and the site stayed down until 2026-11-01, when someone looked. Closing it means an external uptime check against
   `/health/ready` that can alert.
 - **Stale Google Cloud repository variables are still set** — `GCP_PROJECT_ID`, `GCP_REGION`,
   `CICD_SERVICE_ACCOUNT` and `WIF_PROVIDER`, all dated 2026-03-23, left behind by the migration off
