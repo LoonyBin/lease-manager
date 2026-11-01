@@ -578,16 +578,19 @@ fetches the origin over HTTP again — forever. That is how the 2026-10 outage s
 to Full (strict), so on a healthy site this is not the current state; confirm the effective mode in
 the Cloudflare dashboard rather than assuming it.
 
-**Fix:** first verify the origin certificate is valid for the domain and unexpired:
+**Fix:** first verify the origin certificate. This request goes straight to the origin and exits
+non-zero if the certificate chain, the hostname or the validity dates are wrong (curl exit code 60
+means an untrusted or expired certificate); it also exits non-zero if the app does not answer 200:
 
 ```bash
-echo | openssl s_client -connect 91.98.73.173:443 -servername lease-manager.loonyb.in 2>/dev/null \
-  | openssl x509 -noout -subject -issuer -dates
+curl --resolve lease-manager.loonyb.in:443:91.98.73.173 -sS -o /dev/null --fail \
+  https://lease-manager.loonyb.in/up && echo "origin certificate OK"
 ```
 
-If it is, set the mode to **Full (strict)** in the Cloudflare dashboard; strict mode then works
-immediately. If it is not, renew the certificate first (`letsencrypt:list` and `letsencrypt:auto-renew` on the host), or strict mode will
-fail with a 526. Nothing needs deploying and no code changes.
+If it prints `origin certificate OK`, set the mode to **Full (strict)** in the Cloudflare dashboard;
+strict mode then works immediately. If it fails with a certificate error, renew the certificate first
+(`letsencrypt:list` and `letsencrypt:auto-renew` on the host), or strict mode will fail with a 526.
+Nothing needs deploying and no code changes.
 
 This took the site down for 30 days, from 2026-10-02 to 2026-11-01. It is invisible from the host — every
 Dokku check passes, the containers are healthy, and the application is serving correctly — so check
