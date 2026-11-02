@@ -6,11 +6,25 @@ name: Backup Active Storage blobs
 # keeps both B2 keys off the single production host this backup exists to survive,
 # and a failed scheduled run is loud (red in the Actions tab, email to the owner).
 # A silent cron that stopped working is worse than no backup, because it is trusted.
-# Full reasoning: LOO-33 plan document; procedure: BCDR SOP parts B0b, B4, B5.
+#
+# Setup before this can pass (until then the preflight step fails the run on
+# purpose, so merge this only once the bucket and keys exist):
+#   1. Create the backup bucket `lease-manager-backups` with Object Lock and a
+#      30-day retention window.
+#   2. Create two B2 application keys, each restricted to a single bucket:
+#        - live bucket `lease-manager`: listBuckets, listFiles, readFiles
+#          (read-only).
+#        - backup bucket `lease-manager-backups`: listBuckets, listFiles,
+#          readFiles, writeFiles, deleteFiles. `rclone sync` and `rclone size`
+#          must list the destination, and sync hides files that were deleted
+#          from the live bucket; a write-only key cannot do either.
+#   3. Store them as the repository secrets B2_LIVE_KEY_ID, B2_LIVE_APP_KEY,
+#      B2_BACKUP_KEY_ID and B2_BACKUP_APP_KEY.
+#   4. Run this workflow once by hand (Run workflow) before trusting the schedule.
 
 on:
   schedule:
-    - cron: "20 3 * * *"   # 20 min after the Postgres dump (SOP B3 schedules 03:00 UTC)
+    - cron: "20 3 * * *"   # 20 min after the nightly Postgres dump (03:00 UTC)
   workflow_dispatch:
 
 concurrency:
@@ -57,7 +71,21 @@ jobs:
           done
           if [ -n "$missing" ]; then
             echo "Missing repository secrets for:$missing" >&2
-            echo "See the LOO-33 plan document for the four secret names." >&2
+            echo "Expected repository secrets: B2_LIVE_KEY_ID, B2_LIVE_APP_KEY," >&2
+            echo "B2_BACKUP_KEY_ID, B2_BACKUP_APP_KEY (see the setup notes at the top of this file)." >&2
+            exit 1
+          fi
+
+      # `rclone sync` makes the mirror equal to the source, so an unexpectedly
+      # empty source (wrong bucket, revoked read access that lists as empty) would
+      # wipe the visible mirror and the later count check would see 0 == 0.
+      # Production always holds uploaded documents, so an empty source is a fault.
+      - name: Refuse to sync from an empty live bucket
+        run: |
+          live=$(rclone size "$LIVE" --json | jq -r .count)
+          echo "live=$live"
+          if [ "${live:-0}" -eq 0 ]; then
+            echo "Live bucket lists as empty; refusing to sync (would empty the mirror)." >&2
             exit 1
           fi
 
@@ -75,6 +103,11 @@ jobs:
           mirror=$(rclone size "$MIRROR" --json | jq -r .count)
           echo "live=$live mirror=$mirror"
           echo "Live objects: \`$live\` — mirrored: \`$mirror\`" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "${live:-0}" -eq 0 ]; then
+            echo "Live bucket lists as empty; nothing was verified." >&2
+            exit 1
+          fi
 
           # Object Lock means the mirror can legitimately hold more than the live
           # bucket: objects deleted from live stay under the 30-day retention window.
