@@ -206,7 +206,9 @@ RSpec.describe "Mobile layout" do
 
       page.execute_script("window.scrollTo(0, 800)")
       expect(page.evaluate_script("window.scrollY")).to be > 0
-      find("[title='Create']").click unless page.has_css?(".page-actions .dropdown-content", visible: true, wait: 0.5)
+      unless page.has_css?(".page-actions .dropdown-content", visible: :visible, wait: 0.5)
+        find("[title='Create']").click
+      end
       expect_inside_viewport(".page-actions .dropdown-content")
       expect(box_of(".page-actions .dropdown-content")["top"]).to be >= box_of(".app-header")["bottom"] - 1
 
@@ -218,7 +220,7 @@ RSpec.describe "Mobile layout" do
       find("[title='Create']").click
       click_link "Record Payment"
       expect(page).to have_current_path(%r{/payments/new})
-      expect(find("input[name='payment[lease_id]']", visible: :all).value).to eq(lease.id.to_s)
+      expect(find_field("payment[lease_id]", type: :hidden, visible: :all).value).to eq(lease.id.to_s)
     end
 
     it "stays on screen on a property page and opens a lease form for that property" do
