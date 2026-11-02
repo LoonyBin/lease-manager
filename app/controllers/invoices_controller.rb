@@ -5,6 +5,8 @@ class InvoicesController < ApplicationController
 
   respond_to :html, :json
 
+  after_action :verify_policy_scoped, only: :audit
+
   def index
     @q = policy_scope(Invoice).ransack(params[:q])
     @q.sorts = ["date desc", "created_at desc", "id desc"] if @q.sorts.empty?
@@ -34,7 +36,7 @@ class InvoicesController < ApplicationController
 
   def audit
     authorize Invoice, :index?
-    detector = MissingInvoiceDetector.new
+    detector = MissingInvoiceDetector.new(policy_scope(Lease))
     @missing_invoices = detector.call
     @leases_without_templates = detector.leases_without_templates
     respond_ok { audit_payload }
