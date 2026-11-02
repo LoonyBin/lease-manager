@@ -18,7 +18,7 @@ gem "jbuilder"
 # ArgumentError. Pinned until Rails ships a decoder that works with json 3.
 gem "json", "< 3"
 gem "kamal", require: false
-gem "kaminari", "~> 1.2"
+gem "kaminari", "~> 1.3"
 gem "omniauth"
 gem "omniauth-google-oauth2"
 gem "omniauth-rails_csrf_protection"
