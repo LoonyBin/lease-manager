@@ -135,7 +135,7 @@ GEM
     debug (1.11.1)
       irb (~> 1.10)
       reline (>= 0.3.8)
-    dentaku (4.0.2)
+    dentaku (4.1.0)
       bigdecimal (>= 3.1)
       concurrent-ruby (~> 1.1)
       tsort (>= 0.1.1)
@@ -691,7 +691,7 @@ DEPENDENCIES
   cuprite (~> 0.17)
   dartsass-rails
   debug
-  dentaku (~> 4.0)
+  dentaku (~> 4.1)
   factory_bot_rails
   faker
   groupdate (~> 6.8)
