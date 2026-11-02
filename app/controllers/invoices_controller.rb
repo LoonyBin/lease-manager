@@ -21,6 +21,7 @@ class InvoicesController < ApplicationController
   end
 
   def new
+    authorize_requested_lease
     @invoice = build_invoice
     authorize @invoice
     set_form_collections
@@ -40,6 +41,7 @@ class InvoicesController < ApplicationController
   end
 
   def create
+    authorize_requested_lease
     @invoice = build_invoice
     authorize @invoice
     @invoice.save unless @invoice.persisted?
@@ -58,6 +60,15 @@ class InvoicesController < ApplicationController
   end
 
   private
+
+  # A chosen lease must be one the caller may invoice before anything is read
+  # from it (prefill, templates, existing invoices). Unknown ids are refused.
+  def authorize_requested_lease
+    lease_id = invoice_params&.dig(:lease_id)
+    return if lease_id.blank?
+
+    authorize Invoice.new(lease: Lease.find_by(id: lease_id)), :create?
+  end
 
   # Prefills rental invoices from an invoice template when a lease and date
   # are given without explicit line items (invoice form and audit page).

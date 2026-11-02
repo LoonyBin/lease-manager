@@ -12,6 +12,8 @@ class InvoicePolicy < ApplicationPolicy
   end
 
   def new?
+    return create? if record.try(:lease_id)
+
     admin? || user.owners.exists?
   end
 
