@@ -147,7 +147,7 @@ curl -X DELETE -H "Authorization: Bearer $TOKEN" https://example.com/properties/
 Available resources: `properties`, `tenants`, `owners`, `leases`, `payments`,
 `invoices` (no delete), `invoice_templates` (nested under
 `/leases/:lease_id/`, mutations only), `users`, `user_associations`
-(mutations only), and `versions` (the audit trail; read and delete).
+(mutations only), `invoice_previews` (read-only, nested under `/leases/:lease_id/`), and `versions` (the audit trail; read and delete).
 Session endpoints are HTML-only; the reports endpoints are documented below.
 
 Deleting a payment (`DELETE /payments/:id`) is a **hard delete** for a record
@@ -239,6 +239,60 @@ read `null` as zero.
 `leases_without_templates` lists leases that generate no invoices at all because
 every template was deleted. Generation skips them silently, so they would
 otherwise be invisible.
+
+### The invoice preview
+
+`GET /leases/:lease_id/invoice_preview.json?date=YYYY-MM-DD[&invoice_template_id=N]`
+answers *"what invoice would the form prefill for this lease in this month?"*
+It runs the same template selection as `GET /invoices/new`, so a client does not
+reimplement it, and it **saves nothing**.
+
+```sh
+curl -H "Authorization: Bearer $TOKEN" \
+  "https://example.com/leases/42/invoice_preview.json?date=2026-03-01"
+```
+
+```json
+{
+  "persisted": false,
+  "reason": null,
+  "invoice_template": { "id": 7, "name": "Monthly rent" },
+  "invoice": {
+    "id": null, "number": null, "lease_id": 42, "invoice_template_id": 7,
+    "date": "2026-03-01", "due_date": "2026-03-08", "status": "draft",
+    "document_type": "invoice", "balance": "0.0", "total_amount": "1180.0",
+    "line_items": [
+      { "id": null, "name": "Rent for March 2026", "category": "rent", "amount": "1000.0",
+        "tax_rate": "18.0", "tax_amount": "180.0", "total": "1180.0" }
+    ]
+  }
+}
+```
+
+`invoice` has the same shape as `GET /invoices/:id.json`. The response is `200`
+whenever the lease, authorization and date are good; `persisted` and `reason`
+say what was found:
+
+| `persisted` | `invoice` | `reason` | Meaning |
+| --- | --- | --- | --- |
+| `false` | draft, `id: null` | `null` | An unsaved draft |
+| `true` | saved invoice | `null` | The template already billed that month (any status, including `cancelled`) |
+| `false` | `null` | `no_template` | The lease has no templates |
+| `false` | `null` | `template_not_found` | `invoice_template_id` is not one of this lease's templates |
+| `false` | `null` | `not_generated` | Outside the template's window, rent already billed manually, or every line is zero |
+| `false` | `null` | `evaluation_error` | An amount expression failed. Do **not** read this as "nothing to bill" |
+
+Use **`persisted`, not `invoice.status`**, to tell a saved invoice from a draft:
+a saved invoice can itself have the status `draft`.
+
+Only one invoice is returned per call. When a lease has several templates, use
+the audit's `invoice_template_id` and `date` to ask about each one. Errors: `404`
+when the lease is not visible to you, `403` when you may see the lease but not
+preview its invoices (tenants), `422` with `{"errors":{"date":[...]}}` for a
+missing or unparseable `date`.
+
+Existing tokens do not gain this endpoint. Issue a new token with the
+`invoice_previews#show` grant (or the read-only preset).
 
 ### Correcting a payment
 

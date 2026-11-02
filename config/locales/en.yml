@@ -33,6 +33,9 @@ en:
     undeliverable:
       invoice_settled: 'Cancelled at send time: the invoice was settled after this reminder was approved.'
       reminders_disabled: 'Cancelled at send time: reminders were switched off for this lease after approval.'
+  invoice_previews:
+    show:
+      date_invalid: must be a valid date (YYYY-MM-DD)
   invoice_templates:
     create:
       success: Invoice template was successfully created.
