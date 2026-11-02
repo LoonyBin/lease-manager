@@ -18,30 +18,31 @@
   %h3.text-lg.font-bold.mb-4 Line Items
 
   %div{ data: { controller: "nested-fields" } }
-    %table.table.w-full.mb-4
-      %thead
-        %tr
-          %th Description
-          %th Category
-          %th.text-right Amount Expression
-          %th.text-right Tax Rate (%)
-          %th
-      %tbody{ data: { nested_fields_target: "container" } }
-        = f.simple_fields_for :line_items do |li|
+    .overflow-x-auto.mb-4
+      %table.table.w-full
+        %thead
           %tr
-            %td
-              = li.hidden_field :id
-              = li.input_field :name, class: "input input-bordered input-sm w-full"
-            %td
-              = li.input_field :category, class: "input input-bordered input-sm w-full"
-            %td.text-right
-              = li.input_field :amount_expression, class: "input input-bordered input-sm w-40 text-right font-mono"
-            %td.text-right
-              = li.input_field :tax_rate, class: "input input-bordered input-sm w-24 text-right"
-            %td
-              = li.label :_destroy, class: "cursor-pointer" do
-                = li.check_box :_destroy, class: "checkbox checkbox-sm checkbox-error"
-                %span.text-xs.text-error.ml-1 Delete
+            %th Description
+            %th Category
+            %th.text-right Amount Expression
+            %th.text-right Tax Rate (%)
+            %th
+        %tbody{ data: { nested_fields_target: "container" } }
+          = f.simple_fields_for :line_items do |li|
+            %tr
+              %td
+                = li.hidden_field :id
+                = li.input_field :name, class: "input input-bordered input-sm w-full"
+              %td
+                = li.input_field :category, class: "input input-bordered input-sm w-full"
+              %td.text-right
+                = li.input_field :amount_expression, class: "input input-bordered input-sm w-40 text-right font-mono"
+              %td.text-right
+                = li.input_field :tax_rate, class: "input input-bordered input-sm w-24 text-right"
+              %td
+                = li.label :_destroy, class: "cursor-pointer" do
+                  = li.check_box :_destroy, class: "checkbox checkbox-sm checkbox-error"
+                  %span.text-xs.text-error.ml-1 Delete
 
     %template{ data: { nested_fields_target: "template" } }
       %tr

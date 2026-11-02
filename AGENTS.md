@@ -3,7 +3,7 @@
 You are an intelligent agent working on this project. Your first step is to identify `YOUR_ROLE` based on the user's request and your current state.
 
 > [!IMPORTANT]
-> **Explicit Permission Required**: You must ALWAYS seek explicit permission from the user before moving on to the next feature. Do not assume approval.
+> **Explicit Permission Required**: You must ALWAYS seek explicit permission from the user before moving on to the next feature. Do not assume approval. This gates taking on new feature work; it is not a gate on committing to your own branch.
 
 ## Workflow Protocol
 > [!WARNING]
@@ -13,7 +13,7 @@ You are an intelligent agent working on this project. Your first step is to iden
     -   NEVER commit directly to `main`.
     -   Create a branch for every task: `git checkout -b feature/task-name` or `fix/issue-name`.
 2.  **Pull Request Workflow**:
-    -   **NEVER commit without asking the user first**. Always give them a chance to review changes before committing.
+    -   **Commit freely on your own feature branch** — no permission needed first. Review happens on the pull request, not before the commit.
     -   Commit changes to the feature branch.
     -   Verify all tests pass.
     -   **Create PR**: run `gh pr create --title "feat: ..." --body "..."`

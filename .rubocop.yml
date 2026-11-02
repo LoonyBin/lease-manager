@@ -45,3 +45,14 @@ Naming/PredicateMethod:
   AllowedMethods:
     - call
     - method_missing
+
+# Browser system specs walk one whole user flow per example: the browser boots
+# once, and splitting a flow into one-expectation examples would repeat that
+# cost and break the flow. Only these two cops are relaxed, only for this directory.
+RSpec/ExampleLength:
+  Exclude:
+    - "spec/system/**/*"
+
+RSpec/MultipleExpectations:
+  Exclude:
+    - "spec/system/**/*"
