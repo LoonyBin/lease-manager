@@ -55,6 +55,24 @@ module SystemHelper
     )
   end
 
+  # Left edge of every direct child, per matching row (header and body rows of a grid list).
+  def column_lefts(selector)
+    page.evaluate_script(<<~JS)
+      [...document.querySelectorAll(#{selector.to_json})]
+        .map(row => [...row.children].map(c => Math.round(c.getBoundingClientRect().left)))
+    JS
+  end
+
+  # Every pagination control in DOM order, as { left, right, top } boxes.
+  def pagination_boxes
+    page.evaluate_script(<<~JS)
+      [...document.querySelectorAll('.join > *')].map(e => {
+        const r = e.getBoundingClientRect();
+        return { left: r.left, right: r.right, top: Math.round(r.top) };
+      })
+    JS
+  end
+
   def pagination_row_count
     page.evaluate_script(<<~JS)
       new Set([...document.querySelectorAll('.join > *')].map(e => Math.round(e.getBoundingClientRect().top))).size

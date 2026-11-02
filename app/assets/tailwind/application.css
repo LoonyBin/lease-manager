@@ -1863,6 +1863,15 @@ body.versions [data-nav="versions"] {
     grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr) 6rem;
   }
 
+  .lease-statement-list.table-only > * {
+    min-width: 30rem;
+  }
+
+  .lease-statement-list.table-only .resource-list-header,
+  .lease-statement-list.table-only .resource-item {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  }
+
   .resource-list.table-only .resource-item > * {
     overflow-wrap: anywhere;
   }

@@ -2,9 +2,6 @@
 
 require "rails_helper"
 
-# Browser-level specs are long by nature: each example walks one flow and asserts along the way.
-# rubocop:disable RSpec/ExampleLength, RSpec/MultipleExpectations, Layout/LineLength, RSpec/LetSetup
-
 # Phone-width layout checks: the page body must never scroll sideways (only data
 # tables may), navigation must be reachable, and forms must be usable.
 # PDF viewing is not tested: the app has no invoice PDF feature, only print CSS.
@@ -30,7 +27,50 @@ RSpec.describe "Mobile layout" do
   end
 
   def expect_no_page_overflow(label = nil)
-    expect(page_overflow).to be <= 0, "#{label} overflows the page by #{page_overflow}px at #{page.evaluate_script('window.innerWidth')}"
+    overflow = page_overflow
+    width = page.evaluate_script("window.innerWidth")
+    expect(overflow).to be <= 0, "#{label} overflows the page by #{overflow}px at #{width}"
+  end
+
+  def expect_columns_aligned(list)
+    header, *rows = column_lefts("#{list} .resource-list-header, #{list} .resource-item, #{list} .version-list-header")
+    expect(rows).not_to be_empty
+    expect(rows).to all(eq(header))
+  end
+
+  # Two statement lines: an invoice with a long amount and a payment.
+  def seed_statement
+    invoice = create(:invoice, lease: lease)
+    lease.entries.create!(instrument: invoice, amount: 12_345_678)
+    create(:payment, lease: lease, date: Date.current, amount: 500) # confirmed, so it books its own entry
+  end
+
+  def seed_properties(count)
+    owner = create(:owner)
+    now = Time.current
+    rows = (1..count).map do |i|
+      { owner_id: owner.id, name: "Property #{i}", address: "Addr #{i}", created_at: now, updated_at: now }
+    end
+    Property.insert_all(rows) # rubocop:disable Rails/SkipsModelValidations
+  end
+
+  # Controls stay in DOM order, inside the content column, on exactly `rows` rows.
+  def expect_pagination_inside_column(rows)
+    boxes = pagination_boxes
+    expect(boxes.pluck("top").uniq.size).to eq(rows)
+    expect_in_reading_order(boxes)
+    expect_inside_column(boxes)
+  end
+
+  def expect_in_reading_order(boxes)
+    expect(boxes.size).to be >= 15
+    expect(boxes).to eq(boxes.sort_by { |b| b.values_at("top", "left") })
+  end
+
+  def expect_inside_column(boxes)
+    column = box_of(".app-main")
+    expect(boxes.pluck("left").min).to be >= column["left"] - 0.5
+    expect(boxes.pluck("right").max).to be <= column["right"] + 0.5
   end
 
   describe "pages without sideways scrolling" do
@@ -51,6 +91,22 @@ RSpec.describe "Mobile layout" do
         visit lease_path(lease)
         expect_no_page_overflow("lease")
         expect_inside_viewport(".show-list-item .btn", vertical: false) if w < 1024
+      end
+    end
+
+    it "lease statement, scrolling to its Balance column with columns aligned" do
+      seed_statement
+      each_phone do |w|
+        visit lease_path(lease)
+        expect_no_page_overflow("lease statement")
+        expect(page).to have_css(".lease-statement-list .resource-item", count: 2)
+        expect_columns_aligned(".lease-statement-list")
+        next if w >= 1024
+
+        page.execute_script("document.querySelector('.lease-statement-list').scrollLeft = 99999")
+        expect_inside_viewport(".lease-statement-list .resource-list-header > :last-child", vertical: false)
+        expect_inside_viewport(".lease-statement-list .resource-item > :last-child", vertical: false)
+        expect(first(".lease-statement-list .resource-item > :last-child")).to have_text("₹12,345,678")
       end
     end
 
@@ -111,14 +167,22 @@ RSpec.describe "Mobile layout" do
       end
     end
 
-    it "paginated list, including its first and last controls" do
-      owner = create(:owner)
-      now = Time.current
-      Property.insert_all((1..600).map { |i| { owner_id: owner.id, name: "Property #{i}", address: "Addr #{i}", created_at: now, updated_at: now } }) # rubocop:disable Rails/SkipsModelValidations
-      [[2, 375], [10, 375], [10, 390], [10, 768]].each do |pg, w|
+    it "long paginated list wraps into ordered rows inside the content column" do
+      seed_properties(600)
+      { 375 => 3, 390 => 3, 768 => 2 }.each do |w, rows|
         resize_to(w, 800)
-        visit properties_path(page: pg)
-        expect_no_page_overflow("properties page #{pg}")
+        visit properties_path(page: 10)
+        expect_no_page_overflow("properties page 10 at #{w}")
+        expect_pagination_inside_column(rows)
+      end
+    end
+
+    it "short paginated list stays inside the viewport" do
+      seed_properties(60)
+      [375, 390, 768].each do |w|
+        resize_to(w, 800)
+        visit properties_path(page: 2)
+        expect_no_page_overflow("properties page 2 at #{w}")
         expect_inside_viewport(".join > *:first-child", vertical: false)
         expect_inside_viewport(".join > *:last-child", vertical: false)
       end
@@ -126,7 +190,7 @@ RSpec.describe "Mobile layout" do
   end
 
   describe "the lease '+' menu" do
-    let!(:other_lease) { create(:lease) }
+    before { create(:lease) } # a second lease, so the intended lease id is not the only one available
 
     it "stays on screen, at the top and after scrolling, and opens forms for this lease" do
       resize_to(375, 667)
@@ -157,12 +221,17 @@ RSpec.describe "Mobile layout" do
       expect(find("input[name='payment[lease_id]']", visible: :all).value).to eq(lease.id.to_s)
     end
 
-    it "stays on screen on a property page" do
+    it "stays on screen on a property page and opens a lease form for that property" do
       property = create(:property)
+      create(:property)
       resize_to(320, 640)
       visit property_path(property)
       first("[title='Create']").click
       expect_inside_viewport(".page-actions .dropdown-content")
+      click_link "New Lease"
+      expect(page).to have_current_path(%r{/leases/new})
+      field = find("[name='lease[property_id]']", visible: :all)
+      expect(field.value).to eq(property.id.to_s)
     end
   end
 
@@ -198,7 +267,16 @@ RSpec.describe "Mobile layout" do
           find("input[name$='[amount_expression]']").set("100")
         end
       end
+      page.execute_script("document.querySelector('.overflow-x-auto').scrollLeft = 99999")
+      rows.size.times do |i|
+        row = "[data-nested-fields-target=container] tr:nth-child(#{i + 1})"
+        find("#{row} input[name$='[tax_rate]']").set("18")
+        expect_inside_viewport("#{row} input[name$='[tax_rate]']", vertical: false)
+        expect_inside_viewport("#{row} td:last-child", vertical: false)
+      end
       expect_inside_viewport("[data-action='nested-fields#add']", vertical: false)
+      page.execute_script("document.querySelector('[formaction*=preview]').scrollIntoView()")
+      expect_inside_viewport("[formaction*=preview]", vertical: false)
       expect_inside_viewport(".form-actions .btn-primary", vertical: false)
       expect do
         find(".form-actions .btn-primary").click
@@ -211,13 +289,15 @@ RSpec.describe "Mobile layout" do
       visit new_payment_path(payment: { lease_id: lease.id })
       fill_in "Date", with: Date.current
       fill_in "Amount", with: "4321"
+      find("select[name='payment[mode]'] option[value='upi']").select_option
       fill_in "Reference number", with: "REF123"
+      expect_inside_viewport("select[name='payment[mode]']", vertical: false)
       expect_inside_viewport("input[type=file]", vertical: false)
       expect do
         find(".form-actions .btn-primary").click
         expect(page).to have_no_current_path(%r{/payments/new})
       end.to change { lease.payments.count }.by(1)
-      expect(lease.payments.last.amount).to eq(4321)
+      expect(lease.payments.last).to have_attributes(amount: 4321, mode: "upi", reference_number: "REF123")
     end
 
     it "confirms a draft payment" do
@@ -281,15 +361,29 @@ RSpec.describe "Mobile layout" do
       end
 
       it "paginates on a single row where it fits at #{w}" do
-        owner = create(:owner)
-        now = Time.current
-        Property.insert_all((1..60).map { |i| { owner_id: owner.id, name: "P#{i}", address: "A#{i}", created_at: now, updated_at: now } }) # rubocop:disable Rails/SkipsModelValidations
+        seed_properties(60)
         resize_to(w, 800)
         visit properties_path(page: 2)
         expect(pagination_row_count).to eq(1)
         expect_no_page_overflow("desktop pagination")
       end
+
+      it "wraps a long pagination into the agreed rows at #{w}" do
+        seed_properties(600)
+        resize_to(w, 800)
+        visit properties_path(page: 10)
+        expect_no_page_overflow("long desktop pagination")
+        expect_pagination_inside_column(w == 1024 ? 2 : 1)
+      end
+
+      it "keeps the lease statement columns aligned and unscrolled at #{w}" do
+        seed_statement
+        resize_to(w, 800)
+        visit lease_path(lease)
+        expect_columns_aligned(".lease-statement-list")
+        expect(computed_style(".lease-statement-list", "overflowX")).to eq("hidden")
+        expect(horizontal_slack(".lease-statement-list")).to eq(0)
+      end
     end
   end
 end
-# rubocop:enable RSpec/ExampleLength, RSpec/MultipleExpectations, Layout/LineLength, RSpec/LetSetup
