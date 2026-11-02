@@ -1819,3 +1819,64 @@ body.versions [data-nav="versions"] {
   thead { display: table-header-group; }
   tr { break-inside: avoid; }
 }
+
+/* ==========================================================================
+   Mobile layout fixes: keep the page body from scrolling sideways
+   ========================================================================== */
+
+/* daisyUI's .label sets nowrap, so long form hints would push the page wider. */
+@media screen and (max-width: 1279.98px) {
+  .label.label-text-alt {
+    white-space: normal;
+  }
+}
+
+@media screen and (max-width: 1023.98px) {
+  /* Header actions may wrap instead of squeezing the title to nothing. */
+  .page-header {
+    flex-wrap: wrap;
+  }
+
+  .page-title {
+    flex: 1 1 10rem;
+  }
+
+  .page-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    margin-left: auto;
+    flex-shrink: 1;
+    max-width: 100%;
+  }
+
+  /* Table-only lists scroll inside their own box instead of clipping columns. */
+  .resource-list.table-only {
+    overflow-x: auto;
+  }
+
+  .version-list.table-only > * {
+    min-width: 44rem;
+  }
+
+  .version-list.table-only .version-list-header,
+  .version-list.table-only .version-item {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr) 6rem;
+  }
+
+  .resource-list.table-only .resource-item > * {
+    overflow-wrap: anywhere;
+  }
+}
+
+/* Below 480px the header wraps; anchor the "+" menu to the sticky header's
+   right edge so it cannot open off the left of the screen. */
+@media screen and (max-width: 479.98px) {
+  .page-actions .dropdown {
+    position: static;
+  }
+
+  .page-actions .dropdown-content {
+    inset-inline-end: 1rem;
+    top: 100%;
+  }
+}
