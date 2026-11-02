@@ -3,8 +3,9 @@
   %span.text-base.font-normal.opacity-60.ml-2 ##{@version.id}
 
 - content_for :page_actions do
-  - if @version.item.present?
-    = link_to polymorphic_path(@version.item), class: "btn btn-ghost btn-sm btn-square", title: t(".view_resource") do
+  - item_path = version_item_path(@version.item)
+  - if item_path.present?
+    = link_to item_path, class: "btn btn-ghost btn-sm btn-square", title: t(".view_resource") do
       = heroicon "arrow-top-right-on-square", options: { class: "w-5 h-5" }
   - if VersionPolicy.new(current_user, @version).destroy?
     = button_to version_path(@version.id), method: :delete, class: "btn btn-ghost btn-sm btn-square text-error", data: { turbo_confirm: t(".delete_confirm") }, title: "Delete" do

@@ -86,12 +86,26 @@ RSpec.describe "Ransack search" do
                        reference_number: "ZZ-PAY-NEWER", created_at: 1.day.ago)
     end
 
-    # payments_controller defaults @q.sorts to ["date desc", "created_at desc"];
+    # payments_controller defaults @q.sorts to ["date desc", "created_at desc", "id desc"];
     # without created_at in the allowlist the tiebreak is silently dropped and
     # same-date ordering becomes nondeterministic. Regression guard for §2 of #173.
     it "breaks same-date ties by created_at desc" do
       get payments_path
       expect(response.body.index("ZZ-PAY-NEWER")).to be < response.body.index("ZZ-PAY-OLDER")
+    end
+
+    # created_at carries no unique constraint, so rows sharing date *and* created_at still
+    # have undefined relative order — the paging-repeats-or-skips-a-row bug one edge past
+    # #179. id (bigserial PK) is the unique final key. As with invoices above, a row-order
+    # check cannot prove the secondary/tertiary keys survived the allowlist: Ransack drops
+    # an unauthorized sort silently while date DESC keeps an ORDER BY present. Assert the
+    # executed SQL, which names every key. Regression guard for #182.
+    it "orders by date desc, created_at desc, id desc from the controller default" do
+      sql = []
+      collector = ->(*, payload) { sql << payload[:sql] }
+      ActiveSupport::Notifications.subscribed(collector, "sql.active_record") { get payments_path }
+      expect(sql.grep(/FROM "payments"/).join("\n"))
+        .to match(/ORDER BY\s+"payments"\."date" DESC, "payments"\."created_at" DESC, "payments"\."id" DESC/i)
     end
 
     it "filters by id_in (the invoices/show 'View payments' link)", :aggregate_failures do

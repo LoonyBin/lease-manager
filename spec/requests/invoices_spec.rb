@@ -128,6 +128,42 @@ RSpec.describe "Invoices" do
     end
   end
 
+  # The audit answers "which months were never invoiced?" — an aggregate over
+  # templates and the +covering+ scope that a client cannot reproduce without
+  # reimplementing MissingInvoiceDetector. Before #187 it existed only as a
+  # rendered page, so the only programmatic route to it was scraping HTML.
+  describe "GET /invoices/audit (JSON)" do
+    let(:today) { Date.current }
+    let!(:lease) { create(:lease, start_date: today - 1.month, duration_months: 12) }
+    let(:payload) { response.parsed_body }
+    let(:entry) { payload["missing_invoices"].find { |item| item["lease_id"] == lease.id } }
+
+    before { get audit_invoices_path(format: :json) }
+
+    it "returns a missing month for the lease", :aggregate_failures do
+      expect(response).to have_http_status(:success)
+      expect(entry).to be_present
+    end
+
+    it "names the template and both parties on each missing month", :aggregate_failures do
+      expect(entry["tenant"]).to include("id" => lease.tenant.id, "name" => lease.tenant.name)
+      expect(entry["property"]).to include("id" => lease.property.id, "name" => lease.property.name)
+      expect(lease.invoice_templates.ids).to include(entry["invoice_template_id"])
+    end
+
+    it "reports each missing month as the first of that month" do
+      dates = payload["missing_invoices"].pluck("date")
+      expect(dates).to all(satisfy { |d| Date.parse(d).day == 1 })
+    end
+
+    it "includes the leases that generate nothing because they have no template" do
+      bare = create(:lease, start_date: today - 1.month, duration_months: 12)
+      bare.invoice_templates.destroy_all
+      get audit_invoices_path(format: :json)
+      expect(payload["leases_without_templates"].pluck("id")).to include(bare.id)
+    end
+  end
+
   describe "POST /invoices (JSON)" do
     let(:lease) { create(:lease) }
     let(:date) { lease.start_date.next_month.beginning_of_month }

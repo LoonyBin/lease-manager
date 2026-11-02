@@ -6,33 +6,39 @@ gem "aws-sdk-s3"
 gem "bootsnap", require: false
 gem "chartkick", "~> 5.2"
 gem "dartsass-rails"
-gem "dentaku", "~> 4.0"
+gem "dentaku", "~> 4.1"
 gem "groupdate", "~> 6.8"
 gem "haml-rails"
 gem "heroicons"
-gem "image_processing", "~> 2.1"
+gem "image_processing", "~> 2.2"
 gem "importmap-rails"
 gem "jbuilder"
+# json 3.x drops the two-argument JSON.parse(source, opts) that
+# ActiveSupport::JSON.decode still calls, so every jsonb attribute read raises
+# ArgumentError. Pinned until Rails ships a decoder that works with json 3.
+gem "json", "< 3"
 gem "kamal", require: false
-gem "kaminari", "~> 1.2"
+gem "kaminari", "~> 1.3"
 gem "omniauth"
 gem "omniauth-google-oauth2"
 gem "omniauth-rails_csrf_protection"
 gem "paper_trail"
-gem "pg", "~> 1.1"
+gem "pg", "~> 1.7"
 gem "propshaft"
 gem "puma", ">= 5.0"
 gem "pundit"
-gem "rails", "~> 8.1.3"
+gem "rails", "~> 8.1.4"
 gem "ransack"
 gem "responders"
 gem "ruby-vips", "~> 2.0"
+gem "sentry-rails"
+gem "sentry-ruby"
 gem "simple_form", "~> 5.4"
 gem "solid_cable"
 gem "solid_cache"
 gem "solid_queue"
 gem "stimulus-rails"
-gem "tailwindcss-rails", "~> 4.4"
+gem "tailwindcss-rails", "~> 4.7"
 gem "thruster", require: false
 gem "turbo-rails"
 gem "tzinfo-data", platforms: %i[windows jruby]
@@ -65,6 +71,7 @@ end
 
 group :test do
   gem "capybara", "~> 3.40"
+  gem "cuprite", "~> 0.17"
   gem "pundit-matchers", "~> 4.0"
   gem "rspec-its"
   gem "shoulda-matchers"
