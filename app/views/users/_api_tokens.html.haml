@@ -1,0 +1,81 @@
+.show-section
+  %h3.show-section-title API Tokens
+
+  - if flash[:new_api_token]
+    .alert.alert-warning.mb-4
+      %div
+        %p.font-semibold Copy your new API token now — it won't be shown again.
+        %code.font-mono.text-sm.select-all.break-all= flash[:new_api_token]
+
+  - if user.api_tokens.any?
+    .overflow-x-auto.mb-4
+      %table.table.table-sm
+        %thead
+          %tr
+            %th Name
+            %th Created
+            %th Last used
+            %th Permissions
+            %th Expires
+            %th Status
+            %th
+        %tbody
+          - user.api_tokens.order(created_at: :desc).each do |token|
+            %tr
+              %td= token.name
+              %td= token.created_at.to_date
+              %td= token.last_used_at ? "#{time_ago_in_words(token.last_used_at)} ago" : "Never"
+              %td
+                - case token.preset
+                - when "full"
+                  Full access
+                  %span.opacity-60.text-xs (as created)
+                - when "read_only"
+                  %span.resource-badge.resource-badge-neutral Read only
+                - else
+                  Custom
+                  %span.opacity-60.text-xs= "(#{pluralize(token.permissions.size, 'action')})"
+                - if token.orphaned_grants.any?
+                  %span.resource-badge.resource-badge-warning.ml-1{ title: "Granted actions that no longer exist and cannot be edited in place: #{token.orphaned_grants.join(', ')}" } Stale grants
+              %td= token.expires_at&.to_date || "Never"
+              %td
+                - if token.revoked?
+                  %span.resource-badge.resource-badge-neutral Revoked
+                - elsif token.expired?
+                  %span.resource-badge.resource-badge-warning Expired
+                - else
+                  %span.resource-badge.resource-badge-success Active
+              %td
+                - unless token.revoked?
+                  = button_to "Revoke", api_token_path(token), method: :delete, class: "btn btn-ghost btn-xs text-error", data: { turbo_confirm: "Revoke this token? Anything still using it will stop working." }
+  - else
+    .show-empty.mb-4 No API tokens
+
+  = form_with model: ApiToken.new, class: "mb-1", data: { controller: "token-permissions", token_permissions_read_actions_value: ApiToken::PermissionRegistry.read_preset.to_json } do |f|
+    .flex.flex-wrap.items-end.gap-2
+      = f.text_field :name, placeholder: "Token name...", class: "input input-bordered input-sm flex-1"
+      = f.date_field :expires_at, title: "Expires on (optional)", class: "input input-bordered input-sm"
+      = f.submit "Create token", class: "btn btn-sm btn-primary"
+
+    .flex.flex-wrap.items-center.gap-3.mt-2
+      %span.text-sm.font-medium Permissions:
+      - %w[read_only full custom].each do |preset|
+        %label.flex.items-center.gap-1.text-sm.cursor-pointer
+          = radio_button_tag "api_token[preset]", preset, preset == "full", class: "radio radio-xs", data: { token_permissions_target: "preset", action: "change->token-permissions#presetChanged" }
+          = t("api_token_presets.#{preset}")
+
+    %details.mt-2{ data: { token_permissions_target: "advanced" } }
+      %summary.text-sm.cursor-pointer.opacity-70 Advanced — choose individual actions
+      -# Blank sentinel so the permissions array is always submitted (and so an
+      -# all-unchecked custom token posts an empty set rather than no key).
+      = hidden_field_tag "api_token[permissions][]", ""
+      .mt-2.space-y-2
+        - ApiToken::PermissionRegistry.grouped.each do |controller, actions|
+          %fieldset.border.border-base-300.rounded.px-2.py-1
+            %legend.text-xs.font-semibold.px-1= controller.humanize
+            .flex.flex-wrap.gap-x-4.gap-y-1
+              - actions.each do |action|
+                %label.flex.items-center.gap-1.text-xs.cursor-pointer
+                  = check_box_tag "api_token[permissions][]", "#{controller}##{action}", false, class: "checkbox checkbox-xs", data: { token_permissions_target: "action", action: "change->token-permissions#actionToggled" }
+                  = action
+  %p.text-xs.opacity-60.mt-1 Permissions are fixed once created — to change them, revoke and issue a new token.

@@ -33,6 +33,18 @@ RSpec.describe Lease do
     it { is_expected.to validate_numericality_of(:quantity).only_integer.is_greater_than(0) }
     it { is_expected.to have_many_attached(:documents) }
 
+    it { is_expected.to validate_presence_of(:payment_due_in) }
+
+    it "is valid with payment_due_in of 0.days" do
+      lease = build(:lease, payment_due_in: 0.days)
+      expect(lease).to be_valid
+    end
+
+    it "is valid with payment_due_in as a multi-part duration" do
+      lease = build(:lease, payment_due_in: 1.month + 9.days)
+      expect(lease).to be_valid
+    end
+
     describe "#quantity_within_capacity" do
       let(:property) { create(:property, capacity: 10) }
       let(:lease) { build(:lease, property: property, quantity: 11, start_date: Date.current) }
@@ -307,6 +319,10 @@ RSpec.describe Lease do
       create(:lease, start_date: 6.months.ago.to_date, duration_months: 12,
                      terminated_on: 3.months.ago.to_date)
     end
+    let!(:archived_lease) do
+      create(:lease, start_date: 6.months.ago.to_date, duration_months: 12,
+                     terminated_on: 3.months.ago.to_date, archived_at: 1.month.ago)
+    end
 
     describe "active" do
       subject { described_class.by_status("active") }
@@ -342,12 +358,67 @@ RSpec.describe Lease do
       it { is_expected.not_to include(active_lease) }
       it { is_expected.not_to include(upcoming_lease) }
       it { is_expected.not_to include(expired_lease) }
+      it { is_expected.not_to include(archived_lease) }
+    end
+
+    describe "archived" do
+      subject { described_class.by_status("archived") }
+
+      it { is_expected.to include(archived_lease) }
+      it { is_expected.not_to include(active_lease) }
+      it { is_expected.not_to include(upcoming_lease) }
+      it { is_expected.not_to include(expired_lease) }
+      it { is_expected.not_to include(terminated_lease) }
     end
 
     describe "unknown status" do
       it "returns no records" do
         expect(described_class.by_status("invalid")).to be_empty
       end
+    end
+  end
+
+  describe ".not_archived" do
+    let!(:regular_lease) { create(:lease) }
+    let!(:archived_lease) do
+      create(:lease, start_date: 6.months.ago.to_date, duration_months: 12,
+                     terminated_on: 3.months.ago.to_date, archived_at: 1.month.ago)
+    end
+
+    it "includes non-archived leases" do
+      expect(described_class.not_archived).to include(regular_lease)
+    end
+
+    it "excludes archived leases" do
+      expect(described_class.not_archived).not_to include(archived_lease)
+    end
+  end
+
+  describe "#archived?" do
+    it "returns false when archived_at is nil" do
+      expect(build(:lease, archived_at: nil)).not_to be_archived
+    end
+
+    it "returns true when archived_at is set" do
+      lease = build(:lease, terminated_on: Date.new(2025, 2, 1), archived_at: 1.day.ago)
+      expect(lease).to be_archived
+    end
+  end
+
+  describe "archived_at validation" do
+    it "is invalid when archived_at is set on a non-terminated lease" do
+      lease = build(:lease, archived_at: 1.day.ago)
+      lease.valid?
+      expect(lease.errors[:archived_at]).to be_present
+    end
+
+    it "is valid when archived_at is set on a terminated lease" do
+      lease = build(:lease, terminated_on: Date.new(2025, 2, 1), archived_at: 1.day.ago)
+      expect(lease).to be_valid
+    end
+
+    it "is valid when archived_at is nil on any lease" do
+      expect(build(:lease, archived_at: nil)).to be_valid
     end
   end
 
@@ -409,6 +480,52 @@ RSpec.describe Lease do
     end
   end
 
+  describe "#overdue_balance" do
+    let(:lease) { create(:lease) }
+
+    it "returns 0 when there are no invoices" do
+      expect(lease.overdue_balance).to eq(0)
+    end
+
+    it "sums only overdue invoice balances" do
+      create(:invoice, :with_balance, balance_amount: 300, lease: lease, status: :finalized,
+                                      due_date: 2.days.ago)
+      create(:invoice, :with_balance, balance_amount: 200, lease: lease, status: :finalized,
+                                      due_date: 10.days.from_now)
+      expect(lease.overdue_balance).to eq(300)
+    end
+
+    it "returns 0 when an invoice is not yet due" do
+      create(:invoice, :with_balance, balance_amount: 500, lease: lease, status: :finalized,
+                                      due_date: 1.day.from_now)
+      expect(lease.overdue_balance).to eq(0)
+    end
+
+    it "reflects the current date without requiring recalculation" do
+      create(:invoice, :with_balance, balance_amount: 500, lease: lease, status: :finalized,
+                                      due_date: 1.day.from_now)
+      travel_to(2.days.from_now) do
+        expect(lease.overdue_balance).to eq(500)
+      end
+    end
+  end
+
+  describe "#near_due_balance" do
+    let(:lease) { create(:lease) }
+
+    it "returns 0 when there are no invoices" do
+      expect(lease.near_due_balance).to eq(0)
+    end
+
+    it "sums only near-due invoice balances" do
+      create(:invoice, :with_balance, balance_amount: 400, lease: lease, status: :finalized,
+                                      due_date: 3.days.from_now)
+      create(:invoice, :with_balance, balance_amount: 100, lease: lease, status: :finalized,
+                                      due_date: 20.days.from_now)
+      expect(lease.near_due_balance).to eq(400)
+    end
+  end
+
   describe "after_create callback" do
     let(:old_lease) do
       create(:lease,
@@ -427,6 +544,115 @@ RSpec.describe Lease do
     it "does not affect other leases when not a renewal" do
       regular_lease = create(:lease)
       expect(regular_lease.terminated_on).to be_nil
+    end
+  end
+
+  describe "default reminder step creation" do
+    it { is_expected.to have_many(:reminder_steps).dependent(:destroy) }
+
+    context "when creating a regular lease" do
+      let(:lease) { create(:lease, tenant: create(:tenant, email: "Tenant@Example.com")) }
+
+      it "creates the default escalation ladder", :aggregate_failures do
+        expect(lease.reminder_steps.count).to eq(3)
+        expect(lease.reminder_steps.map(&:offset_days)).to eq([-7, 0, 7])
+        expect(lease.reminder_steps.map(&:repeat_every_days)).to eq([nil, nil, 14])
+      end
+
+      it "seeds the recipients from the tenant" do
+        expect(lease.reminder_steps.map(&:to_emails).uniq).to eq([["tenant@example.com"]])
+      end
+
+      it "enables reminders by default" do
+        expect(lease.reminders_enabled).to be(true)
+      end
+    end
+
+    context "when no recipient address is known" do
+      it "still creates the lease, without a policy", :aggregate_failures do
+        lease = create(:lease, tenant: create(:tenant, email: nil))
+        expect(lease).to be_persisted
+        expect(lease.reminder_steps).to be_empty
+      end
+    end
+
+    context "when the default policy cannot be saved" do
+      before do
+        builder = instance_double(Reminders::DefaultPolicyBuilder, call: [ReminderStep.new])
+        allow(Reminders::DefaultPolicyBuilder).to receive(:new).and_return(builder)
+      end
+
+      it "still creates the lease, without a policy", :aggregate_failures do
+        lease = create(:lease)
+        expect(lease).to be_persisted
+        expect(lease.reminder_steps).to be_empty
+      end
+    end
+
+    context "when the lease is a renewal" do
+      let(:old_lease) { create(:lease, start_date: Date.new(2024, 1, 1), duration_months: 12) }
+      let(:renewal) { described_class.build_renewal(old_lease).tap(&:save!) }
+
+      before do
+        old_lease.reminder_steps.destroy_all
+        create(:reminder_step, :escalated, lease: old_lease, position: 1, offset_days: 21,
+                                           repeat_every_days: 30, subject: "Final notice")
+      end
+
+      it "carries over the previous lease's policy, escalation routing included", :aggregate_failures do
+        expect(renewal.reminder_steps.count).to eq(1)
+        expect(renewal.reminder_steps.first).to have_attributes(offset_days: 21, repeat_every_days: 30,
+                                                                subject: "Final notice")
+        expect(renewal.reminder_steps.first.to_emails)
+          .to eq(%w[collections@example.com legal@example.com])
+      end
+    end
+  end
+
+  describe "default invoice template creation" do
+    it { is_expected.to have_many(:invoice_templates).dependent(:destroy) }
+
+    context "when creating a regular lease" do
+      let(:lease) { create(:lease, tax_rate: 18, payment_due_in: 14.days) }
+      let(:template) { lease.invoice_templates.first }
+
+      it "creates the default template", :aggregate_failures do
+        expect(lease.invoice_templates.count).to eq(1)
+        expect(template).to have_attributes(name: "Rent", payment_due_in: 14.days, starts_on: nil, ends_on: nil)
+        expect(template.line_items.map(&:amount_expression)).to eq(["rent", "rent * (prorata - 1)"])
+        expect(template.line_items.map(&:tax_rate)).to all(eq(18))
+      end
+    end
+
+    context "when the default template cannot be saved" do
+      before do
+        builder = instance_double(InvoiceTemplates::DefaultBuilder, call: InvoiceTemplate.new)
+        allow(InvoiceTemplates::DefaultBuilder).to receive(:new).and_return(builder)
+      end
+
+      it "still creates the lease, without templates", :aggregate_failures do
+        lease = create(:lease)
+        expect(lease).to be_persisted
+        expect(lease.invoice_templates).to be_empty
+      end
+    end
+
+    context "when the lease is a renewal" do
+      let(:old_lease) { create(:lease, start_date: Date.new(2024, 1, 1), duration_months: 12) }
+      let(:renewal) { described_class.build_renewal(old_lease).tap(&:save!) }
+      let(:maintenance) { renewal.invoice_templates.detect { |t| t.name == "Maintenance" } }
+
+      before do
+        create(:invoice_template, lease: old_lease, name: "Maintenance",
+                                  payment_due_in: 5.days, starts_on: Date.new(2024, 3, 1))
+      end
+
+      it "copies the previous lease's templates instead of building the default", :aggregate_failures do
+        expect(renewal.invoice_templates.map(&:name)).to contain_exactly("Rent", "Maintenance")
+        expect(maintenance.payment_due_in).to eq(5.days)
+        expect(maintenance.starts_on).to be_nil
+        expect(maintenance.line_items.map(&:amount_expression)).to eq(["rent"])
+      end
     end
   end
 end

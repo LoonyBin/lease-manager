@@ -5,6 +5,10 @@ class PaymentPolicy < ApplicationPolicy
     true
   end
 
+  # destroy? delegates to LeasePolicy#destroy? (admin || owner) — deliberately the
+  # same bar as update?. Deletion is one of three sibling corrections (edit, reject,
+  # delete); giving delete a stricter actor than the other two would be surprising.
+  # See #196; tightening to admin-only is a one-line override of destroy? if wanted.
   delegate :show?, :destroy?, to: :lease_policy, allow_nil: true
 
   def create?

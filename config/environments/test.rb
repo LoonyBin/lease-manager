@@ -52,4 +52,7 @@ Rails.application.configure do
 
   # Raise error when a before_action's only/except options reference missing actions.
   config.action_controller.raise_on_missing_callback_actions = true
+
+  # Low enough for request specs to exercise 429s without dozens of requests.
+  config.x.api_rate_limit.limit = 5
 end

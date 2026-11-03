@@ -1,0 +1,6 @@
+- content_for :title, "New Reminder Step"
+.max-w-4xl.mx-auto.card.bg-base-100.shadow-xl
+  .card-body
+    %h2.card-title.mb-1 New Reminder Step
+    %p.text-sm.opacity-60.mb-5= "#{@lease.property.name} → #{@lease.tenant.name}"
+    = render "form", reminder_step: @reminder_step, lease: @lease, suggested_emails: @suggested_emails

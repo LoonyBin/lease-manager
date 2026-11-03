@@ -33,6 +33,35 @@ RSpec.describe "Invoices" do
         get new_invoice_path(invoice: { lease_id: lease.id, date: date })
         expect(response).to have_http_status(:success)
       end
+
+      it "prefills line items from the lease's default template" do
+        get new_invoice_path(invoice: { lease_id: lease.id, date: date })
+        expect(response.body).to include("Rent for February 2025")
+      end
+
+      it "offers the lease's templates for prefilling" do
+        get new_invoice_path(invoice: { lease_id: lease.id, date: date })
+        expect(response.body).to include("invoice[invoice_template_id]")
+      end
+
+      it "prefills from an explicitly selected template" do
+        template = create(:invoice_template, lease: lease, name: "Maintenance")
+        template.line_items.first.update!(name: "Fixed maintenance charge", amount_expression: "2500",
+                                          category: "maintenance")
+        get new_invoice_path(invoice: { lease_id: lease.id, date: date, invoice_template_id: template.id })
+        expect(response.body).to include("Fixed maintenance charge")
+      end
+
+      it "falls back to a blank form when the template expression fails to evaluate" do
+        lease.invoice_templates.first.line_items.first.update!(amount_expression: "rent / (n - n)")
+        get new_invoice_path(invoice: { lease_id: lease.id, date: date })
+        expect(response).to have_http_status(:success)
+      end
+
+      it "falls back to a blank form for a stale template id" do
+        get new_invoice_path(invoice: { lease_id: lease.id, date: date, invoice_template_id: -1 })
+        expect(response).to have_http_status(:success)
+      end
     end
 
     context "with document_type=credit_note" do
@@ -52,9 +81,13 @@ RSpec.describe "Invoices" do
   end
 
   describe "POST /invoices" do
-    context "with document_type credit_note" do
-      let(:lease) { create(:lease) }
+    let(:lease) { create(:lease) }
+    let(:valid_params) do
+      { invoice: { lease_id: lease.id, date: Date.current.beginning_of_month.iso8601,
+                   status: "draft", document_type: "invoice" } }
+    end
 
+    context "with document_type credit_note" do
       it "creates a credit note", :aggregate_failures do
         params = { invoice: { lease_id: lease.id, date: Date.current, document_type: "credit_note",
                               line_items_attributes: { "0" => { name: "Refund", amount: 500, tax_rate: 0,
@@ -63,6 +96,11 @@ RSpec.describe "Invoices" do
         expect(Invoice.last).to be_credit_note
       end
     end
+
+    it "redirects to the new invoice on success" do
+      post invoices_path, params: valid_params
+      expect(response).to redirect_to(invoice_path(Invoice.last))
+    end
   end
 
   describe "GET /invoices/:id (credit note)" do
@@ -70,6 +108,116 @@ RSpec.describe "Invoices" do
       credit_note = create(:invoice, :credit_note)
       get invoice_path(credit_note)
       expect(response.body).to include("Credit Note")
+    end
+  end
+
+  describe "GET /invoices/audit" do
+    it "returns http success" do
+      get audit_invoices_path
+      expect(response).to have_http_status(:success)
+    end
+
+    context "when there are missing invoices" do
+      let(:today) { Date.current }
+      let!(:lease) { create(:lease, start_date: today - 1.month, duration_months: 12) }
+
+      it "displays missing invoices in the page" do
+        get audit_invoices_path
+        expect(response.body).to include(CGI.escapeHTML(lease.tenant.name))
+      end
+    end
+  end
+
+  # The audit answers "which months were never invoiced?" — an aggregate over
+  # templates and the +covering+ scope that a client cannot reproduce without
+  # reimplementing MissingInvoiceDetector. Before #187 it existed only as a
+  # rendered page, so the only programmatic route to it was scraping HTML.
+  describe "GET /invoices/audit (JSON)" do
+    let(:today) { Date.current }
+    let!(:lease) { create(:lease, start_date: today - 1.month, duration_months: 12) }
+    let(:payload) { response.parsed_body }
+    let(:entry) { payload["missing_invoices"].find { |item| item["lease_id"] == lease.id } }
+
+    before { get audit_invoices_path(format: :json) }
+
+    it "returns a missing month for the lease", :aggregate_failures do
+      expect(response).to have_http_status(:success)
+      expect(entry).to be_present
+    end
+
+    it "names the template and both parties on each missing month", :aggregate_failures do
+      expect(entry["tenant"]).to include("id" => lease.tenant.id, "name" => lease.tenant.name)
+      expect(entry["property"]).to include("id" => lease.property.id, "name" => lease.property.name)
+      expect(lease.invoice_templates.ids).to include(entry["invoice_template_id"])
+    end
+
+    it "reports each missing month as the first of that month" do
+      dates = payload["missing_invoices"].pluck("date")
+      expect(dates).to all(satisfy { |d| Date.parse(d).day == 1 })
+    end
+
+    it "includes the leases that generate nothing because they have no template" do
+      bare = create(:lease, start_date: today - 1.month, duration_months: 12)
+      bare.invoice_templates.destroy_all
+      get audit_invoices_path(format: :json)
+      expect(payload["leases_without_templates"].pluck("id")).to include(bare.id)
+    end
+  end
+
+  describe "POST /invoices (JSON)" do
+    let(:lease) { create(:lease) }
+    let(:date) { lease.start_date.next_month.beginning_of_month }
+    let(:params) do
+      { invoice: { lease_id: lease.id, date: date.iso8601,
+                   status: "draft", document_type: "invoice" } }
+    end
+
+    it "creates a draft invoice with line items and returns JSON", :aggregate_failures do
+      post invoices_path(format: :json), params: params, as: :json
+      expect(response).to have_http_status(:success)
+      expect(response.parsed_body["status"]).to eq("draft")
+      expect(Invoice.find(response.parsed_body["id"]).line_items).to be_present
+    end
+
+    context "when the month's only invoice is a template-linked credit note" do
+      # Eager so the lease's after_create side effects don't run inside the block.
+      let!(:template) { lease.invoice_templates.first }
+      let(:params) do
+        { invoice: { lease_id: lease.id, date: date.iso8601, status: "draft", document_type: "invoice" } }
+      end
+
+      before { create(:invoice, :credit_note, lease: lease, invoice_template: template, date: date) }
+
+      it "prefills from the template and persists an invoice beside the credit note", :aggregate_failures do
+        expect { post invoices_path(format: :json), params: params, as: :json }
+          .to change(Invoice, :count).by(1)
+        created = Invoice.find(response.parsed_body["id"])
+        expect(created.invoice_template).to eq(template)
+        expect(created.line_items.map(&:category)).to include("rent")
+      end
+    end
+
+    context "with an explicit invoice_template_id (audit page flow)" do
+      # Eager so the lease's after_create side effects (default template,
+      # security deposit invoice) don't land inside the change-count blocks.
+      let!(:template) { lease.invoice_templates.first }
+      let(:params) do
+        { invoice: { lease_id: lease.id, invoice_template_id: template.id,
+                     date: date.iso8601,
+                     status: "draft", document_type: "invoice" } }
+      end
+
+      it "creates an invoice linked to the template", :aggregate_failures do
+        expect { post invoices_path(format: :json), params: params, as: :json }
+          .to change(Invoice, :count).by(1)
+        expect(Invoice.find(response.parsed_body["id"]).invoice_template).to eq(template)
+      end
+
+      it "does not create a duplicate for the same template and month" do
+        post invoices_path(format: :json), params: params, as: :json
+        expect { post invoices_path(format: :json), params: params, as: :json }
+          .not_to change(Invoice, :count)
+      end
     end
   end
 
@@ -87,6 +235,11 @@ RSpec.describe "Invoices" do
         patch invoice_path(invoice), params: params
         expect(invoice.reload.date).to eq(Date.new(2026, 2, 1))
         expect(line_item.reload).to have_attributes(name: "Updated", amount: 15_000)
+      end
+
+      it "accepts and saves a due_date" do
+        patch invoice_path(invoice), params: { invoice: { due_date: "2026-02-15" } }
+        expect(invoice.reload.due_date).to eq(Date.new(2026, 2, 15))
       end
     end
 
@@ -113,6 +266,82 @@ RSpec.describe "Invoices" do
         patch invoice_path(invoice), params: { invoice: { status: "finalized" } }
         expect(invoice.reload).to have_attributes(status: "finalized", number: be_present)
       end
+    end
+  end
+
+  describe "derived totals in responses" do
+    let(:invoice) { create(:invoice) }
+
+    before do
+      invoice.line_items.destroy_all
+      create(:line_item, invoice: invoice, name: "Rent", amount: 1000, tax_rate: 18)
+      create(:line_item, invoice: invoice, name: "Water", amount: 500, tax_rate: 0)
+    end
+
+    # Standalone per-invoice SUMs, as opposed to the subquery +with_total_amount+
+    # embeds in the listing query (that one starts with SELECT "invoices").
+    def sum_queries
+      seen = []
+      sub = ActiveSupport::Notifications.subscribe("sql.active_record") do |*, payload|
+        seen << payload[:sql] if payload[:sql].start_with?("SELECT SUM")
+      end
+      yield
+      seen
+    ensure
+      ActiveSupport::Notifications.unsubscribe(sub)
+    end
+
+    describe "GET /invoices.json" do
+      it "exposes the gross total alongside the balance", :aggregate_failures do
+        get invoices_path(format: :json)
+        row = response.parsed_body.find { |i| i["id"] == invoice.id }
+        expect(row["total_amount"].to_d).to eq(1680)
+        expect(row).to have_key("balance")
+      end
+
+      it "omits line items to keep the collection payload flat" do
+        get invoices_path(format: :json)
+        expect(response.parsed_body.flat_map(&:keys)).not_to include("line_items")
+      end
+    end
+
+    # Both formats render every invoice's total, so both used to fire one SUM
+    # per row; +with_total_amount+ folds them into the listing query.
+    describe "GET /invoices listing cost" do
+      before { create_list(:invoice, 3).each { |i| create(:line_item, invoice: i) } }
+
+      it "resolves JSON totals without a SUM per invoice" do
+        expect(sum_queries { get invoices_path(format: :json) }).to be_empty
+      end
+
+      it "resolves HTML totals without a SUM per invoice" do
+        expect(sum_queries { get invoices_path }).to be_empty
+      end
+    end
+
+    describe "GET /invoices/:id.json" do
+      it "nests line items with their derived tax and total", :aggregate_failures do
+        get invoice_path(invoice, format: :json)
+        rent = response.parsed_body["line_items"].find { |i| i["name"] == "Rent" }
+        expect(rent["amount"].to_d).to eq(1000)
+        expect(rent["tax_amount"].to_d).to eq(180)
+        expect(rent["total"].to_d).to eq(1180)
+      end
+
+      it "exposes the invoice's gross total" do
+        get invoice_path(invoice, format: :json)
+        expect(response.parsed_body["total_amount"].to_d).to eq(1680)
+      end
+    end
+  end
+
+  describe "JSON via API token" do
+    it_behaves_like "serves JSON with a valid API token" do
+      let(:json_path) { invoices_path(format: :json) }
+    end
+
+    it_behaves_like "serves JSON with a valid API token" do
+      let(:json_path) { invoice_path(create(:invoice), format: :json) }
     end
   end
 end

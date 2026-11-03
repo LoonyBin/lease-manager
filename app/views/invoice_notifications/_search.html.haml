@@ -1,0 +1,18 @@
+= search_form_for @q, url: invoice_notifications_path, class: "flex flex-col gap-4 p-4" do |f|
+  %h3.text-lg.font-bold Filters
+  .form-control
+    = f.label :status_eq, "Status", class: "label-text"
+    = f.select :status_eq, InvoiceNotification.statuses.map { |k, v| [k.humanize, v] }, { include_blank: true }, class: "select select-bordered select-sm w-full"
+  .form-control
+    = f.label :invoice_lease_tenant_name_cont, "Tenant", class: "label-text"
+    = f.search_field :invoice_lease_tenant_name_cont, class: "input input-bordered input-sm w-full"
+  .form-control
+    = f.label :occurrence_on_gteq, "Scheduled From", class: "label-text"
+    = f.date_field :occurrence_on_gteq, class: "input input-bordered input-sm w-full"
+  .form-control
+    = f.label :occurrence_on_lteq, "Scheduled To", class: "label-text"
+    = f.date_field :occurrence_on_lteq, class: "input input-bordered input-sm w-full"
+
+  .flex.gap-2.mt-4
+    = f.submit "Apply Filters", class: "btn btn-primary btn-sm flex-1"
+    = link_to "Clear", invoice_notifications_path, class: "btn btn-ghost btn-sm"

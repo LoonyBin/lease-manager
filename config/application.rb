@@ -28,7 +28,11 @@ module LeaseManager
     # Please, add to the `ignore` list any other `lib` subdirectories that do
     # not contain `.rb` files, or that should not be reloaded or eager loaded.
     # Common ones are `templates`, `generators`, or `middleware`, for example.
-    config.autoload_lib(ignore: %w[assets tasks])
+    #
+    # error_reporting is ignored because config/initializers/sentry.rb requires
+    # it directly: Sentry has to be configured while the application is still
+    # initialising, and autoloading is not available that early.
+    config.autoload_lib(ignore: %w[assets tasks error_reporting])
 
     # Configuration for the application, engines, and railties goes here.
     #
@@ -40,6 +44,18 @@ module LeaseManager
 
     # Don't generate system test files.
     config.generators.system_tests = nil
+
+    # Rate limit for API-token requests: at most `limit` requests per rolling
+    # `period`, counted per token (see ApplicationController#rate_limit).
+    config.x.api_rate_limit.limit = Integer(ENV.fetch("API_RATE_LIMIT", 300))
+    config.x.api_rate_limit.period = Integer(ENV.fetch("API_RATE_LIMIT_PERIOD", 300)).seconds
+
+    # Paths that must answer even when the request does not carry the
+    # production hostname or arrives over plain http: health checks reach the
+    # container directly, not through the proxy. production.rb reads this list
+    # for both exemptions, and a spec asserts it still matches the routes, so
+    # adding a health route without exempting it cannot pass unnoticed.
+    config.x.health_check_paths = ["/up", "/health/ready", "/health/workers"].freeze
 
     config.generators do |g|
       g.template_engine :haml

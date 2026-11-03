@@ -102,4 +102,46 @@ RSpec.describe "Properties" do
       expect(response).to redirect_to(properties_url)
     end
   end
+
+  describe "JSON via API token" do
+    it_behaves_like "serves JSON with a valid API token" do
+      let(:json_path) { properties_path(format: :json) }
+    end
+
+    it_behaves_like "serves JSON with a valid API token" do
+      let(:json_path) { property_path(create(:property), format: :json) }
+    end
+  end
+
+  describe "JSON mutations via API token" do
+    let(:api_headers) do
+      token = create(:api_token, user: create(:user, :admin))
+      { "Authorization" => "Bearer #{token.plaintext_token}" }
+    end
+    let(:json_attributes) do
+      { name: "API Villa", address: "9 API Way", owner_id: create(:owner).id, capacity: 4, unit: "Rooms" }
+    end
+
+    it "creates a property returning 201" do
+      post properties_path(format: :json), params: { property: json_attributes }, headers: api_headers
+      expect(response).to have_http_status(:created)
+    end
+
+    it "returns validation errors as JSON" do
+      post properties_path(format: :json), params: { property: { name: "" } }, headers: api_headers
+      expect(response.parsed_body["errors"]).to be_present
+    end
+
+    it "updates a property returning the record" do
+      property = create(:property)
+      patch property_path(property, format: :json), params: { property: { name: "Renamed" } }, headers: api_headers
+      expect(response.parsed_body["name"]).to eq("Renamed")
+    end
+
+    it "destroys a property returning 204" do
+      property = create(:property)
+      delete property_path(property, format: :json), headers: api_headers
+      expect(response).to have_http_status(:no_content)
+    end
+  end
 end

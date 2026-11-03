@@ -1,23 +1,63 @@
 ---
 en:
+  api_token_presets:
+    custom: Custom
+    full: Full access
+    read_only: Read only
+  api_tokens:
+    create:
+      success: API token was successfully created.
+    destroy:
+      success: API token was revoked.
   authorization:
     not_authorized: You are not authorized to perform this action.
+    token_action_forbidden: This API token is not permitted to perform this action.
   bank_statements:
     create:
-      success: Bank statement uploaded and processed.
+      no_file: Choose a CSV file to upload.
+      success: Bank statement uploaded. Review the proposed matches below.
   bank_transactions:
+    choose:
+      success: Payment chosen and match confirmed.
     confirm:
       success: Match confirmed.
+    not_allowed: That action is not available for this transaction in its current state.
     reject:
       success: Match rejected.
     rematch:
-      success: Transaction reset for re-matching.
+      success: Transaction sent for re-matching.
   helpers:
     links:
       clear: Clear
-  invoices:
+  invoice_notifications:
+    approve:
+      not_pending: That reminder is no longer pending approval.
+      success: Reminder approved and queued for sending.
+    approve_all:
+      success:
+        one: 1 reminder approved and queued for sending.
+        other: "%{count} reminders approved and queued for sending."
+        zero: No pending reminders to approve.
+    cancel:
+      not_cancellable: Only pending or failed reminders can be cancelled.
+      success: Reminder cancelled.
+    retry:
+      not_failed: Only failed reminders can be retried.
+      success: Reminder queued for another attempt.
+    undeliverable:
+      invoice_settled: 'Cancelled at send time: the invoice was settled after this reminder was approved.'
+      reminders_disabled: 'Cancelled at send time: reminders were switched off for this lease after approval.'
+  invoice_templates:
     create:
-      success: Invoice was successfully created.
+      success: Invoice template was successfully created.
+    destroy:
+      success: Invoice template was successfully deleted.
+    preview:
+      evaluation_error: 'Expression error: %{message}'
+      outside_window: The selected month is outside this template's generation window; no invoice would be generated.
+    update:
+      success: Invoice template was successfully updated.
+  invoices:
     update:
       success: Invoice was successfully updated.
   leases:
@@ -35,8 +75,17 @@ en:
     update:
       success: Owner was successfully updated.
   payments:
+    correction:
+      status_not_editable: Status cannot be changed while editing other fields. Submit a status change on its own.
+      warnings:
+        date_outside_term: The payment date falls outside the destination lease term.
+        destination_inactive: The destination lease is archived or terminated.
+        different_tenant: This lease belongs to a different tenant.
+        source_newly_outstanding: The original lease now has an outstanding balance.
     create:
       success: Payment recorded successfully.
+    destroy:
+      success: Payment deleted.
     update:
       success: Payment updated successfully.
   properties:
@@ -46,6 +95,13 @@ en:
       success: Property was successfully destroyed.
     update:
       success: Property was successfully updated.
+  reminder_steps:
+    create:
+      success: Reminder step was successfully created.
+    destroy:
+      success: Reminder step was successfully deleted.
+    update:
+      success: Reminder step was successfully updated.
   sessions:
     create:
       success: Signed in successfully.

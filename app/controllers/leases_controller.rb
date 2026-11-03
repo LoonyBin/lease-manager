@@ -2,19 +2,23 @@
 
 class LeasesController < ApplicationController
   def index
-    @q = policy_scope(Lease).ransack(params[:q])
+    base_scope = policy_scope(Lease)
+    base_scope = base_scope.not_archived unless params.dig(:q, :by_status) == "archived"
+    @q = base_scope.ransack(params[:q])
     @leases = @q.result.page(params[:page]).per(20)
+    respond_ok @leases
   end
 
   def show
-    @lease = Lease.find(params[:id])
+    @lease = Lease.find(params.expect(:id))
     authorize @lease
     @statement_entries = helpers.statement_entries(@lease.entries.initial.preload(:instrument))
+    respond_ok @lease
   end
 
   def new
     if params[:renewed_from_id]
-      old_lease = Lease.find(params[:renewed_from_id])
+      old_lease = Lease.find(params.expect(:renewed_from_id))
       @lease = Lease.build_renewal(old_lease)
     else
       @lease = Lease.new(new_lease_prepopulate_params)
@@ -23,7 +27,7 @@ class LeasesController < ApplicationController
   end
 
   def edit
-    @lease = Lease.find(params[:id])
+    @lease = Lease.find(params.expect(:id))
     authorize @lease
   end
 
@@ -32,27 +36,27 @@ class LeasesController < ApplicationController
     authorize @lease
 
     if @lease.save
-      redirect_to @lease, notice: t(".success")
+      respond_created(@lease) { redirect_to @lease, notice: t(".success") }
     else
-      render :new, status: :unprocessable_content
+      respond_invalid(@lease) { render :new, status: :unprocessable_content }
     end
   end
 
   def update
-    @lease = Lease.find(params[:id])
+    @lease = Lease.find(params.expect(:id))
     authorize @lease
     if @lease.update(lease_params)
-      redirect_to @lease, notice: t(".success")
+      respond_updated(@lease) { redirect_to @lease, notice: t(".success") }
     else
-      render :edit, status: :unprocessable_content
+      respond_invalid(@lease) { render :edit, status: :unprocessable_content }
     end
   end
 
   def destroy
-    @lease = Lease.find(params[:id])
+    @lease = Lease.find(params.expect(:id))
     authorize @lease
     @lease.destroy
-    redirect_to leases_url, notice: t(".success")
+    respond_destroyed { redirect_to leases_url, notice: t(".success") }
   end
 
   private
@@ -65,6 +69,8 @@ class LeasesController < ApplicationController
     params.expect(lease: [:property_id, :tenant_id, :start_date, :duration_months, :rent_amount,
                           :security_deposit_value, :security_deposit_type, :enhancement_period_months,
                           :enhancement_amount, :enhancement_type, :tax_name, :tax_rate, :terminated_on,
-                          :renewed_from_id, :property_schedule, :quantity, { documents: [] }])
+                          :archived_at, :renewed_from_id, :property_schedule, :quantity, :payment_due_in,
+                          :reminders_enabled,
+                          { documents: [] }])
   end
 end

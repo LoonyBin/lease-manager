@@ -14,6 +14,10 @@ FactoryBot.define do
     tax_name { "GST" }
     tax_rate { 18.0 }
 
+    trait :terminated do
+      terminated_on { start_date + 1.month }
+    end
+
     trait :randomized do
       start_date { Faker::Date.between(from: 2.years.ago, to: 6.months.ago).beginning_of_month }
       duration_months { [12, 24, 36].sample }

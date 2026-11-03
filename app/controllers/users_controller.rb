@@ -4,11 +4,13 @@ class UsersController < ApplicationController
   def index
     @q = policy_scope(User).ransack(params[:q])
     @users = @q.result.page(params[:page]).per(20)
+    respond_ok @users
   end
 
   def show
-    @user = User.find(params[:id])
+    @user = User.find(params.expect(:id))
     authorize @user
+    respond_ok @user
   end
 
   def new
@@ -17,7 +19,7 @@ class UsersController < ApplicationController
   end
 
   def edit
-    @user = User.find(params[:id])
+    @user = User.find(params.expect(:id))
     authorize @user
   end
 
@@ -26,27 +28,27 @@ class UsersController < ApplicationController
     authorize @user
 
     if @user.save
-      redirect_to @user, notice: t(".success")
+      respond_created(@user) { redirect_to @user, notice: t(".success") }
     else
-      render :new, status: :unprocessable_content
+      respond_invalid(@user) { render :new, status: :unprocessable_content }
     end
   end
 
   def update
-    @user = User.find(params[:id])
+    @user = User.find(params.expect(:id))
     authorize @user
     if @user.update(user_params)
-      redirect_to @user, notice: t(".success")
+      respond_updated(@user) { redirect_to @user, notice: t(".success") }
     else
-      render :edit, status: :unprocessable_content
+      respond_invalid(@user) { render :edit, status: :unprocessable_content }
     end
   end
 
   def destroy
-    @user = User.find(params[:id])
+    @user = User.find(params.expect(:id))
     authorize @user
     @user.destroy
-    redirect_to users_url, notice: t(".success")
+    respond_destroyed { redirect_to users_url, notice: t(".success") }
   end
 
   private

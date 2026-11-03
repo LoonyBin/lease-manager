@@ -3,46 +3,109 @@
 require "rails_helper"
 
 RSpec.describe "BankTransactions" do
-  before { sign_in_admin }
+  let(:day) { Date.new(2026, 3, 10) }
+  let(:payment) { create(:payment, amount: 1500, date: day, mode: :neft, reference_number: nil) }
 
-  let(:bank_statement) { create(:bank_statement) }
-  let(:transaction) { create(:bank_transaction, bank_statement: bank_statement) }
+  def line(status, **attrs)
+    create(:bank_transaction, { amount: 1500, date: day, reference: nil, status: status }.merge(attrs))
+  end
 
-  describe "PATCH /bank_transactions/:id/confirm" do
-    it "confirms the transaction" do
-      patch confirm_bank_transaction_path(transaction)
-      expect(transaction.reload).to be_confirmed
+  context "when signed in as an admin" do
+    before { sign_in_admin }
+
+    it "confirms a matched line and redirects with a notice", :aggregate_failures do
+      txn = line(:matched, matched_payment: payment)
+      patch confirm_bank_transaction_path(txn)
+      expect(txn.reload).to be_confirmed
+      expect(response).to redirect_to(bank_statement_path(txn.bank_statement))
     end
 
-    it "redirects to the bank statement" do
-      patch confirm_bank_transaction_path(transaction)
-      expect(response).to redirect_to(bank_statement_path(bank_statement))
+    it "changes nothing on the payment when confirming" do
+      txn = line(:matched, matched_payment: payment)
+      footprint = -> { payment.reload.then { |p| [p.status, p.balance, p.entries.count] } }
+      expect { patch confirm_bank_transaction_path(txn) }.not_to(change { footprint.call })
+    end
+
+    it "refuses to confirm an unmatched line with an alert", :aggregate_failures do
+      txn = line(:unmatched)
+      patch confirm_bank_transaction_path(txn)
+      expect(txn.reload).to be_unmatched
+      expect(flash[:alert]).to eq(I18n.t("bank_transactions.not_allowed"))
+    end
+
+    it "rejects a matched line" do
+      txn = line(:matched, matched_payment: payment)
+      patch reject_bank_transaction_path(txn)
+      expect(txn.reload).to be_rejected
+    end
+
+    it "re-matches a rejected line" do
+      txn = line(:rejected)
+      payment
+      patch rematch_bank_transaction_path(txn)
+      expect(txn.reload).to have_attributes(status: "matched", matched_payment: payment)
+    end
+
+    it "undoes a confirmed line" do
+      txn = line(:confirmed, matched_payment: payment)
+      patch reject_bank_transaction_path(txn)
+      expect(txn.reload).to be_rejected
+    end
+
+    context "with an ambiguous line" do
+      let(:pair) { create_list(:payment, 2, amount: 1500, date: day, mode: :neft, reference_number: nil) }
+      let!(:txn) { line(:ambiguous) }
+
+      it "refuses a payment outside the candidates" do
+        outside = create(:payment, amount: 7, date: day, mode: :neft)
+        patch choose_bank_transaction_path(txn, payment_id: outside.id)
+        expect(txn.reload).to be_ambiguous
+      end
+
+      it "confirms a chosen candidate" do
+        patch choose_bank_transaction_path(txn, payment_id: pair.last.id)
+        expect(txn.reload).to have_attributes(status: "confirmed", matched_payment: pair.last)
+      end
+    end
+
+    context "with a linked payment" do
+      let!(:txn) { line(:confirmed, matched_payment: payment) }
+
+      it "lets the payment be deleted" do
+        expect { delete payment_path(payment) }.to change(Payment, :count).by(-1)
+      end
+
+      it "releases the line when the payment is deleted" do
+        delete payment_path(payment)
+        expect(txn.reload).to be_unmatched
+      end
+
+      it "releases the line when the payment is rejected" do
+        patch payment_path(payment), params: { payment: { status: "rejected" } }
+        expect(txn.reload).to be_unmatched
+      end
+
+      it "releases the line when the payment amount is corrected" do
+        patch payment_path(payment), params: { payment: { amount: 1600 } }
+        expect(txn.reload).to be_unmatched
+      end
     end
   end
 
-  describe "PATCH /bank_transactions/:id/reject" do
-    it "rejects the transaction" do
-      patch reject_bank_transaction_path(transaction)
-      expect(transaction.reload).to be_rejected
-    end
+  context "when not an admin" do
+    let!(:txn) { line(:matched, matched_payment: payment) }
 
-    it "redirects to the bank statement" do
-      patch reject_bank_transaction_path(transaction)
-      expect(response).to redirect_to(bank_statement_path(bank_statement))
-    end
-  end
+    %i[confirm reject rematch choose].each do |action|
+      it "refuses #{action} to a plain user" do
+        sign_in_user
+        patch public_send(:"#{action}_bank_transaction_path", txn)
+        expect(txn.reload).to be_matched
+      end
 
-  describe "PATCH /bank_transactions/:id/rematch" do
-    before { transaction.rejected! }
-
-    it "resets the transaction to unmatched" do
-      patch rematch_bank_transaction_path(transaction)
-      expect(transaction.reload).to be_unmatched
-    end
-
-    it "redirects to the bank statement" do
-      patch rematch_bank_transaction_path(transaction)
-      expect(response).to redirect_to(bank_statement_path(bank_statement))
+      it "refuses #{action} when signed out" do
+        patch public_send(:"#{action}_bank_transaction_path", txn)
+        expect(txn.reload).to be_matched
+      end
     end
   end
 end

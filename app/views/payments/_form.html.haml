@@ -1,12 +1,19 @@
 = simple_form_for(payment) do |f|
   = f.error_notification
   = f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present?
-  = f.hidden_field :payment_type
+  -# On new, payment_type is fixed by the entry point (Record Payment vs Refund).
+  -# On edit it is correctable — mis-classifying a refund is exactly the kind of
+  -# mistake this form exists to fix — so it becomes a visible select.
+  - unless payment.persisted?
+    = f.hidden_field :payment_type
 
   = f.grid_inputs do
     = f.association :lease, presettable: true, col: 4, collection: leases,
                     label_method: ->(l) { "#{l.tenant.name} - #{l.property.name}" },
                     label: "Lease (Tenant - Property)"
+    - if payment.persisted?
+      = f.input :payment_type, col: 2, collection: Payment.payment_types.keys.map { |t| [t.humanize.titleize, t] },
+                include_blank: false
     = f.input :date, as: :date, html5: true
     = f.input :amount
     = f.input :mode, col: 1, collection: Payment.modes.keys.map { |m| [m.humanize.titleize, m] }, include_blank: false

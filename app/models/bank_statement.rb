@@ -6,5 +6,5 @@ class BankStatement < ApplicationRecord
 
   enum :status, { pending: 0, processed: 1 }
 
-  validates :filename, presence: true
+  validates :filename, :uploaded_at, presence: true
 end

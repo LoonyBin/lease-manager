@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_24_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_09_000002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -42,26 +42,42 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_24_000001) do
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
-  create_table "bank_statements", force: :cascade do |t|
+  create_table "api_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
-    t.string "filename"
-    t.integer "status", default: 0
+    t.datetime "expires_at"
+    t.datetime "last_used_at"
+    t.string "name", null: false
+    t.jsonb "permissions", default: [], null: false
+    t.string "preset"
+    t.datetime "revoked_at"
+    t.string "token_digest", null: false
     t.datetime "updated_at", null: false
-    t.datetime "uploaded_at"
+    t.bigint "user_id", null: false
+    t.index ["token_digest"], name: "index_api_tokens_on_token_digest", unique: true
+    t.index ["user_id"], name: "index_api_tokens_on_user_id"
+  end
+
+  create_table "bank_statements", force: :cascade do |t|
+    t.string "filename", null: false
+    t.datetime "uploaded_at", null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "bank_transactions", force: :cascade do |t|
-    t.decimal "amount", precision: 10, scale: 2
     t.bigint "bank_statement_id", null: false
-    t.datetime "created_at", null: false
-    t.date "date"
-    t.string "description"
-    t.bigint "matched_payment_id"
+    t.date "date", null: false
+    t.text "description"
+    t.decimal "amount", precision: 10, scale: 2, null: false
     t.string "reference"
-    t.integer "status", default: 0
+    t.bigint "matched_payment_id"
+    t.integer "status", default: 0, null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["bank_statement_id"], name: "index_bank_transactions_on_bank_statement_id"
-    t.index ["matched_payment_id"], name: "index_bank_transactions_on_matched_payment_id"
+    t.index ["matched_payment_id"], name: "index_bank_transactions_on_active_matched_payment_id", unique: true, where: "(status = ANY (ARRAY[1, 2]))"
+    t.check_constraint "(status = ANY (ARRAY[1, 2])) = (matched_payment_id IS NOT NULL)", name: "bank_transactions_link_matches_status"
   end
 
   create_table "entries", force: :cascade do |t|
@@ -77,29 +93,76 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_24_000001) do
     t.index ["transaction_id"], name: "index_entries_on_transaction_id"
   end
 
+  create_table "invoice_notifications", force: :cascade do |t|
+    t.text "body", null: false
+    t.integer "channel", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.bigint "invoice_id", null: false
+    t.text "last_error"
+    t.date "occurrence_on", null: false
+    t.string "recipient_email", null: false
+    t.bigint "reminder_step_id"
+    t.datetime "sent_at"
+    t.integer "status", default: 0, null: false
+    t.string "subject", null: false
+    t.datetime "updated_at", null: false
+    t.index ["invoice_id", "reminder_step_id", "recipient_email", "occurrence_on"], name: "index_invoice_notifications_uniqueness", unique: true
+    t.index ["invoice_id"], name: "index_invoice_notifications_on_invoice_id"
+    t.index ["reminder_step_id"], name: "index_invoice_notifications_on_reminder_step_id"
+  end
+
+  create_table "invoice_template_line_items", force: :cascade do |t|
+    t.string "amount_expression", null: false
+    t.string "category", null: false
+    t.datetime "created_at", null: false
+    t.bigint "invoice_template_id", null: false
+    t.string "name", null: false
+    t.integer "position"
+    t.decimal "tax_rate", precision: 5, scale: 3, default: "0.0"
+    t.datetime "updated_at", null: false
+    t.index ["invoice_template_id"], name: "index_invoice_template_line_items_on_invoice_template_id"
+  end
+
+  create_table "invoice_templates", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.date "ends_on"
+    t.bigint "lease_id", null: false
+    t.string "name", null: false
+    t.interval "payment_due_in", default: "P9D", null: false
+    t.date "starts_on"
+    t.datetime "updated_at", null: false
+    t.index ["lease_id"], name: "index_invoice_templates_on_lease_id"
+  end
+
   create_table "invoices", force: :cascade do |t|
     t.decimal "balance", precision: 10, scale: 2, default: "0.0"
     t.datetime "created_at", null: false
     t.date "date"
     t.integer "document_type", default: 0, null: false
+    t.date "due_date"
+    t.bigint "invoice_template_id"
     t.bigint "lease_id", null: false
     t.string "number"
     t.integer "sequence_number"
     t.integer "status", default: 0
     t.datetime "updated_at", null: false
+    t.index ["invoice_template_id", "date"], name: "index_invoices_on_invoice_template_id_and_date", unique: true, where: "((invoice_template_id IS NOT NULL) AND (document_type = 0))"
     t.index ["lease_id"], name: "index_invoices_on_lease_id"
   end
 
   create_table "leases", force: :cascade do |t|
+    t.datetime "archived_at"
     t.decimal "cached_balance", precision: 10, scale: 2, default: "0.0", null: false
     t.datetime "created_at", null: false
     t.integer "duration_months"
     t.decimal "enhancement_amount", precision: 10, scale: 2
     t.integer "enhancement_period_months"
     t.integer "enhancement_type", default: 0
+    t.interval "payment_due_in", default: "P9D", null: false
     t.bigint "property_id", null: false
     t.text "property_schedule"
     t.integer "quantity", default: 1, null: false
+    t.boolean "reminders_enabled", default: true, null: false
     t.bigint "renewed_from_id"
     t.decimal "rent_amount"
     t.integer "security_deposit_type", default: 0, null: false
@@ -110,6 +173,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_24_000001) do
     t.bigint "tenant_id", null: false
     t.date "terminated_on"
     t.datetime "updated_at", null: false
+    t.index ["archived_at"], name: "index_leases_on_archived_at"
     t.index ["property_id"], name: "index_leases_on_property_id"
     t.index ["renewed_from_id"], name: "index_leases_on_renewed_from_id"
     t.index ["tenant_id"], name: "index_leases_on_tenant_id"
@@ -137,14 +201,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_24_000001) do
     t.datetime "updated_at", null: false
   end
 
-  create_table "payment_allocations", force: :cascade do |t|
-    t.decimal "amount", precision: 10, scale: 2, null: false
-    t.datetime "created_at", null: false
-    t.bigint "invoice_id", null: false
-    t.bigint "payment_id", null: false
-    t.datetime "updated_at", null: false
-  end
-
   create_table "payments", force: :cascade do |t|
     t.decimal "amount", precision: 10, scale: 2, null: false
     t.decimal "balance", precision: 10, scale: 2, default: "0.0"
@@ -168,6 +224,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_24_000001) do
     t.string "unit", default: "Unit", null: false
     t.datetime "updated_at", null: false
     t.index ["owner_id"], name: "index_properties_on_owner_id"
+  end
+
+  create_table "reminder_steps", force: :cascade do |t|
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.bigint "lease_id", null: false
+    t.integer "offset_days", null: false
+    t.integer "position", null: false
+    t.integer "repeat_every_days"
+    t.string "subject", null: false
+    t.string "to_emails", default: [], null: false, array: true
+    t.datetime "updated_at", null: false
+    t.index ["lease_id", "position"], name: "index_reminder_steps_on_lease_id_and_position"
+    t.index ["lease_id"], name: "index_reminder_steps_on_lease_id"
+    t.check_constraint "repeat_every_days > 0", name: "reminder_steps_repeat_every_days_positive"
   end
 
   create_table "solid_queue_blocked_executions", force: :cascade do |t|
@@ -336,9 +407,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_24_000001) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "api_tokens", "users"
   add_foreign_key "bank_transactions", "bank_statements"
   add_foreign_key "bank_transactions", "payments", column: "matched_payment_id"
   add_foreign_key "entries", "leases"
+  add_foreign_key "invoice_notifications", "invoices"
+  add_foreign_key "invoice_notifications", "reminder_steps", on_delete: :nullify
+  add_foreign_key "invoice_template_line_items", "invoice_templates"
+  add_foreign_key "invoice_templates", "leases"
+  add_foreign_key "invoices", "invoice_templates", on_delete: :nullify
   add_foreign_key "invoices", "leases"
   add_foreign_key "leases", "leases", column: "renewed_from_id"
   add_foreign_key "leases", "properties"
@@ -346,6 +423,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_24_000001) do
   add_foreign_key "line_items", "invoices"
   add_foreign_key "payments", "leases"
   add_foreign_key "properties", "owners"
+  add_foreign_key "reminder_steps", "leases"
   add_foreign_key "solid_queue_blocked_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_claimed_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_failed_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade

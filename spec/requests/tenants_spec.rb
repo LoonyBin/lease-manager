@@ -106,4 +106,14 @@ RSpec.describe "Tenants" do
       expect(response).to redirect_to(tenants_url)
     end
   end
+
+  describe "JSON via API token" do
+    it_behaves_like "serves JSON with a valid API token" do
+      let(:json_path) { tenants_path(format: :json) }
+    end
+
+    it_behaves_like "serves JSON with a valid API token" do
+      let(:json_path) { tenant_path(create(:tenant), format: :json) }
+    end
+  end
 end

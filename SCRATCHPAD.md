@@ -36,7 +36,7 @@
 - [ ] Invoice Workflow Improvements
 - [ ] Lease Lifecycle
 - [ ] Lease Documents
-- [ ] Reconciliation
+- [x] Reconciliation
 - [x] Reports
 
 # Future TODO

@@ -32,8 +32,12 @@ Rails.application.configure do
   # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
   config.force_ssl = ENV.fetch("FORCE_SSL", "true") == "true"
 
-  # Skip http-to-https redirect for the default health check endpoint.
-  config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
+  # Skip http-to-https redirect for the health check endpoints (see
+  # config.x.health_check_paths in config/application.rb). A check that reaches
+  # the container directly speaks plain http and must be answered, not
+  # redirected to a hostname it is not asking for.
+  health_check_paths = config.x.health_check_paths
+  config.ssl_options = { redirect: { exclude: ->(request) { health_check_paths.include?(request.path) } } }
 
   # Log to STDOUT with the current request id as a default log tag.
   config.log_tags = [:request_id]
@@ -61,14 +65,29 @@ Rails.application.configure do
   # Set host to be used by links generated in mailer templates.
   config.action_mailer.default_url_options = { host: ENV.fetch("APP_HOST", "example.com") }
 
-  # Specify outgoing SMTP server. Remember to add smtp/* credentials via rails credentials:edit.
-  # config.action_mailer.smtp_settings = {
-  #   user_name: Rails.application.credentials.dig(:smtp, :user_name),
-  #   password: Rails.application.credentials.dig(:smtp, :password),
-  #   address: "smtp.example.com",
-  #   port: 587,
-  #   authentication: :plain
-  # }
+  # Gmail SMTP. user_name is the full Google account address and password is an
+  # app password (Google rejects the account password), both added via
+  # `rails credentials:edit`. Gmail rewrites the From header unless MAIL_FROM is
+  # that same address or a verified "Send mail as" alias on it.
+  smtp_user_name = Rails.application.credentials.dig(:smtp, :user_name)
+  smtp_password = Rails.application.credentials.dig(:smtp, :password)
+  config.action_mailer.smtp_settings = {
+    user_name: smtp_user_name,
+    password: smtp_password,
+    address: "smtp.gmail.com",
+    port: 587,
+    authentication: :plain,
+    # :always over :auto so a server that fails to advertise STARTTLS aborts
+    # rather than authenticating in the clear.
+    enable_starttls: :always
+  }
+
+  # Warns rather than raises: mail is a dormant feature, so missing credentials
+  # must not stop the app booting. Without this the misconfiguration would
+  # surface only in invoice_notifications.last_error, long after deploy.
+  if smtp_user_name.blank? || smtp_password.blank?
+    warn "WARNING: smtp credentials are not configured; reminder email delivery will fail."
+  end
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
   # the I18n.default_locale when a translation cannot be found).
@@ -85,6 +104,8 @@ Rails.application.configure do
     ENV.fetch("APP_HOST", nil)
   ].compact
 
-  # Skip DNS rebinding protection for the default health check endpoint.
-  config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
+  # Skip DNS rebinding protection for the health check endpoints. Dokku's own
+  # container checks curl the container's IP address, so the Host header is
+  # never APP_HOST and every one of them would otherwise be refused with a 403.
+  config.host_authorization = { exclude: ->(request) { health_check_paths.include?(request.path) } }
 end

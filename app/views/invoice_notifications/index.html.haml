@@ -1,0 +1,60 @@
+- content_for :title, "Reminder Outbox"
+
+- content_for :page_actions do
+  %label.btn.btn-ghost.btn-sm.btn-square{ for: "filter-drawer", title: "Filter" }
+    = heroicon "funnel", options: { class: "w-5 h-5" }
+  - if @pending_matches && policy(InvoiceNotification).approve_all?
+    = button_to approve_all_invoice_notifications_path(q: request.query_parameters[:q]), method: :patch, class: "btn btn-primary btn-sm", data: { turbo_confirm: "Approve and send every pending reminder matching the current filter?" } do
+      = heroicon "paper-airplane", options: { class: "w-4 h-4 mr-1" }
+      Approve all pending
+
+.drawer.drawer-end
+  %input#filter-drawer.drawer-toggle{ type: "checkbox" }
+  .drawer-content.flex.flex-col
+    = render_active_filters(@q)
+
+    .show-card
+      .show-section
+        - if @notifications.any?
+          .overflow-x-auto
+            %table.table.table-sm.w-full
+              %thead
+                %tr
+                  %th Scheduled
+                  %th Invoice
+                  %th Recipient
+                  %th Message
+                  %th Status
+                  %th
+              %tbody
+                - @notifications.each do |notification|
+                  %tr
+                    %td
+                      = notification.occurrence_on.strftime("%b %d, %Y")
+                      - if notification.reminder_step
+                        .text-xs.opacity-50= notification.reminder_step.to_s
+                    %td
+                      = link_to notification.invoice.number.presence || "Draft", notification.invoice, class: "link link-primary"
+                      .text-xs.opacity-50= "#{notification.invoice.lease.property.name} → #{notification.invoice.lease.tenant.name}"
+                    %td.font-mono.text-xs= notification.recipient_email
+                    %td
+                      %details
+                        %summary.cursor-pointer= notification.subject
+                        %pre.text-xs.opacity-70.whitespace-pre-wrap.mt-2= notification.body
+                      - if notification.last_error.present?
+                        .text-xs.text-error.mt-1= notification.last_error
+                    %td
+                      = render "status_badge", notification: notification
+                      - if notification.sent_at
+                        .text-xs.opacity-50= notification.sent_at.strftime("%b %d, %Y %H:%M")
+                    %td= render "actions", notification: notification
+
+          = paginate @notifications
+        - else
+          .show-empty No reminders queued. The daily scan queues them as invoices approach their due date.
+
+  .drawer-side
+    %label.drawer-overlay{ for: "filter-drawer", aria: { label: "close sidebar" } }
+    .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content
+      %h3.text-lg.font-bold.mb-4 Filter Reminders
+      = render "search"

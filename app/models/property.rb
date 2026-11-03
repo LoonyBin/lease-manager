@@ -9,6 +9,16 @@ class Property < ApplicationRecord
   validates :capacity, presence: true, numericality: { greater_than: 0, only_integer: true }
   validates :unit, presence: true
 
+  # Ransack allowlist — keep in sync with app/views/properties/_search.html.haml and _sort.html.haml.
+  # owner_id serves owners/show's "View all" link. No searchable associations.
+  def self.ransackable_attributes(_auth_object = nil)
+    %w[name address capacity created_at owner_id]
+  end
+
+  def self.ransackable_associations(_auth_object = nil)
+    []
+  end
+
   def available_capacity(start_date = Date.current, end_date = nil)
     return simple_available_capacity(start_date) unless end_date
 

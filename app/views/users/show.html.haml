@@ -75,6 +75,9 @@
             = f.collection_select :associable_id, Tenant.where.not(id: @user.tenant_ids).order(:name), :id, :name, { prompt: "Select tenant..." }, class: "select select-bordered select-sm flex-1"
             = f.submit "Add", class: "btn btn-sm btn-primary"
 
+      - if @user == current_user
+        = render "api_tokens", user: @user
+
   .drawer-side
     %label.drawer-overlay{for: "history-drawer", aria: { label: "close sidebar" }}
     .menu.p-4.w-80.min-h-full.bg-base-200.text-base-content

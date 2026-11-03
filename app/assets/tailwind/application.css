@@ -1772,3 +1772,120 @@ body.versions [data-nav="versions"] {
     text-align: left;
   }
 }
+
+/* ==========================================================================
+   Print Styles — Invoice & Payment show pages
+   ========================================================================== */
+
+@media print {
+  /* Page setup */
+  @page { margin: 1.5cm; size: A4 portrait; }
+
+  /* Global reset */
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { background: white !important; }
+
+  /* Hide UI chrome */
+  .app-header,
+  .drawer-side,
+  #nav-drawer,
+  #history-drawer,
+  label[for="history-drawer"],
+  .alert { display: none !important; }
+
+  /* Layout — make drawer-content fill the page */
+  .drawer { display: block !important; }
+  .drawer-content { width: 100% !important; display: block !important; }
+  .app-main { padding: 0 !important; background: white !important; min-height: unset !important; }
+  .page-content { padding: 0 !important; }
+
+  /* Show-card / section cleanup */
+  .show-card {
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    break-inside: avoid;
+  }
+  .show-section { border-bottom: 1px solid #ccc !important; }
+  .overflow-x-auto { overflow: visible !important; }
+
+  /* Typography — ensure contrast */
+  .show-field-label { color: #555 !important; }
+  .show-field-value { color: #000 !important; }
+  a { color: inherit !important; text-decoration: none !important; }
+
+  /* Table print rules */
+  table { width: 100% !important; border-collapse: collapse; }
+  thead { display: table-header-group; }
+  tr { break-inside: avoid; }
+}
+
+/* ==========================================================================
+   Mobile layout fixes: keep the page body from scrolling sideways
+   ========================================================================== */
+
+/* daisyUI's .label sets nowrap, so long form hints would push the page wider. */
+@media screen and (max-width: 1279.98px) {
+  .label.label-text-alt {
+    white-space: normal;
+  }
+}
+
+@media screen and (max-width: 1023.98px) {
+  /* Header actions may wrap instead of squeezing the title to nothing. */
+  .page-header {
+    flex-wrap: wrap;
+  }
+
+  .page-title {
+    flex: 1 1 10rem;
+  }
+
+  .page-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    margin-left: auto;
+    flex-shrink: 1;
+    max-width: 100%;
+  }
+
+  /* Table-only lists scroll inside their own box instead of clipping columns. */
+  .resource-list.table-only {
+    overflow-x: auto;
+  }
+
+  .version-list.table-only > * {
+    min-width: 44rem;
+  }
+
+  .version-list.table-only .version-list-header,
+  .version-list.table-only .version-item {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr) 6rem;
+  }
+
+  .lease-statement-list.table-only > * {
+    min-width: 30rem;
+  }
+
+  .lease-statement-list.table-only .resource-list-header,
+  .lease-statement-list.table-only .resource-item {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .resource-list.table-only .resource-item > * {
+    overflow-wrap: anywhere;
+  }
+}
+
+/* Below 480px the header wraps; anchor the "+" menu to the sticky header's
+   right edge so it cannot open off the left of the screen. */
+@media screen and (max-width: 479.98px) {
+  .page-actions .dropdown {
+    position: static;
+  }
+
+  .page-actions .dropdown-content {
+    inset-inline-end: 1rem;
+    top: 100%;
+  }
+}

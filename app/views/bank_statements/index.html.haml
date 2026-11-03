@@ -1,31 +1,29 @@
 - content_for :title, "Bank Statements"
 
-.card.w-full.bg-base-100.shadow-xl.mx-auto
-  .card-body
-    .flex.justify-between.items-center.mb-6
-      %h2.card-title.text-2xl Bank Statements
-      = link_to "Upload Statement", new_bank_statement_path, class: "btn btn-primary"
+- content_for :page_actions do
+  = link_to "Upload Statement", new_bank_statement_path, class: "btn btn-primary btn-sm"
 
+.show-card
+  .show-section
     - if @bank_statements.any?
       .overflow-x-auto
-        %table.table.w-full
+        %table.table.table-sm.w-full
           %thead
             %tr
               %th Filename
               %th Uploaded
               %th Status
               %th Transactions
-              %th Actions
+              %th
           %tbody
             - @bank_statements.each do |statement|
               %tr
                 %td= statement.filename
-                %td= statement.uploaded_at&.strftime("%b %d, %Y %H:%M")
+                %td= statement.uploaded_at.strftime("%b %d, %Y %H:%M")
                 %td
-                  %span{class: "badge badge-#{statement.processed? ? 'success' : 'warning'}"}
-                    = statement.status.humanize
-                %td= statement.bank_transactions.count
-                %td
-                  = link_to "View", bank_statement_path(statement), class: "btn btn-xs btn-ghost"
+                  %span{class: "badge badge-#{statement.processed? ? 'success' : 'warning'}"}= statement.status.humanize
+                %td= statement.bank_transactions.size
+                %td= link_to "View", bank_statement_path(statement), class: "btn btn-xs btn-ghost"
+      = paginate @bank_statements
     - else
-      %p.text-base-content.opacity-50 No bank statements uploaded yet.
+      .show-empty No bank statements uploaded yet.

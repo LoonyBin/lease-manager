@@ -1,0 +1,2 @@
+- badge_class = { "pending" => "warning", "approved" => "info", "sending" => "info", "sent" => "success", "failed" => "error", "cancelled" => "neutral" }.fetch(notification.status, "neutral")
+%span.resource-badge{ class: "resource-badge-#{badge_class}" }= notification.status.humanize

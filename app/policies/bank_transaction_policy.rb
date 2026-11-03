@@ -12,4 +12,8 @@ class BankTransactionPolicy < ApplicationPolicy
   def rematch?
     update?
   end
+
+  def choose?
+    update?
+  end
 end

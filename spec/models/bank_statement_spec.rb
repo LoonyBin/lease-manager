@@ -7,6 +7,7 @@ RSpec.describe BankStatement do
 
   describe "validations" do
     it { is_expected.to validate_presence_of(:filename) }
+    it { is_expected.to validate_presence_of(:uploaded_at) }
     it { is_expected.to define_enum_for(:status).with_values(pending: 0, processed: 1) }
   end
 

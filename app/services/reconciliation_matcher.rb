@@ -1,43 +1,98 @@
 # frozen_string_literal: true
 
+# Proposes which payment each bank line belongs to. A proposal is never a
+# decision: a line is linked only when exactly one payment qualifies and no
+# other line is also looking for it, and a person still confirms it. Two or
+# more candidates are never resolved by the system; the line becomes ambiguous.
 class ReconciliationMatcher
-  AMOUNT_TOLERANCE = 0.01
+  EXCLUDED_MODES = %w[cash tax_deducted_at_source].freeze
+  WINDOW_DAYS = 3
 
-  def initialize(bank_statement)
-    @bank_statement = bank_statement
+  Candidate = Struct.new(:payment, :basis)
+
+  def self.match_line(transaction)
+    new([transaction]).call
+  end
+
+  # Payments this line could belong to, each with the reason it qualifies
+  # (:reference or :date_amount). Payments held by another active line are left out.
+  def self.candidates(transaction)
+    eligible_payments(transaction).filter_map do |payment|
+      basis = basis_for(transaction, payment)
+      Candidate.new(payment, basis) if basis
+    end
+  end
+
+  def self.eligible_payments(transaction)
+    Payment.confirmed_or_later.where(payment_type: direction(transaction), amount: transaction.amount.abs)
+           .where(date: window(transaction)).where.not(mode: EXCLUDED_MODES)
+           .where.not(id: BankTransaction.held_elsewhere(transaction)).order(:id)
+  end
+
+  # A bank credit is a receipt; a bank debit is a refund.
+  def self.direction(transaction) = transaction.amount.negative? ? :refund : :payment
+
+  def self.window(transaction) = (transaction.date - WINDOW_DAYS)..(transaction.date + WINDOW_DAYS)
+  private_class_method :direction, :window
+  private_class_method :eligible_payments
+
+  def self.qualifies?(transaction, payment)
+    candidates(transaction).any? { |candidate| candidate.payment == payment }
+  end
+
+  def self.basis_for(transaction, payment)
+    reference = payment.reference_number.to_s.strip
+    return :date_amount if reference.blank?
+    return :reference if contains_reference?(transaction.reference, reference)
+
+    if transaction.reference.present?
+      :reference if contains_reference?(transaction.description, reference)
+    else
+      contains_reference?(transaction.description, reference) ? :reference : :date_amount
+    end
+  end
+
+  # Whole-value, case-insensitive: "123" must not be found inside "UTR991234".
+  def self.contains_reference?(text, reference)
+    /(?<![[:alnum:]])#{Regexp.escape(reference)}(?![[:alnum:]])/i.match?(text.to_s)
+  end
+
+  def initialize(source)
+    @lines = source.is_a?(BankStatement) ? source.bank_transactions.unmatched.order(:id).to_a : Array(source)
   end
 
   def call
-    @bank_statement.bank_transactions.unmatched.find_each do |transaction|
-      match = find_match(transaction)
-      transaction.update!(matched_payment: match, status: :matched) if match
-    end
+    found = @lines.index_with { |line| self.class.candidates(line) }
+    reference_sets = found.transform_values { |list| list.select { |c| c.basis == :reference } }
+                          .reject { |_, list| list.empty? }
+    decide(reference_sets)
+    decide(date_amount_sets(found, reference_sets))
   end
 
   private
 
-  def find_match(transaction)
-    Payment
-      .where(date: date_range(transaction.date))
-      .where(amount: amount_range(transaction.amount.abs))
-      .find do |payment|
-        reference_matches?(transaction, payment)
+  # exactly one candidate that no other line in the group also wants -> proposal
+  def decide(sets)
+    wanted = sets.values.flatten.map(&:payment).tally
+    sets.each do |line, found|
+      if found.one? && wanted[found.first.payment] == 1
+        propose(line, found.first.payment)
+      elsif found.any?
+        line.update!(status: :ambiguous)
       end
+    end
   end
 
-  def date_range(date)
-    (date - 3.days)..(date + 3.days)
+  # Lines with no reference-confirmed candidate compete on date and amount, but
+  # only for payments no reference-seeking line is also after.
+  def date_amount_sets(found, reference_sets)
+    sought = reference_sets.values.flatten.map(&:payment)
+    (found.keys - reference_sets.keys).index_with { |line| found[line].reject { |c| sought.include?(c.payment) } }
   end
 
-  def amount_range(amount)
-    (amount - AMOUNT_TOLERANCE)..(amount + AMOUNT_TOLERANCE)
-  end
-
-  def reference_matches?(transaction, payment)
-    return true if payment.reference_number.blank?
-    return true if transaction.reference.blank?
-
-    transaction.reference.include?(payment.reference_number) ||
-      transaction.description&.include?(payment.reference_number)
+  def propose(line, payment)
+    line.update!(status: :matched, matched_payment: payment)
+  rescue ActiveRecord::RecordNotUnique
+    line.reload
   end
 end

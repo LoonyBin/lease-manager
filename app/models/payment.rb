@@ -3,6 +3,7 @@
 class Payment < ApplicationRecord
   belongs_to :lease
   has_many :entries, as: :instrument, dependent: :destroy
+  has_many :bank_transactions, foreign_key: :matched_payment_id, inverse_of: :matched_payment, dependent: nil
   has_one_attached :attachment
 
   validates :amount, presence: true, numericality: { greater_than: 0 }
@@ -20,15 +21,46 @@ class Payment < ApplicationRecord
     tax_deducted_at_source: 7
   }, default: :rtgs
 
+  # Fields a bank-line match depends on.
+  BANK_MATCH_FIELDS = %w[status amount date payment_type mode reference_number].freeze
+
   enum :payment_type, { payment: 0, refund: 1 }, default: :payment
   enum :status, { draft: 0, confirmed: 1, rejected: 2, partially_allocated: 3, fully_allocated: 4 },
        default: :confirmed, validate: true
 
+  # Ransack allowlist — keep in sync with app/views/payments/_search.html.haml and _sort.html.haml.
+  # created_at is required by payments_controller.rb's default sort ["date desc", "created_at desc"]:
+  # without it the tiebreak node is silently dropped and same-date ordering becomes nondeterministic.
+  # id serves invoices/show's "View payments" (id_in) link; lease_id serves leases/show's "All
+  # payments" link; the lease association carries the lease_tenant_name sort.
+  def self.ransackable_attributes(_auth_object = nil)
+    %w[id lease_id reference_number date amount payment_type mode created_at]
+  end
+
+  def self.ransackable_associations(_auth_object = nil)
+    %w[lease]
+  end
+
+  before_destroy :release_bank_links
   after_save :sync_initial_entry, if: :should_sync_entry?
   after_save :auto_settle, if: :should_auto_settle?
+  after_save :deallocate, if: :should_deallocate?
+  after_save :release_stale_bank_links, if: :bank_match_fields_changed?
 
   scope :confirmed_or_later, -> { where(status: %i[confirmed partially_allocated fully_allocated]) }
   scope :unsettled, -> { where(status: %i[confirmed partially_allocated]) }
+
+  # Per-row net cash: a payment adds its amount, a refund (a debit) subtracts it.
+  # This is the *negation* of #signed_amount, which follows the ledger convention
+  # (a payment is a credit, so its signed_amount is negative) and would make a
+  # revenue total come out negative. This encodes ONLY the sign — callers MUST
+  # still scope to +confirmed_or_later+ to exclude draft/rejected rows. Built as
+  # an Arel node (not interpolated SQL) so the enum integer is a bound literal,
+  # not a string splice, and works as the argument to both +sum+ and groupdate.
+  NET_CASH_AMOUNT_SQL = Arel::Nodes::Case.new
+                                         .when(arel_table[:payment_type].eq(payment_types[:refund]))
+                                         .then(arel_table[:amount] * -1)
+                                         .else(arel_table[:amount])
 
   def credit?
     payment?
@@ -66,12 +98,33 @@ class Payment < ApplicationRecord
 
   private
 
+  # A bank line linked to this payment stops pointing at it once the payment no
+  # longer qualifies as a match, or when it is deleted.
+  def bank_match_fields_changed?
+    BANK_MATCH_FIELDS.any? { |field| saved_change_to_attribute?(field) }
+  end
+
+  def release_stale_bank_links
+    BankTransaction.release_links_for(self)
+  end
+
+  def release_bank_links
+    BankTransaction.release_links_for(self, only_unqualified: false)
+  end
+
   def should_sync_entry?
     confirmed_or_later? && initial_entry_stale?
   end
 
   def should_auto_settle?
     saved_change_to_status? && confirmed_or_later? && balance != 0
+  end
+
+  # Rejecting an allocated payment must un-do its allocation. The entries.exists?
+  # guard keeps this to payments that were actually confirmed and allocated: a
+  # draft → rejected flip (or a record born rejected) has no footprint to unwind.
+  def should_deallocate?
+    saved_change_to_status? && rejected? && entries.exists?
   end
 
   def initial_entry_stale?
@@ -90,5 +143,9 @@ class Payment < ApplicationRecord
     return unless unsettled?
 
     SettlementService.auto_settle(self)
+  end
+
+  def deallocate
+    SettlementService.deallocate(self)
   end
 end

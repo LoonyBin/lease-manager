@@ -5,6 +5,7 @@ require "rails_helper"
 RSpec.describe Invoice do
   describe "associations" do
     it { is_expected.to belong_to(:lease) }
+    it { is_expected.to belong_to(:invoice_template).optional }
     it { is_expected.to have_many(:line_items).dependent(:destroy) }
     it { is_expected.to have_many(:entries).dependent(:destroy) }
   end
@@ -12,6 +13,23 @@ RSpec.describe Invoice do
   describe "validations" do
     it { is_expected.to validate_presence_of(:date) }
     it { is_expected.to validate_presence_of(:status) }
+
+    it "accepts an invoice template belonging to the invoice's lease" do
+      lease = create(:lease)
+      invoice = build(:invoice, lease: lease, invoice_template: lease.invoice_templates.first)
+      expect(invoice).to be_valid
+    end
+
+    it "rejects an invoice template from another lease", :aggregate_failures do
+      invoice = build(:invoice, lease: create(:lease), invoice_template: create(:lease).invoice_templates.first)
+      expect(invoice).not_to be_valid
+      expect(invoice.errors[:invoice_template]).to include("must belong to the invoice's lease")
+    end
+
+    it "rejects a dangling invoice template id" do
+      invoice = build(:invoice, lease: create(:lease), invoice_template_id: -1)
+      expect(invoice).not_to be_valid
+    end
 
     it {
       is_expected.to define_enum_for(:status).with_values(draft: 0, finalized: 1, sent: 2, paid: 3, cancelled: 4,
@@ -21,6 +39,163 @@ RSpec.describe Invoice do
     it {
       is_expected.to define_enum_for(:document_type).with_values(invoice: 0, credit_note: 1)
     }
+  end
+
+  describe "template + date uniqueness" do
+    let(:lease) { create(:lease) }
+    let(:template) { lease.invoice_templates.first }
+    let(:date) { Date.new(2026, 1, 1) }
+
+    before { create(:invoice, lease: lease, invoice_template: template, date: date) }
+
+    it "rejects a second debit invoice for the same template and date", :aggregate_failures do
+      duplicate = build(:invoice, lease: lease, invoice_template: template, date: date)
+      expect(duplicate).not_to be_valid
+      expect(duplicate.errors[:date]).to be_present
+    end
+
+    it "allows a template-linked credit note beside the month's debit invoice" do
+      credit_note = build(:invoice, :credit_note, lease: lease, invoice_template: template, date: date)
+      expect(credit_note).to be_valid
+    end
+  end
+
+  describe "scopes" do
+    let(:lease) { create(:lease) }
+
+    describe ".covering" do
+      let(:template) { lease.invoice_templates.first }
+      let!(:cancelled) do
+        create(:invoice, lease: lease, invoice_template: template, date: Date.new(2026, 1, 1), status: :cancelled)
+      end
+      let!(:credit_note) do
+        create(:invoice, :credit_note, lease: lease, invoice_template: template, date: Date.new(2026, 2, 1))
+      end
+
+      it "includes cancelled debit invoices but excludes credit notes", :aggregate_failures do
+        expect(described_class.covering).to include(cancelled)
+        expect(described_class.covering).not_to include(credit_note)
+      end
+    end
+
+    describe ".overdue" do
+      it "includes unsettled invoices with due_date in the past" do
+        invoice = create(:invoice, :with_balance, balance_amount: 100, lease: lease, status: :finalized,
+                                                  due_date: 1.day.ago)
+        expect(described_class.overdue).to include(invoice)
+      end
+
+      it "excludes invoices with due_date today or in the future" do
+        invoice = create(:invoice, :with_balance, balance_amount: 100, lease: lease, status: :finalized,
+                                                  due_date: Date.current)
+        expect(described_class.overdue).not_to include(invoice)
+      end
+
+      it "excludes paid invoices" do
+        invoice = create(:invoice, :with_balance, balance_amount: 0, lease: lease, status: :paid,
+                                                  due_date: 1.day.ago)
+        expect(described_class.overdue).not_to include(invoice)
+      end
+
+      it "excludes cancelled invoices" do
+        invoice = create(:invoice, :with_balance, balance_amount: 100, lease: lease, status: :cancelled,
+                                                  due_date: 1.day.ago)
+        expect(described_class.overdue).not_to include(invoice)
+      end
+    end
+
+    describe ".near_due" do
+      it "includes unsettled invoices with due_date within 7 days" do
+        invoice = create(:invoice, :with_balance, balance_amount: 100, lease: lease, status: :finalized,
+                                                  due_date: 3.days.from_now)
+        expect(described_class.near_due).to include(invoice)
+      end
+
+      it "includes invoices with due_date today" do
+        invoice = create(:invoice, :with_balance, balance_amount: 100, lease: lease, status: :finalized,
+                                                  due_date: Date.current)
+        expect(described_class.near_due).to include(invoice)
+      end
+
+      it "includes invoices with due_date exactly 7 days from now" do
+        invoice = create(:invoice, :with_balance, balance_amount: 100, lease: lease, status: :finalized,
+                                                  due_date: 7.days.from_now)
+        expect(described_class.near_due).to include(invoice)
+      end
+
+      it "excludes invoices with due_date beyond 7 days" do
+        invoice = create(:invoice, :with_balance, balance_amount: 100, lease: lease, status: :finalized,
+                                                  due_date: 8.days.from_now)
+        expect(described_class.near_due).not_to include(invoice)
+      end
+
+      it "excludes paid invoices" do
+        invoice = create(:invoice, :with_balance, balance_amount: 0, lease: lease, status: :paid,
+                                                  due_date: Date.current)
+        expect(described_class.near_due).not_to include(invoice)
+      end
+    end
+  end
+
+  describe "due_date default" do
+    it "defaults due_date to date when not set" do
+      invoice = build(:invoice, date: Date.new(2026, 1, 1), due_date: nil)
+      invoice.valid?
+      expect(invoice.due_date).to eq(Date.new(2026, 1, 1))
+    end
+
+    it "preserves due_date when explicitly set" do
+      invoice = build(:invoice, date: Date.new(2026, 1, 1), due_date: Date.new(2026, 1, 15))
+      invoice.valid?
+      expect(invoice.due_date).to eq(Date.new(2026, 1, 15))
+    end
+  end
+
+  describe "#overdue?" do
+    let(:lease) { create(:lease) }
+
+    it "returns true when unsettled and due_date is in the past" do
+      invoice = create(:invoice, :with_balance, balance_amount: 100, lease: lease, status: :finalized,
+                                                due_date: 1.day.ago)
+      expect(invoice.overdue?).to be true
+    end
+
+    it "returns false when due_date is today" do
+      invoice = build(:invoice, status: :finalized, due_date: Date.current)
+      expect(invoice.overdue?).to be false
+    end
+
+    it "returns false when paid" do
+      invoice = build(:invoice, status: :paid, due_date: 1.day.ago)
+      expect(invoice.overdue?).to be false
+    end
+
+    it "returns false when cancelled" do
+      invoice = build(:invoice, status: :cancelled, due_date: 1.day.ago)
+      expect(invoice.overdue?).to be false
+    end
+  end
+
+  describe "#near_due?" do
+    it "returns true when unsettled and due_date within 7 days" do
+      invoice = build(:invoice, status: :finalized, due_date: 3.days.from_now)
+      expect(invoice.near_due?).to be true
+    end
+
+    it "returns true when due_date is today" do
+      invoice = build(:invoice, status: :finalized, due_date: Date.current)
+      expect(invoice.near_due?).to be true
+    end
+
+    it "returns false when due_date beyond 7 days" do
+      invoice = build(:invoice, status: :finalized, due_date: 8.days.from_now)
+      expect(invoice.near_due?).to be false
+    end
+
+    it "returns false when paid" do
+      invoice = build(:invoice, status: :paid, due_date: Date.current)
+      expect(invoice.near_due?).to be false
+    end
   end
 
   describe "callbacks" do
@@ -132,6 +307,46 @@ RSpec.describe Invoice do
       create(:line_item, invoice: invoice, amount: 1000, tax_rate: 18)
       create(:line_item, invoice: invoice, amount: 500, tax_rate: nil)
       expect(invoice.total_amount).to eq(1680)
+    end
+  end
+
+  describe ".with_total_amount" do
+    let(:invoice) { create(:invoice, status: :draft) }
+
+    before { invoice.line_items.destroy_all }
+
+    it "agrees with the per-record calculation" do
+      create(:line_item, invoice: invoice, amount: 1000, tax_rate: 18)
+      create(:line_item, invoice: invoice, amount: 500, tax_rate: nil)
+      expect(described_class.with_total_amount.find(invoice.id).total_amount).to eq(invoice.reload.total_amount)
+    end
+
+    it "reports zero for an invoice with no line items" do
+      expect(described_class.with_total_amount.find(invoice.id).total_amount).to eq(0)
+    end
+
+    # Deleting the rows out from under the loaded record proves the total came
+    # from the alias captured at load time, not from a fresh SUM.
+    it "reads the preloaded alias instead of querying line items again" do
+      create(:line_item, invoice: invoice, amount: 1000, tax_rate: 18)
+      record = described_class.with_total_amount.find(invoice.id)
+      LineItem.where(invoice_id: invoice.id).delete_all
+      expect(record.total_amount).to eq(1180)
+    end
+
+    context "with a credit note" do
+      let(:credit) do
+        create(:invoice, :credit_note, status: :draft).tap do |note|
+          note.line_items.destroy_all
+          create(:line_item, invoice: note, amount: 200, tax_rate: nil)
+        end
+      end
+
+      it "leaves the total unsigned, so #signed_amount still negates it", :aggregate_failures do
+        loaded = described_class.with_total_amount.find(credit.id)
+        expect(loaded.total_amount).to eq(200)
+        expect(loaded.signed_amount).to eq(-200)
+      end
     end
   end
 

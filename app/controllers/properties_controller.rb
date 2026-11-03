@@ -4,11 +4,13 @@ class PropertiesController < ApplicationController
   def index
     @q = policy_scope(Property).ransack(params[:q])
     @properties = @q.result.page(params[:page]).per(20)
+    respond_ok @properties
   end
 
   def show
-    @property = Property.find(params[:id])
+    @property = Property.find(params.expect(:id))
     authorize @property
+    respond_ok @property
   end
 
   def new
@@ -17,7 +19,7 @@ class PropertiesController < ApplicationController
   end
 
   def edit
-    @property = Property.find(params[:id])
+    @property = Property.find(params.expect(:id))
     authorize @property
   end
 
@@ -26,27 +28,27 @@ class PropertiesController < ApplicationController
     authorize @property
 
     if @property.save
-      redirect_to @property, notice: t(".success")
+      respond_created(@property) { redirect_to @property, notice: t(".success") }
     else
-      render :new, status: :unprocessable_content
+      respond_invalid(@property) { render :new, status: :unprocessable_content }
     end
   end
 
   def update
-    @property = Property.find(params[:id])
+    @property = Property.find(params.expect(:id))
     authorize @property
     if @property.update(property_params)
-      redirect_to @property, notice: t(".success")
+      respond_updated(@property) { redirect_to @property, notice: t(".success") }
     else
-      render :edit, status: :unprocessable_content
+      respond_invalid(@property) { render :edit, status: :unprocessable_content }
     end
   end
 
   def destroy
-    @property = Property.find(params[:id])
+    @property = Property.find(params.expect(:id))
     authorize @property
     @property.destroy
-    redirect_to properties_url, notice: t(".success")
+    respond_destroyed { redirect_to properties_url, notice: t(".success") }
   end
 
   private
