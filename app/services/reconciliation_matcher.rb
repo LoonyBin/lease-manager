@@ -78,7 +78,7 @@ class ReconciliationMatcher
       if found.one? && wanted[found.first.payment] == 1
         propose(line, found.first.payment)
       elsif found.any?
-        line.update!(status: :ambiguous)
+        line.mark_ambiguous!
       end
     end
   end

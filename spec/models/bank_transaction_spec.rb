@@ -190,6 +190,34 @@ RSpec.describe BankTransaction do
       end
     end
 
+    describe "#mark_ambiguous!" do
+      let(:txn) { line(:unmatched) }
+      let(:stale) { described_class.find(txn.id) }
+      let(:choice) { create(:payment, amount: 1500, date: day, mode: :neft, reference_number: nil) }
+
+      def confirm_meanwhile
+        stale
+        txn.update!(status: :matched, matched_payment: choice)
+        txn.confirm!
+      end
+
+      it "marks an unmatched line ambiguous" do
+        expect(txn.mark_ambiguous!).to be(true)
+      end
+
+      it "refuses a line confirmed meanwhile instead of violating the link constraint" do
+        confirm_meanwhile
+        expect(stale.mark_ambiguous!).to be(false)
+      end
+
+      it "leaves the confirmed line intact when the matcher holds a stale copy" do
+        create(:payment, amount: 1500, date: day, mode: :neft, reference_number: nil)
+        confirm_meanwhile
+        ReconciliationMatcher.match_line(stale)
+        expect(txn.reload).to have_attributes(status: "confirmed", matched_payment: choice)
+      end
+    end
+
     describe "lock order" do
       # A payment edit locks the payment and then updates the line, so linking
       # must never hold the line lock while waiting for the payment lock.

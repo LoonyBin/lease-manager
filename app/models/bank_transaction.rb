@@ -98,6 +98,13 @@ class BankTransaction < ApplicationRecord
     false
   end
 
+  # Only an unmatched line can become ambiguous, checked against the locked
+  # current row: the matcher holds a stale object, and by the time it writes, a
+  # concurrent request may have confirmed, rejected or already linked the line.
+  def mark_ambiguous!
+    transition(from: %w[unmatched]) { update!(status: :ambiguous) }
+  end
+
   private
 
   def transition(from:)
