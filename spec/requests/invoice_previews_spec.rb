@@ -11,6 +11,11 @@ RSpec.describe "Invoice previews" do
   # Eager so the lease's after_create side effects stay out of count blocks.
   before { lease }
 
+  def written_records
+    versions = PaperTrail::Version.where(item_type: %w[Invoice LineItem Entry]).count
+    [Invoice.count, LineItem.count, Entry.count, versions]
+  end
+
   def preview(headers: {}, target: lease, **params)
     get lease_invoice_preview_path(target, format: :json), params: { date: date.iso8601 }.merge(params),
                                                            headers: headers
@@ -27,9 +32,27 @@ RSpec.describe "Invoice previews" do
       expect(payload["invoice_template"]).to include("id" => lease.invoice_templates.order(:id).first.id)
     end
 
-    it "persists nothing" do
-      versions = -> { PaperTrail::Version.where(item_type: %w[Invoice LineItem Entry]).count }
-      expect { preview }.not_to(change { [Invoice.count, LineItem.count, Entry.count, versions.call] })
+    it "persists nothing for a draft" do
+      expect { preview }.not_to(change { written_records })
+    end
+
+    it "persists nothing when an amount expression fails", :aggregate_failures do
+      lease.invoice_templates.first.line_items.first.update_column(:amount_expression, "no_such_variable") # rubocop:disable Rails/SkipsModelValidations
+      expect { preview }.not_to(change { written_records })
+      expect(payload).to include("reason" => "evaluation_error")
+    end
+
+    it "persists nothing when the lease has no templates" do
+      lease.invoice_templates.destroy_all
+      expect { preview }.not_to(change { written_records })
+    end
+
+    it "reports a negative Round Off line as a decimal string", :aggregate_failures do
+      lease.invoice_templates.first.line_items.first.update!(amount_expression: "1000.49", tax_rate: 0)
+      preview
+      round_off = payload["invoice"]["line_items"].find { |l| l["category"] == "rounding" }
+      expect(round_off).to include("amount" => "-0.49")
+      expect(round_off.values_at("amount", "tax_rate", "tax_amount", "total")).to all(be_a(String).and(match(money)))
     end
 
     it "reports money fields as decimal strings" do
@@ -112,6 +135,24 @@ RSpec.describe "Invoice previews" do
       preview
       expect(payload).to include("persisted" => true)
       expect(payload["invoice"]).to include("status" => "draft", "id" => first_template_invoice.id)
+    end
+
+    it "persists nothing for a saved invoice" do
+      expect { preview }.not_to(change { written_records })
+    end
+
+    it "reports money fields on a saved invoice as decimal strings" do
+      preview
+      invoice = payload["invoice"]
+      amounts = [invoice["total_amount"], invoice["balance"]] +
+                invoice["line_items"].flat_map { |l| l.values_at("amount", "tax_rate", "tax_amount", "total") }
+      expect(amounts).to all(be_a(String).and(match(money)))
+    end
+
+    it "prints a nil tax rate on a saved invoice as a decimal string" do
+      first_template_invoice.line_items.update_all(tax_rate: nil) # rubocop:disable Rails/SkipsModelValidations
+      preview
+      expect(payload["invoice"]["line_items"].pluck("tax_amount")).to all(match(money))
     end
 
     it "returns a cancelled invoice as persisted", :aggregate_failures do

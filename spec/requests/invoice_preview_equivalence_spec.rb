@@ -110,6 +110,18 @@ RSpec.describe "Invoice preview matches GET /invoices/new" do
     expect(json_state[:target]).to match(%r{\A/invoices/\d+\z})
   end
 
+  it "is not masked by a template-linked credit note" do
+    create(:invoice, :credit_note, lease: lease, invoice_template: lease.invoice_templates.order(:id).first, date: date)
+    expect(json_state).to eq(form_state)
+  end
+
+  # The expression is broken after validation, as happens when a variable is
+  # later removed, so it fails through the generator's normal evaluation path.
+  it "matches when an amount expression fails (blank form, no invoice)" do
+    lease.invoice_templates.order(:id).first.line_items.first.update_column(:amount_expression, "no_such_variable") # rubocop:disable Rails/SkipsModelValidations
+    expect(json_state).to eq(form_state.merge(no_invoice))
+  end
+
   it "picks the second template when the first is already billed" do
     TemplateInvoiceGenerator.new(lease.invoice_templates.order(:id).first, date).call.save!
     expect(json_state[:template_id]).to eq(second_template.id)
