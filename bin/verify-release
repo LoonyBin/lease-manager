@@ -25,6 +25,7 @@
 # needs the application to report its own errors, which is parts 2 and 3 of
 # LOO-417.
 #
+# Scheduled uptime checks use REQUIRE_FRESH_WORKER=0 outside deployments.
 # Exit status is 0 only when every check passed.
 
 set -euo pipefail
