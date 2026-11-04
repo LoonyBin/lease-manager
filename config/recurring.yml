@@ -19,3 +19,6 @@ production:
   schedule_invoice_reminders:
     command: "ScheduleInvoiceRemindersJob.perform_later"
     schedule: "30 1 * * *"
+  purge_bank_statements:
+    command: "PurgeBankStatementsJob.perform_later"
+    schedule: "0 2 * * *"

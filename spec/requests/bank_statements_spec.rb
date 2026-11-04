@@ -93,6 +93,14 @@ RSpec.describe "BankStatements" do
         expect(response.body).not_to include("$1,500")
       end
 
+      it "shows when unconfirmed lines are deleted, before and after that date", :aggregate_failures do
+        old = create(:bank_statement, uploaded_at: Time.utc(2026, 1, 1, 10))
+        get bank_statement_path(old)
+        expect(response.body).to include("on or after April 01, 2026")
+        get bank_statement_path(statement)
+        expect(response.body).to include("on or after #{(statement.uploaded_at + 90.days).strftime('%B %d, %Y')}")
+      end
+
       it "lists candidates with a Choose button on ambiguous lines" do
         line(reference: "UTR1", status: :ambiguous)
         get bank_statement_path(statement)

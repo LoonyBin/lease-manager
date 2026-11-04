@@ -48,6 +48,7 @@ Admin-only (Finance → Bank statements). An admin uploads a bank statement CSV 
 - **References**: a payment reference must appear as a whole value (case-insensitive) in the bank reference or, failing that, the description. A bank reference that names a different reference rules the payment out.
 - **Several candidates are never resolved by the system**: the line becomes *ambiguous* and the admin chooses among that line's candidates, rejects it, or re-matches after correcting the payment.
 - **Line states**: unmatched, matched (proposal), ambiguous, confirmed, rejected. Confirmed lines can be undone. If a linked payment is rejected, deleted or edited so it no longer qualifies, the line returns to unmatched.
+- **Retention**: lines that are not confirmed (unmatched, matched proposal, ambiguous, rejected) are deleted by a daily job once their statement was uploaded 90 days ago; a statement left with no lines is deleted too. Confirmed lines stay as long as their payment. The 90 days count from upload and never restart, so undoing a confirmation on an old statement means the line goes at the next daily run. The statement page shows the date.
 - Scoping by owner or bank account, separate debit/credit columns and other file types are not supported yet.
 
 ### 4. Reporting

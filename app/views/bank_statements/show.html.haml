@@ -6,6 +6,7 @@
 .show-card
   .show-section
     %p.text-sm.opacity-60.mb-4 Uploaded #{@bank_statement.uploaded_at.strftime("%B %d, %Y at %H:%M")}. Matches are proposals only: confirming links a line to a payment and changes nothing in the ledger.
+    %p.text-sm.opacity-60.mb-4 Lines that are not confirmed are deleted in the first daily run on or after #{@bank_statement.retention_ends_at.strftime("%B %d, %Y")}, 90 days after upload. Confirmed lines stay as long as their payment. A line that stops being confirmed after that date goes in the next daily run.
 
     .stats.stats-vertical.sm:stats-horizontal.shadow.mb-6
       .stat
