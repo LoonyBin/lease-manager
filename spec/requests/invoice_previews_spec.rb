@@ -88,9 +88,18 @@ RSpec.describe "Invoice previews" do
       expect(payload).to include("invoice" => nil, "reason" => "template_not_found")
     end
 
+    it "persists nothing for template_not_found" do
+      foreign_id = create(:lease).invoice_templates.first.id
+      expect { preview(invoice_template_id: foreign_id) }.not_to(change { written_records })
+    end
+
     it "reports a month outside the template window as not_generated" do
       preview(date: (lease.start_date - 2.years).iso8601)
       expect(payload).to include("invoice" => nil, "reason" => "not_generated")
+    end
+
+    it "persists nothing for not_generated" do
+      expect { preview(date: (lease.start_date - 2.years).iso8601) }.not_to(change { written_records })
     end
 
     it "reports a failing amount expression as evaluation_error" do
