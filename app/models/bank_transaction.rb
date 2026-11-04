@@ -55,29 +55,41 @@ class BankTransaction < ApplicationRecord
     end
   end
 
+  # The reset commits (releasing the line lock) before matching starts, because
+  # linking must take the payment lock first; see #link!.
   def rematch!
-    transition(from: %w[unmatched ambiguous rejected]) do
+    reset = transition(from: %w[unmatched ambiguous rejected]) do
       update!(status: :unmatched, matched_payment: nil)
-      ReconciliationMatcher.match_line(self)
     end
+    ReconciliationMatcher.match_line(self) if reset
+    reset
   end
 
   # A person picks one of an ambiguous line's current candidates.
   def choose!(payment)
-    transition(from: %w[ambiguous]) do
-      return false unless payment && link!(payment, :confirmed)
-    end
+    return false unless payment
+
+    link!(payment, :confirmed, from: %w[ambiguous])
   end
 
   # Links the line to +payment+ only if the payment still qualifies. The
   # payment row is locked first, so a concurrent edit either commits before the
   # check (and is seen by it) or waits until the link exists (and then releases
   # it through Payment's own callback). Returns false and changes nothing when
-  # the payment no longer qualifies or another line already holds it.
-  def link!(payment, new_status)
+  # the payment no longer qualifies, another line already holds it, or this line
+  # is no longer in one of the +from+ states.
+  #
+  # Lock order is always payment, then line: a payment edit holds the payment
+  # lock and its callback then updates the line. Taking the line first here
+  # could deadlock against that, so the line lock (and its state guard) comes
+  # only after the payment lock.
+  def link!(payment, new_status, from: %w[unmatched])
     transaction do
       locked = Payment.lock.find_by(id: payment.id)
-      next false unless locked && ReconciliationMatcher.qualifies?(self, locked)
+      next false unless locked
+
+      lock!
+      next false unless from.include?(status) && ReconciliationMatcher.qualifies?(self, locked)
 
       update!(status: new_status, matched_payment: locked)
       true

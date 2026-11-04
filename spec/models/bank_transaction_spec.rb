@@ -189,5 +189,43 @@ RSpec.describe BankTransaction do
         expect(txn.choose!(second)).to be(false)
       end
     end
+
+    describe "lock order" do
+      # A payment edit locks the payment and then updates the line, so linking
+      # must never hold the line lock while waiting for the payment lock.
+      def lock_order(&)
+        locks = []
+        callback = lambda do |*, payload|
+          sql = payload[:sql]
+          next unless sql.include?("FOR UPDATE")
+
+          locks << :payment if sql.include?('FROM "payments"')
+          locks << :line if sql.include?('FROM "bank_transactions"')
+        end
+        ActiveSupport::Notifications.subscribed(callback, "sql.active_record", &)
+        locks.chunk_while { |a, b| a == b }.map(&:first)
+      end
+
+      let!(:candidate) { create(:payment, amount: 1500, date: day, mode: :neft, reference_number: nil) }
+
+      it "locks the payment before the line on Choose" do
+        create(:payment, amount: 1500, date: day, mode: :neft, reference_number: nil)
+        txn = line(:ambiguous)
+        expect(lock_order { txn.choose!(candidate) }).to eq(%i[payment line])
+      end
+
+      # The first line lock is the reset, which commits before matching starts.
+      it "takes the payment lock before the line lock when linking from Re-match" do
+        txn = line(:rejected)
+        expect(lock_order { txn.rematch! }).to eq(%i[line payment line])
+      end
+
+      it "does not link a line that was rejected after the caller read it" do
+        txn = line(:unmatched)
+        stale = described_class.find(txn.id)
+        txn.update!(status: :rejected)
+        expect(stale.link!(candidate, :matched)).to be(false)
+      end
+    end
   end
 end
