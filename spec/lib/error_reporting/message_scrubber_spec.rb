@@ -141,6 +141,20 @@ RSpec.describe ErrorReporting::MessageScrubber do
     end
   end
 
+  describe "the bank statement upload parameter" do
+    let(:filter) { ActiveSupport::ParameterFilter.new(Rails.application.config.filter_parameters) }
+
+    it "is filtered, including its file name, and only under bank_statement", :aggregate_failures do
+      expect(filter.filter("bank_statement" => { "file" => "acct-50100123456789.csv" }))
+        .to eq("bank_statement" => { "file" => "[FILTERED]" })
+      expect(filter.filter("other" => { "file" => "kept" })).to eq("other" => { "file" => "kept" })
+    end
+
+    it "does not make a bare 'file:' in an error message disappear" do
+      expect(scrubbed("could not read file: missing.txt")).to include("file: missing.txt")
+    end
+  end
+
   describe ".sensitive_assignment_pattern" do
     it "matches nothing when there are no terms, rather than everything" do
       expect(described_class.sensitive_assignment_pattern([]).match?("password: hunter2")).to be(false)

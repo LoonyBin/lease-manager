@@ -22,29 +22,41 @@ class BankStatementParser
     @content = content.to_s
   end
 
-  def rows
-    raise Error, "The file is larger than #{MAX_BYTES / 1.megabyte} MB." if @content.bytesize > MAX_BYTES
+  # Refuses an oversized upload from its reported size, before it is read.
+  def self.check_size!(bytes)
+    raise Error, "The file is larger than #{MAX_BYTES / 1.megabyte} MB." if bytes > MAX_BYTES
+  end
 
-    table = read_table
-    check_row_count(table)
-    table.each_with_index.reject { |row, _| row.fields.all?(&:blank?) }.map { |row, index| build_row(row, index + 2) }
+  def rows
+    self.class.check_size!(@content.bytesize)
+
+    parsed = read_rows
+    raise Error, "The file has no rows." if parsed.empty?
+
+    parsed.map { |row, number| build_row(row, number) }
   end
 
   private
 
-  def read_table
-    table = CSV.parse(utf8_text, headers: true, header_converters: ->(h) { h.to_s.strip.downcase })
-    missing = %w[date amount] - table.headers
-    raise Error, "The file is missing the #{missing.join(' and ')} column." if missing.any?
+  # Streams the file and stops as soon as the row limit is passed, so a file of
+  # empty rows is refused without being parsed in full. Blank rows count toward
+  # the limit but are not returned; numbers match the spreadsheet's.
+  def read_rows
+    csv = CSV.new(utf8_text, headers: true, header_converters: ->(h) { h.to_s.strip.downcase })
+    kept = csv.each_with_index.filter_map do |row, index|
+      raise Error, "The file has more than #{MAX_ROWS} rows." if index >= MAX_ROWS
 
-    table
+      [row, index + 2] unless row.fields.all?(&:blank?)
+    end
+    check_headers(csv.headers)
+    kept
   rescue CSV::MalformedCSVError
     raise Error, "The file is not valid CSV."
   end
 
-  def check_row_count(table)
-    raise Error, "The file has no rows." if table.empty?
-    raise Error, "The file has more than #{MAX_ROWS} rows." if table.size > MAX_ROWS
+  def check_headers(headers)
+    missing = %w[date amount] - (headers.is_a?(Array) ? headers : [])
+    raise Error, "The file is missing the #{missing.join(' and ')} column." if missing.any?
   end
 
   def utf8_text

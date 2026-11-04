@@ -54,6 +54,20 @@ RSpec.describe "BankStatements" do
         expect(response.body).to include("Row 3")
       end
 
+      it "refuses an oversized upload from its reported size", :aggregate_failures do
+        stub_const("BankStatementParser::MAX_BYTES", 10)
+        expect { upload("date,amount\n2026-03-10,10\n") }.not_to(change(BankStatement, :count))
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(response.body).to include("larger than")
+      end
+
+      it "keeps the uploaded file name out of the request log" do
+        logged = []
+        allow(Rails.logger).to receive(:info) { |*args, &blk| logged << (args.first || blk&.call).to_s }
+        upload("date,amount\n2026-03-10,10\n", name: "acct-50100123456789.csv")
+        expect(logged.join("\n")).not_to include("50100123456789")
+      end
+
       it "answers 422 when no file is chosen", :aggregate_failures do
         post bank_statements_path, params: { bank_statement: { file: "" } }
         expect(response).to have_http_status(:unprocessable_content)

@@ -96,4 +96,18 @@ RSpec.describe BankStatementParser do
     stub_const("#{described_class}::MAX_BYTES", 10)
     expect { parse(csv("2026-03-10,1,a,b")) }.to raise_error(described_class::Error, /larger than/)
   end
+
+  it "stops reading at the row limit instead of parsing the whole file", :aggregate_failures do
+    stub_const("#{described_class}::MAX_ROWS", 3)
+    allow(CSV::Row).to receive(:new).and_call_original
+
+    expect { parse("date,amount\n#{"\n" * 50}") }.to raise_error(described_class::Error, /more than/)
+    expect(CSV::Row).to have_received(:new).at_most(4).times
+  end
+
+  it "judges size from a reported byte count, so nothing need be read", :aggregate_failures do
+    stub_const("#{described_class}::MAX_BYTES", 10)
+    expect { described_class.check_size!(11) }.to raise_error(described_class::Error, /larger than/)
+    expect { described_class.check_size!(10) }.not_to raise_error
+  end
 end

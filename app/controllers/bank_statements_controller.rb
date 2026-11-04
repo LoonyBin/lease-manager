@@ -37,6 +37,7 @@ class BankStatementsController < ApplicationController
   # Parsing comes first so a bad file saves nothing; matching runs once the
   # import has committed.
   def import_and_match(upload)
+    BankStatementParser.check_size!(upload.size)
     statement = import(upload, BankStatementParser.new(upload.read).rows)
     ReconciliationMatcher.new(statement).call
     statement

@@ -8,3 +8,7 @@
 Rails.application.config.filter_parameters += %i[
   passw email secret token _key crypt salt certificate otp ssn cvv cvc
 ]
+
+# A statement's file name can contain an account number; match the nested key
+# only, since a bare :file would also strip text from scrubbed error messages.
+Rails.application.config.filter_parameters << /bank_statement\.file/
