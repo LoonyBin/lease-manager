@@ -3,6 +3,7 @@
 class Payment < ApplicationRecord
   belongs_to :lease
   has_many :entries, as: :instrument, dependent: :destroy
+  has_many :bank_transactions, foreign_key: :matched_payment_id, inverse_of: :matched_payment, dependent: nil
   has_one_attached :attachment
 
   validates :amount, presence: true, numericality: { greater_than: 0 }
@@ -19,6 +20,9 @@ class Payment < ApplicationRecord
     demand_draft: 6,
     tax_deducted_at_source: 7
   }, default: :rtgs
+
+  # Fields a bank-line match depends on.
+  BANK_MATCH_FIELDS = %w[status amount date payment_type mode reference_number].freeze
 
   enum :payment_type, { payment: 0, refund: 1 }, default: :payment
   enum :status, { draft: 0, confirmed: 1, rejected: 2, partially_allocated: 3, fully_allocated: 4 },
@@ -37,9 +41,11 @@ class Payment < ApplicationRecord
     %w[lease]
   end
 
+  before_destroy :release_bank_links
   after_save :sync_initial_entry, if: :should_sync_entry?
   after_save :auto_settle, if: :should_auto_settle?
   after_save :deallocate, if: :should_deallocate?
+  after_save :release_stale_bank_links, if: :bank_match_fields_changed?
 
   scope :confirmed_or_later, -> { where(status: %i[confirmed partially_allocated fully_allocated]) }
   scope :unsettled, -> { where(status: %i[confirmed partially_allocated]) }
@@ -91,6 +97,25 @@ class Payment < ApplicationRecord
   end
 
   private
+
+  # A bank line linked to this payment stops pointing at it once the payment no
+  # longer qualifies as a match, or when it is deleted.
+  def bank_match_fields_changed?
+    BANK_MATCH_FIELDS.any? { |field| saved_change_to_attribute?(field) }
+  end
+
+  def release_stale_bank_links
+    BankTransaction.release_links_for(self)
+  end
+
+  # Holds the payment row lock through the scan and the delete (both run in the
+  # destroy transaction), so a matcher cannot link a line in between and make
+  # the foreign key fail the DELETE; a link attempt waits and then finds the
+  # payment gone.
+  def release_bank_links
+    self.class.lock.find_by(id: id)
+    BankTransaction.release_links_for(self, only_unqualified: false)
+  end
 
   def should_sync_entry?
     confirmed_or_later? && initial_entry_stale?

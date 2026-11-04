@@ -41,7 +41,16 @@ A web-based lease management application designed for property managers to handl
     - A single payment can settle multiple invoices.
     - Partial payments, overpayments, and balance adjustments are handled effortlessly via rake tasks/automation.
 
-### 3. Reporting
+### 3. Bank Reconciliation
+Admin-only (Finance → Bank statements). An admin uploads a bank statement CSV and receives match *proposals*; a person confirms each one. Reconciliation only records that a bank line and a payment belong together: it never creates, confirms or alters a payment, and writes nothing to the ledger.
+- **File format**: required `date` and `amount` columns; optional `description` (or `narration`) and `reference` (or `ref`, `utr`). One signed amount (negative = money out; `1,500.00`, `₹1,500` and `Rs. 1,500.00` are read, `Dr`/`Cr` suffixes and brackets are refused). Dates as `YYYY-MM-DD`, `DD/MM/YYYY` or `DD-MM-YYYY`. Up to 5 MB / 5,000 rows. A file with any unreadable row imports nothing and names the row.
+- **Eligible payments**: `confirmed`, `partially_allocated` or `fully_allocated` only; not cash or tax deducted at source; exact amount; date within ±3 days; not already linked to another matched or confirmed line. Bank credits match receipts, bank debits match refunds.
+- **References**: a payment reference must appear as a whole value (case-insensitive) in the bank reference or, failing that, the description. A bank reference that names a different reference rules the payment out.
+- **Several candidates are never resolved by the system**: the line becomes *ambiguous* and the admin chooses among that line's candidates, rejects it, or re-matches after correcting the payment.
+- **Line states**: unmatched, matched (proposal), ambiguous, confirmed, rejected. Confirmed lines can be undone. If a linked payment is rejected, deleted or edited so it no longer qualifies, the line returns to unmatched.
+- Scoping by owner or bank account, separate debit/credit columns and other file types are not supported yet.
+
+### 4. Reporting
 - **Dashboards**: Visual, graphic-chart overview of Revenue and Occupancy figures.
 - **Outstanding Balances**: Track unpaid invoices. Fast reporting caches totals on the Owner and Lease indexes for high-performance viewing.
 - **Lease Statements**: Comprehensive, sequential chronology replacing regular invoice lists to show running ledger balances.

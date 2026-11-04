@@ -160,6 +160,17 @@ RSpec.describe "Mobile layout" do
       end
     end
 
+    it "bank statement page with matched, ambiguous and unmatched lines" do
+      statement = create(:bank_statement)
+      payments = create_list(:payment, 2, lease: lease, amount: 1500, mode: :neft, reference_number: nil)
+      create(:bank_transaction, bank_statement: statement, amount: 1500, date: payments.first.date, status: :ambiguous)
+      create(:bank_transaction, bank_statement: statement, amount: 99_999_999, description: "x" * 120)
+      each_phone do
+        visit bank_statement_path(statement)
+        expect_no_page_overflow("bank statement")
+      end
+    end
+
     it "filtered index with several active filters" do
       each_phone do
         visit leases_path(q: { tenant_name_cont: "a", property_name_cont: "b", status_eq: "x", rent_amount_gteq: "1" })

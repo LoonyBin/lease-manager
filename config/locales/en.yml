@@ -12,6 +12,20 @@ en:
   authorization:
     not_authorized: You are not authorized to perform this action.
     token_action_forbidden: This API token is not permitted to perform this action.
+  bank_statements:
+    create:
+      no_file: Choose a CSV file to upload.
+      success: Bank statement uploaded. Review the proposed matches below.
+  bank_transactions:
+    choose:
+      success: Payment chosen and match confirmed.
+    confirm:
+      success: Match confirmed.
+    not_allowed: That action is not available for this transaction in its current state.
+    reject:
+      success: Match rejected.
+    rematch:
+      success: Transaction sent for re-matching.
   helpers:
     links:
       clear: Clear

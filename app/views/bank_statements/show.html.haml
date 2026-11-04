@@ -1,0 +1,41 @@
+- content_for :title, "Bank Statement - #{@bank_statement.filename}"
+
+- content_for :page_actions do
+  = link_to "Back", bank_statements_path, class: "btn btn-ghost btn-sm"
+
+.show-card
+  .show-section
+    %p.text-sm.opacity-60.mb-4 Uploaded #{@bank_statement.uploaded_at.strftime("%B %d, %Y at %H:%M")}. Matches are proposals only: confirming links a line to a payment and changes nothing in the ledger.
+
+    .stats.stats-vertical.sm:stats-horizontal.shadow.mb-6
+      .stat
+        .stat-title Transactions
+        .stat-value= @counts.values.sum
+      .stat
+        .stat-title Matched
+        .stat-value.text-success= @counts.fetch("matched", 0)
+      .stat
+        .stat-title Ambiguous
+        .stat-value.text-warning= @counts.fetch("ambiguous", 0)
+      .stat
+        .stat-title Confirmed
+        .stat-value.text-info= @counts.fetch("confirmed", 0)
+      .stat
+        .stat-title Unmatched
+        .stat-value= @counts.fetch("unmatched", 0)
+
+    .overflow-x-auto
+      %table.table.table-sm.w-full
+        %thead
+          %tr
+            %th Date
+            %th Amount
+            %th Description
+            %th Reference
+            %th Status
+            %th Matched Payment
+            %th
+        %tbody
+          - @transactions.each do |txn|
+            = render "transaction", txn: txn
+    = paginate @transactions

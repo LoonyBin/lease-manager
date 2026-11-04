@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_08_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_09_000002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -55,6 +55,29 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_08_000001) do
     t.bigint "user_id", null: false
     t.index ["token_digest"], name: "index_api_tokens_on_token_digest", unique: true
     t.index ["user_id"], name: "index_api_tokens_on_user_id"
+  end
+
+  create_table "bank_statements", force: :cascade do |t|
+    t.string "filename", null: false
+    t.datetime "uploaded_at", null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "bank_transactions", force: :cascade do |t|
+    t.bigint "bank_statement_id", null: false
+    t.date "date", null: false
+    t.text "description"
+    t.decimal "amount", precision: 10, scale: 2, null: false
+    t.string "reference"
+    t.bigint "matched_payment_id"
+    t.integer "status", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["bank_statement_id"], name: "index_bank_transactions_on_bank_statement_id"
+    t.index ["matched_payment_id"], name: "index_bank_transactions_on_active_matched_payment_id", unique: true, where: "(status = ANY (ARRAY[1, 2]))"
+    t.check_constraint "(status = ANY (ARRAY[1, 2])) = (matched_payment_id IS NOT NULL)", name: "bank_transactions_link_matches_status"
   end
 
   create_table "entries", force: :cascade do |t|
@@ -385,6 +408,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_08_000001) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "api_tokens", "users"
+  add_foreign_key "bank_transactions", "bank_statements"
+  add_foreign_key "bank_transactions", "payments", column: "matched_payment_id"
   add_foreign_key "entries", "leases"
   add_foreign_key "invoice_notifications", "invoices"
   add_foreign_key "invoice_notifications", "reminder_steps", on_delete: :nullify

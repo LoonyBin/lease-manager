@@ -1,0 +1,29 @@
+- content_for :title, "Bank Statements"
+
+- content_for :page_actions do
+  = link_to "Upload Statement", new_bank_statement_path, class: "btn btn-primary btn-sm"
+
+.show-card
+  .show-section
+    - if @bank_statements.any?
+      .overflow-x-auto
+        %table.table.table-sm.w-full
+          %thead
+            %tr
+              %th Filename
+              %th Uploaded
+              %th Status
+              %th Transactions
+              %th
+          %tbody
+            - @bank_statements.each do |statement|
+              %tr
+                %td= statement.filename
+                %td= statement.uploaded_at.strftime("%b %d, %Y %H:%M")
+                %td
+                  %span{class: "badge badge-#{statement.processed? ? 'success' : 'warning'}"}= statement.status.humanize
+                %td= statement.bank_transactions.size
+                %td= link_to "View", bank_statement_path(statement), class: "btn btn-xs btn-ghost"
+      = paginate @bank_statements
+    - else
+      .show-empty No bank statements uploaded yet.

@@ -35,6 +35,8 @@ The application is built around core entities and their financial interactions.
 - **Entry**: Double-entry ledger mechanism acting as the basis for polymorphic settlements representing financial state for properties and leases.
 - **Settlement**: Handled via `SettlementService` coordinating interactions between Payments and Invoices/CreditNotes, managing partial vs full allocations. Readjustment services and Rake tasks ensure financial entry balances are maintained accurately.
 
+- **BankStatement / BankTransaction**: An uploaded CSV and its lines. `BankStatementParser` validates the whole file before anything is saved; `ReconciliationMatcher` proposes at most one payment per line (two or more candidates make the line `ambiguous`), and `BankTransaction` enforces the line state machine. A check constraint ties `matched_payment_id` to the `matched`/`confirmed` statuses and a partial unique index stops one payment being linked by two active lines. `Payment` releases any line it no longer qualifies for (after save, and before destroy) in its own transaction. Reconciliation never writes to payments or entries.
+
 #### Polymorphic Settlement Pattern
 A `Settleable` interface and `Entry` backing standardizes financial allocations.
 - `Payment` can settle multiple `Invoices`.
@@ -71,3 +73,12 @@ Access is strictly controlled via Policies.
 `PaperTrail` is enabled for all key models (`Lease`, `Property`, `Tenant`, `Invoice`).
 - A `Versions` table stores the history of changes.
 - Changes are surfaced in the UI via the "History" sidebar on show pages.
+
+## Bank statement data handling
+
+A bank statement covers a whole account, so it can contain activity unrelated to rent. The rules for that text:
+
+- The uploaded file is parsed during the request and is not stored (no Active Storage attachment). Only the display filename and the parsed lines are kept.
+- Statement text stays out of audit versions: `BankStatement#filename` and `BankTransaction`'s `date`, `amount`, `description` and `reference` are excluded from PaperTrail `object` and `object_changes`.
+- Parser errors name the row and a fixed reason, never a cell value, so an error that reaches an error tracker carries no statement content.
+- Retention: lines that are not confirmed are deleted 90 days after upload; confirmed lines last as long as their payment. The scheduled deletion follows in a separate change.

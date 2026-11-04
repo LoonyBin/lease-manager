@@ -1,0 +1,43 @@
+- badge_class = { "confirmed" => "badge-success", "matched" => "badge-info", "rejected" => "badge-error", "ambiguous" => "badge-warning" }.fetch(txn.status, "badge-ghost")
+- payment = txn.matched_payment
+%tr{class: txn.confirmed? ? "opacity-70" : ""}
+  %td= txn.date.strftime("%b %d, %Y")
+  %td.whitespace-nowrap{class: txn.amount.negative? ? "text-error" : "text-success"}
+    = number_to_currency(txn.amount, unit: "₹", precision: 2)
+  %td.max-w-xs.truncate= txn.description
+  %td= txn.reference
+  %td
+    %span{class: "badge #{badge_class}"}= txn.status.humanize
+  %td
+    - if payment
+      = link_to "Payment ##{payment.id}", payment_path(payment), class: "link link-primary"
+      .text-xs.opacity-60= payment.lease.tenant.name
+      .text-xs.opacity-60
+        - basis = ReconciliationMatcher.basis_for(txn, payment)
+        = basis == :reference ? "Reference matched" : "Date and amount only"
+        - if payment.reference_number.present?
+          (payment reference #{payment.reference_number})
+    - elsif txn.ambiguous?
+      - ReconciliationMatcher.candidates(txn).each do |candidate|
+        - candidate_payment = candidate.payment
+        .mb-1
+          = link_to "Payment ##{candidate_payment.id}", payment_path(candidate_payment), class: "link link-primary"
+          .text-xs.opacity-60
+            = [candidate_payment.date.strftime("%b %d, %Y"), candidate_payment.lease.tenant.name, candidate_payment.reference_number.presence].compact.join(" · ")
+            = candidate.basis == :reference ? "(reference matched)" : "(date and amount only)"
+          - if policy(txn).choose?
+            = button_to "Choose", choose_bank_transaction_path(txn, payment_id: candidate_payment.id), method: :patch, class: "btn btn-xs btn-success"
+    - else
+      %span.opacity-50 -
+  %td
+    .flex.gap-1.flex-wrap
+      - if txn.matched? && policy(txn).confirm?
+        = button_to "Confirm", confirm_bank_transaction_path(txn), method: :patch, class: "btn btn-xs btn-success"
+      - if (txn.matched? || txn.ambiguous?) && policy(txn).reject?
+        = button_to "Reject", reject_bank_transaction_path(txn), method: :patch, class: "btn btn-xs btn-error"
+      - if txn.confirmed? && policy(txn).reject?
+        = button_to "Undo", reject_bank_transaction_path(txn), method: :patch, class: "btn btn-xs btn-warning", data: { turbo_confirm: "Undo this confirmed match?" }
+      - if (txn.unmatched? || txn.ambiguous? || txn.rejected?) && policy(txn).rematch?
+        = button_to "Re-match", rematch_bank_transaction_path(txn), method: :patch, class: "btn btn-xs btn-warning"
+      - if txn.unmatched?
+        %span.text-xs.opacity-50 No match found

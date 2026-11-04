@@ -5,6 +5,7 @@ source "https://rubygems.org"
 gem "aws-sdk-s3"
 gem "bootsnap", require: false
 gem "chartkick", "~> 5.3"
+gem "csv", "~> 3.3"
 gem "dartsass-rails"
 gem "dentaku", "~> 4.1"
 gem "groupdate", "~> 6.8"
