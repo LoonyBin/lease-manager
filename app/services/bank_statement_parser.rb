@@ -38,8 +38,8 @@ class BankStatementParser
     raise Error, "The file is missing the #{missing.join(' and ')} column." if missing.any?
 
     table
-  rescue CSV::MalformedCSVError => e
-    raise Error, "The file is not valid CSV: #{e.message}"
+  rescue CSV::MalformedCSVError
+    raise Error, "The file is not valid CSV."
   end
 
   def check_row_count(table)
@@ -66,16 +66,16 @@ class BankStatementParser
     format = DATE_FORMATS.find { |pattern, _| pattern.match?(text) }&.last
     Date.strptime(text, format)
   rescue Date::Error, TypeError
-    raise Error, "Row #{number}: the date #{text.inspect} is not readable. Use YYYY-MM-DD or DD/MM/YYYY."
+    raise Error, "Row #{number}: the date is not readable. Use YYYY-MM-DD or DD/MM/YYYY."
   end
 
   def parse_amount(value, number)
     text = value.to_s.strip
-    raise Error, "Row #{number}: the amount #{text.inspect} is not readable." unless AMOUNT_FORMAT.match?(text)
+    raise Error, "Row #{number}: the amount is not readable." unless AMOUNT_FORMAT.match?(text)
 
     amount = BigDecimal(text.sub(/\A(-?)(?:₹|Rs\.?|INR)?\s*/i, '\\1').delete(","))
     raise Error, "Row #{number}: the amount must not be zero." if amount.zero?
-    raise Error, "Row #{number}: the amount #{text.inspect} is too large." if amount.abs > MAX_AMOUNT
+    raise Error, "Row #{number}: the amount is too large." if amount.abs > MAX_AMOUNT
 
     amount
   end

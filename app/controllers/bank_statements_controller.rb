@@ -45,7 +45,6 @@ class BankStatementsController < ApplicationController
   def import(upload, rows)
     BankStatement.transaction do
       statement = BankStatement.new(filename: upload.original_filename, uploaded_at: Time.current, status: :processed)
-      statement.file.attach(upload)
       statement.save!
       rows.each { |row| statement.bank_transactions.create!(row.to_h) }
       statement

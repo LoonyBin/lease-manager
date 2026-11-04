@@ -91,8 +91,6 @@ class ReconciliationMatcher
   end
 
   def propose(line, payment)
-    line.update!(status: :matched, matched_payment: payment)
-  rescue ActiveRecord::RecordNotUnique
-    line.reload
+    line.link!(payment, :matched)
   end
 end

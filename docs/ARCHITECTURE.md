@@ -73,3 +73,12 @@ Access is strictly controlled via Policies.
 `PaperTrail` is enabled for all key models (`Lease`, `Property`, `Tenant`, `Invoice`).
 - A `Versions` table stores the history of changes.
 - Changes are surfaced in the UI via the "History" sidebar on show pages.
+
+## Bank statement data handling
+
+A bank statement covers a whole account, so it can contain activity unrelated to rent. The rules for that text:
+
+- The uploaded file is parsed during the request and is not stored (no Active Storage attachment). Only the display filename and the parsed lines are kept.
+- Statement text stays out of audit versions: `BankStatement#filename` and `BankTransaction`'s `date`, `amount`, `description` and `reference` are excluded from PaperTrail `object` and `object_changes`.
+- Parser errors name the row and a fixed reason, never a cell value, so an error that reaches an error tracker carries no statement content.
+- Retention: lines that are not confirmed are deleted 90 days after upload; confirmed lines last as long as their payment. The scheduled deletion follows in a separate change.

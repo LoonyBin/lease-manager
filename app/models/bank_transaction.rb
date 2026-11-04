@@ -9,6 +9,10 @@
 class BankTransaction < ApplicationRecord
   LINKED_STATUSES = %w[matched confirmed].freeze
 
+  # Statement text can describe activity unrelated to rent, so it never enters
+  # the audit trail's object/object_changes.
+  self.paper_trail_options = paper_trail_options.merge(skip: %w[date amount description reference])
+
   belongs_to :bank_statement
   belongs_to :matched_payment, class_name: "Payment", optional: true
 
@@ -61,12 +65,25 @@ class BankTransaction < ApplicationRecord
   # A person picks one of an ambiguous line's current candidates.
   def choose!(payment)
     transition(from: %w[ambiguous]) do
-      return false unless payment && ReconciliationMatcher.candidates(self).any? { |c| c.payment == payment }
-
-      update!(status: :confirmed, matched_payment: payment)
-    rescue ActiveRecord::RecordNotUnique
-      false
+      return false unless payment && link!(payment, :confirmed)
     end
+  end
+
+  # Links the line to +payment+ only if the payment still qualifies. The
+  # payment row is locked first, so a concurrent edit either commits before the
+  # check (and is seen by it) or waits until the link exists (and then releases
+  # it through Payment's own callback). Returns false and changes nothing when
+  # the payment no longer qualifies or another line already holds it.
+  def link!(payment, new_status)
+    transaction do
+      locked = Payment.lock.find_by(id: payment.id)
+      next false unless locked && ReconciliationMatcher.qualifies?(self, locked)
+
+      update!(status: new_status, matched_payment: locked)
+      true
+    end
+  rescue ActiveRecord::RecordNotUnique
+    false
   end
 
   private

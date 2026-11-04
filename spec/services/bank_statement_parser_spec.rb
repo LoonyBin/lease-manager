@@ -4,6 +4,13 @@ require "rails_helper"
 
 RSpec.describe BankStatementParser do
   def parse(body) = described_class.new(body).rows
+
+  def error_message(body)
+    parse(body)
+  rescue described_class::Error => e
+    e.message
+  end
+
   def csv(*rows, header: "date,amount,description,reference") = ([header] + rows).join("\n")
 
   it "reads rows with the documented columns" do
@@ -51,6 +58,22 @@ RSpec.describe BankStatementParser do
 
   it "refuses a file missing a required header" do
     expect { parse("date,description\n2026-03-10,x") }.to raise_error(described_class::Error, /amount column/)
+  end
+
+  {
+    "2026-03-11,\"Rs. 9,87x,654.00\",x,y" => "9,87x",
+    "99/99/9999,10,x,y" => "99/99/9999",
+    "2026-03-11,\"123456789012345.00\",x,y" => "123456789012345"
+  }.each do |bad_line, secret|
+    it "names the row but not the value #{secret} when it refuses a cell", :aggregate_failures do
+      message = error_message(csv("2026-03-10,10,a,b", bad_line))
+      expect(message).to include("Row 3")
+      expect(message).not_to include(secret)
+    end
+  end
+
+  it "does not forward the CSV library's message for malformed input" do
+    expect(error_message("date,amount\n\"2026-03-10,SECRET-NAME")).not_to include("SECRET-NAME")
   end
 
   it "refuses malformed CSV" do

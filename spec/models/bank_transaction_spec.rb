@@ -12,6 +12,16 @@ RSpec.describe BankTransaction do
     create(:bank_transaction, { amount: 1500, date: day, status: status }.merge(attrs))
   end
 
+  describe "audit trail" do
+    it "keeps statement text out of versions", :aggregate_failures do
+      txn = create(:bank_transaction, amount: 4321.5, date: day, description: "Rent from Asha Rao",
+                                      reference: "UTR778899")
+      txn.update!(description: "Edited narration Q", reference: "UTR112233", status: :rejected)
+      serialized = txn.versions.reload.map { |v| [v.object, v.object_changes] }.join
+      expect(serialized).not_to match(/4321|2026-03-10|Asha Rao|UTR778899|Edited narration Q|UTR112233/)
+    end
+  end
+
   describe "validations" do
     it { is_expected.to validate_presence_of(:date) }
     it { is_expected.to validate_presence_of(:amount) }
@@ -121,6 +131,36 @@ RSpec.describe BankTransaction do
       payment
       txn.rematch!
       expect(txn.reload.matched_payment).to eq(payment)
+    end
+
+    describe "#link!" do
+      let(:txn) { line(:unmatched) }
+
+      it "links a payment that still qualifies", :aggregate_failures do
+        expect(txn.link!(payment, :matched)).to be(true)
+        expect([txn.reload.status, txn.matched_payment]).to eq(["matched", payment])
+      end
+
+      it "refuses a payment that stopped qualifying after it was read", :aggregate_failures do
+        stale = Payment.find(payment.id)
+        payment.update!(status: :rejected)
+        expect(txn.link!(stale, :matched)).to be(false)
+        expect(txn.reload).to be_unmatched
+      end
+
+      it "locks the payment row before checking it" do
+        queries = []
+        callback = ->(*, payload) { queries << payload[:sql] }
+        ActiveSupport::Notifications.subscribed(callback, "sql.active_record") { txn.link!(payment, :matched) }
+        expect(queries.grep(/FROM "payments".*FOR UPDATE/m)).not_to be_empty
+      end
+
+      it "refuses to confirm a chosen payment that was rejected meanwhile" do
+        ambiguous = line(:ambiguous)
+        stale = Payment.find(payment.id)
+        payment.update!(status: :rejected)
+        expect(ambiguous.choose!(stale)).to be(false)
+      end
     end
 
     describe "#choose!" do
