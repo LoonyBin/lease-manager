@@ -108,7 +108,12 @@ class Payment < ApplicationRecord
     BankTransaction.release_links_for(self)
   end
 
+  # Holds the payment row lock through the scan and the delete (both run in the
+  # destroy transaction), so a matcher cannot link a line in between and make
+  # the foreign key fail the DELETE; a link attempt waits and then finds the
+  # payment gone.
   def release_bank_links
+    self.class.lock.find_by(id: id)
     BankTransaction.release_links_for(self, only_unqualified: false)
   end
 

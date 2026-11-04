@@ -32,13 +32,22 @@ class BankTransaction < ApplicationRecord
   # A payment changed or is going away: any line linked to it that the payment
   # no longer qualifies for goes back to unmatched, so nothing keeps pointing at
   # a payment that has stopped being a valid match. Runs in the payment's own
-  # transaction.
+  # transaction, which already holds the payment row lock, so the order is
+  # payment then line. Each line is re-read under its lock: an admin may have
+  # rejected it or re-matched it to another payment since it was listed, and
+  # that decision must not be overwritten.
   def self.release_links_for(payment, only_unqualified: true)
-    linked.where(matched_payment_id: payment.id).find_each do |line|
+    linked.where(matched_payment_id: payment.id).pluck(:id).each do |id|
+      line = lock.find_by(id: id)
+      next unless line&.linked_to?(payment)
       next if only_unqualified && ReconciliationMatcher.qualifies?(line, payment)
 
       line.update!(status: :unmatched, matched_payment: nil)
     end
+  end
+
+  def linked_to?(payment)
+    LINKED_STATUSES.include?(status) && matched_payment_id == payment.id
   end
 
   def confirm!

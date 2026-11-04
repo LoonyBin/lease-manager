@@ -68,6 +68,34 @@ RSpec.describe Payment, "bank line links" do # rubocop:disable RSpec/DescribeMet
         expect_released
       end
 
+      # An admin rejects the line between the scan and the line lock.
+      def reject_line_before_first_lock
+        done = false
+        allow(BankTransaction).to receive(:lock).and_wrap_original do |original, *args|
+          BankTransaction.find(line.id).reject! unless done
+          done = true
+          original.call(*args)
+        end
+      end
+
+      def sql_index(statements, *fragments)
+        statements.index { |q| fragments.all? { |f| q.include?(f) } }
+      end
+
+      it "does not overwrite a line decision made after the links were listed" do
+        reject_line_before_first_lock
+        payment.update!(amount: 1600)
+        expect(line.reload).to be_rejected
+      end
+
+      it "locks the payment before it scans for linked lines on delete" do
+        sql = []
+        ActiveSupport::Notifications.subscribed(->(*, payload) { sql << payload[:sql] }, "sql.active_record") do
+          payment.destroy!
+        end
+        expect(sql_index(sql, 'FROM "payments"', "FOR UPDATE")).to be < sql_index(sql, 'FROM "bank_transactions"')
+      end
+
       it "rolls the payment change back if releasing fails", :aggregate_failures do
         allow(BankTransaction).to receive(:release_links_for).and_raise(ActiveRecord::StatementInvalid)
         expect { payment.update!(amount: 1600) }.to raise_error(ActiveRecord::StatementInvalid)
