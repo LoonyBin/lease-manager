@@ -200,12 +200,18 @@ every row's total in one query rather than one per invoice.
 `GET /invoices/audit.json` answers *"which months were never invoiced?"* — the
 same question the audit page renders, as data.
 
-It is an aggregate over every non-upcoming, non-archived lease's templates, not
-a record listing, so (like the reports) it serializes an explicit, hand-picked
+It is an aggregate over the templates of the non-upcoming, non-archived leases the
+caller can see, not a record listing, so (like the reports) it serializes an explicit, hand-picked
 payload rather than a model's attributes. A consumer cannot reproduce it without
 reimplementing the detector: it walks each template's effective window month by
 month and excludes months already billed under the `covering` rule, so a
 template-linked credit note does not mask its own template.
+
+Which leases the caller can see follows the same rule as the rest of the API:
+admins see every eligible lease; other users see the eligible leases of the
+owners and tenants they are associated with, and get empty lists if they have
+none. A token's `invoices#audit` grant decides whether it may call the endpoint,
+not which rows it sees.
 
 ```sh
 curl -H "Authorization: Bearer $TOKEN" https://example.com/invoices/audit.json
