@@ -23,6 +23,13 @@ class BankTransaction < ApplicationRecord
   validate :link_agrees_with_status
 
   scope :linked, -> { where(status: LINKED_STATUSES) }
+  scope :past_retention, -> { where.not(status: :confirmed).where(bank_statement: BankStatement.past_retention) }
+
+  # Re-read under the row lock: an admin may have confirmed the line since it
+  # was listed, and that decision must not be overwritten.
+  def self.destroy_unless_confirmed(id)
+    transaction { lock.where.not(status: :confirmed).find_by(id: id)&.destroy! }
+  end
 
   # Ids of payments held by an active line other than +transaction+.
   def self.held_elsewhere(transaction)

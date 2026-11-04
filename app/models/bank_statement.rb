@@ -9,5 +9,13 @@ class BankStatement < ApplicationRecord
 
   enum :status, { pending: 0, processed: 1 }
 
+  # Statement text can describe activity unrelated to rent, so lines that are
+  # not confirmed are deleted this long after upload.
+  RETENTION_PERIOD = 90.days
+
+  scope :past_retention, -> { where(uploaded_at: ..RETENTION_PERIOD.ago) }
+
+  def retention_ends_at = uploaded_at + RETENTION_PERIOD
+
   validates :filename, :uploaded_at, presence: true
 end
