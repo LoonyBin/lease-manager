@@ -11,7 +11,7 @@
 
 ## Tooling
 - **Framework**: RSpec
-- **Browsers**: Chrome (Headless/Headed) via Selenium/Cuprite.
+- **Browsers**: Headless Chrome via Cuprite (`spec/system`, test group only). Chrome must be installed; a missing browser fails the specs rather than skipping them. Build Tailwind first (`bin/rails tailwindcss:build`).
 - **Fixture Replacement**: FactoryBot
 - **Coverage**: SimpleCov (Run `open coverage/index.html` after tests).
 - **Security**: Brakeman (Static analysis).

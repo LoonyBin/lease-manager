@@ -3,8 +3,11 @@
 class MissingInvoiceDetector
   MissingInvoice = Struct.new(:lease, :template, :date, :tenant, :property, :expected_amount)
 
-  def initialize(leases = nil)
-    @leases = leases || non_upcoming_leases
+  # +leases+ is the set the caller may see; it is required so that omitting it
+  # can never widen the audit to every lease. Eligibility (not archived, not
+  # upcoming) is applied on top of it, so a supplied relation can only narrow.
+  def initialize(leases)
+    @leases = eligible(leases)
   end
 
   def call
@@ -21,10 +24,10 @@ class MissingInvoiceDetector
 
   private
 
-  def non_upcoming_leases
+  def eligible(leases)
     upcoming_ids = Lease.by_status("upcoming").select(:id)
-    Lease.not_archived.where.not(id: upcoming_ids)
-         .includes(:property, :tenant, invoice_templates: :line_items)
+    leases.not_archived.where.not(id: upcoming_ids)
+          .includes(:property, :tenant, invoice_templates: :line_items)
   end
 
   def missing_for_lease(lease)

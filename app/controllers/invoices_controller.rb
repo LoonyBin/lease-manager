@@ -5,6 +5,8 @@ class InvoicesController < ApplicationController
 
   respond_to :html, :json
 
+  after_action :verify_policy_scoped, only: :audit
+
   def index
     @q = policy_scope(Invoice).ransack(params[:q])
     @q.sorts = ["date desc", "created_at desc", "id desc"] if @q.sorts.empty?
@@ -21,6 +23,7 @@ class InvoicesController < ApplicationController
   end
 
   def new
+    authorize_requested_lease
     @invoice = build_invoice
     authorize @invoice
     set_form_collections
@@ -33,13 +36,14 @@ class InvoicesController < ApplicationController
 
   def audit
     authorize Invoice, :index?
-    detector = MissingInvoiceDetector.new
+    detector = MissingInvoiceDetector.new(policy_scope(Lease))
     @missing_invoices = detector.call
     @leases_without_templates = detector.leases_without_templates
     respond_ok { audit_payload }
   end
 
   def create
+    authorize_requested_lease
     @invoice = build_invoice
     authorize @invoice
     @invoice.save unless @invoice.persisted?
@@ -58,6 +62,15 @@ class InvoicesController < ApplicationController
   end
 
   private
+
+  # A chosen lease must be one the caller may invoice before anything is read
+  # from it (prefill, templates, existing invoices). Unknown ids are refused.
+  def authorize_requested_lease
+    lease_id = invoice_params&.dig(:lease_id)
+    return if lease_id.blank?
+
+    authorize Invoice.new(lease: Lease.find_by(id: lease_id)), :create?
+  end
 
   # Prefills rental invoices from an invoice template when a lease and date
   # are given without explicit line items (invoice form and audit page).

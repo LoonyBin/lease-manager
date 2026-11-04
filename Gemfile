@@ -6,7 +6,7 @@ gem "aws-sdk-s3"
 gem "bootsnap", require: false
 gem "chartkick", "~> 5.2"
 gem "dartsass-rails"
-gem "dentaku", "~> 4.0"
+gem "dentaku", "~> 4.1"
 gem "groupdate", "~> 6.8"
 gem "haml-rails"
 gem "heroicons"
@@ -18,7 +18,7 @@ gem "jbuilder"
 # ArgumentError. Pinned until Rails ships a decoder that works with json 3.
 gem "json", "< 3"
 gem "kamal", require: false
-gem "kaminari", "~> 1.2"
+gem "kaminari", "~> 1.3"
 gem "omniauth"
 gem "omniauth-google-oauth2"
 gem "omniauth-rails_csrf_protection"
@@ -38,7 +38,7 @@ gem "solid_cable"
 gem "solid_cache"
 gem "solid_queue"
 gem "stimulus-rails"
-gem "tailwindcss-rails", "~> 4.4"
+gem "tailwindcss-rails", "~> 4.7"
 gem "thruster", require: false
 gem "turbo-rails"
 gem "tzinfo-data", platforms: %i[windows jruby]
@@ -71,6 +71,7 @@ end
 
 group :test do
   gem "capybara", "~> 3.40"
+  gem "cuprite", "~> 0.17"
   gem "pundit-matchers", "~> 4.0"
   gem "rspec-its"
   gem "shoulda-matchers"

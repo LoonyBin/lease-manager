@@ -4,7 +4,7 @@ require "rails_helper"
 
 RSpec.describe MissingInvoiceDetector do
   describe "#call" do
-    subject(:result) { described_class.new.call }
+    subject(:result) { described_class.new(Lease.all).call }
 
     let(:today) { Date.current }
 
@@ -203,7 +203,7 @@ RSpec.describe MissingInvoiceDetector do
   end
 
   describe "#leases_without_templates" do
-    subject(:detector) { described_class.new }
+    subject(:detector) { described_class.new(Lease.all) }
 
     it "lists leases whose templates were all deleted" do
       lease = create(:lease)
@@ -213,6 +213,41 @@ RSpec.describe MissingInvoiceDetector do
 
     it "does not list leases with templates" do
       create(:lease)
+      expect(detector.leases_without_templates).to be_empty
+    end
+  end
+
+  describe "the supplied lease set" do
+    let(:today) { Date.current }
+    let!(:visible) { create(:lease, start_date: today - 2.months, duration_months: 12) }
+    let!(:hidden) { create(:lease, start_date: today - 2.months, duration_months: 12) }
+
+    def bare_lease(**attrs)
+      create(:lease, **attrs).tap { |lease| lease.invoice_templates.destroy_all }
+    end
+
+    it "requires a lease set" do
+      expect { described_class.new }.to raise_error(ArgumentError)
+    end
+
+    it "limits the missing invoices to that set" do
+      detector = described_class.new(Lease.where(id: visible.id))
+      expect(detector.call.map(&:lease).uniq).to eq([visible])
+    end
+
+    it "limits the leases without templates to that set", :aggregate_failures do
+      visible_bare = bare_lease
+      hidden_bare = bare_lease
+      result = described_class.new(Lease.where(id: [visible_bare.id, hidden.id])).leases_without_templates
+      expect(result).to contain_exactly(visible_bare)
+      expect(result).not_to include(hidden_bare)
+    end
+
+    it "still leaves out archived and upcoming leases within that set", :aggregate_failures do
+      archived = bare_lease(start_date: today - 6.months, terminated_on: today - 2.months, archived_at: today - 1.month)
+      upcoming = bare_lease(start_date: today + 1.month)
+      detector = described_class.new(Lease.where(id: [visible.id, archived.id, upcoming.id]))
+      expect(detector.call.map(&:lease).uniq).to eq([visible])
       expect(detector.leases_without_templates).to be_empty
     end
   end

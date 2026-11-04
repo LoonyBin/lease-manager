@@ -1,0 +1,60 @@
+name: Uptime
+
+on:
+  schedule:
+    - cron: '2-57/5 * * * *'
+  workflow_dispatch:
+    inputs:
+      drill:
+        description: Test alert delivery without changing production
+        type: boolean
+        default: false
+
+permissions: {}
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Check the public application
+        env:
+          APP_URL: ${{ inputs.drill && 'https://lease-manager.loonyb.in/alert-drill' || 'https://lease-manager.loonyb.in' }}
+          REQUIRE_FRESH_WORKER: '0'
+          CURL_TIMEOUT: '15'
+          RETRY_INTERVAL: '15'
+          PAGE_DEADLINE: '60'
+          WORKER_DEADLINE: '60'
+        run: bin/verify-release
+
+  notify:
+    needs: check
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Update outage alerts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          CHECK_RESULT: ${{ needs.check.result }}
+          IS_DRILL: ${{ inputs.drill && 'true' || 'false' }}
+          RUN_NUMBER: ${{ github.run_number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          RECIPIENT: TMaYaD
+        run: bin/uptime-notify
