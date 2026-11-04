@@ -12,7 +12,7 @@ RSpec.describe InvoicePolicy do
   context "when user is an admin" do
     let(:user) { create(:user, :admin) }
 
-    it { is_expected.to permit_actions(%i[index show create new update edit destroy]) }
+    it { is_expected.to permit_actions(%i[index show create new preview update edit destroy]) }
   end
 
   context "when user is associated with the lease's property owner" do
@@ -20,7 +20,7 @@ RSpec.describe InvoicePolicy do
       create(:user_association, user: user, associable: lease.property.owner)
     end
 
-    it { is_expected.to permit_actions(%i[index show create new update edit destroy]) }
+    it { is_expected.to permit_actions(%i[index show create new preview update edit destroy]) }
   end
 
   context "when user is associated with the lease's tenant" do
@@ -29,11 +29,11 @@ RSpec.describe InvoicePolicy do
     end
 
     it { is_expected.to permit_actions(%i[index show]) }
-    it { is_expected.to forbid_actions(%i[create new update edit destroy]) }
+    it { is_expected.to forbid_actions(%i[create new preview update edit destroy]) }
   end
 
   context "when user is unrelated" do
-    it { is_expected.to forbid_actions(%i[show create new update edit destroy]) }
+    it { is_expected.to forbid_actions(%i[show create new preview update edit destroy]) }
   end
 
   describe "Scope" do

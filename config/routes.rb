@@ -9,6 +9,7 @@ Rails.application.routes.draw do
       end
     end
     resources :reminder_steps, except: %i[index show]
+    resource :invoice_preview, only: :show
   end
   resources :invoice_notifications, only: %i[index] do
     member do

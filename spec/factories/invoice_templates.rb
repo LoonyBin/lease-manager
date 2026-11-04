@@ -15,6 +15,17 @@ FactoryBot.define do
       end
     end
 
+    # A template that bills no rent, so it is never suppressed by a rent invoice.
+    trait :maintenance_only do
+      name { "Maintenance" }
+
+      after(:build) do |template|
+        template.line_items.clear
+        template.line_items.build(name: "Maintenance", amount_expression: "2500", tax_rate: 0,
+                                  category: "maintenance", position: 1)
+      end
+    end
+
     trait :with_discount_line do
       after(:build) do |template|
         template.line_items.build(name: "Pro-rated discount ({unused_days} days)",

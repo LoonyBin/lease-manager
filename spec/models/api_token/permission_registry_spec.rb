@@ -39,6 +39,11 @@ RSpec.describe ApiToken::PermissionRegistry do
       expect(described_class.read_preset).not_to include("properties#create", "properties#destroy")
     end
 
+    it "offers the invoice preview to read tokens but not the invoice form", :aggregate_failures do
+      expect(described_class.read_preset).to include("invoice_previews#show")
+      expect(described_class.grantable_actions).not_to include("invoices#new")
+    end
+
     # Retargeted successor to the deleted route-walk invariant spec
     # (spec/requests/api_token_scope_invariant_spec.rb). That spec compared every
     # GET/HEAD-reachable app action against a human-curated allowlist of read

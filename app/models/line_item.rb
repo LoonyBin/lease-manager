@@ -8,7 +8,7 @@ class LineItem < ApplicationRecord
   validates :category, presence: true
 
   def tax_amount
-    return 0 if tax_rate.blank?
+    return BigDecimal(0) if tax_rate.blank?
 
     (amount * (tax_rate / 100.0)).round(2)
   end
