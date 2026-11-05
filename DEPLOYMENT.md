@@ -60,11 +60,15 @@ merge-to-`main` deploys, and CI is the only gate. Do not add a staging environme
 step on the assumption that their absence is an oversight — it is a decision, and changing it is a
 decision for the repository owner to take again.
 
+The `production` GitHub environment is not a staging environment or an approval step. It only holds
+the deploy key and limits its use to the `main` branch; it has no required reviewers and no wait
+timer.
+
 ### Deploy credentials and host trust
 
 | Where | Name | What it is |
 |---|---|---|
-| Actions **secret** | `DOKKU_SSH_PRIVATE_KEY` | Private key whose public half is registered on the host with `dokku ssh-keys:add` |
+| `production` environment **secret** | `DOKKU_SSH_PRIVATE_KEY` | Private key whose public half is registered on the host with `dokku ssh-keys:add` |
 | Actions **variable** | `DOKKU_HOST` | `91.98.73.173` — the host the workflow pushes to |
 | Actions **variable** | `DOKKU_HOST_KEY` | The `known_hosts` line for that host, below |
 
@@ -255,7 +259,7 @@ sudo dokku plugin:install https://github.com/dokku/dokku-letsencrypt.git letsenc
 # Your own key, so bin/bootstrap and every command in this runbook works
 cat ~/.ssh/id_ed25519.pub | ssh root@NEW_HOST dokku ssh-keys:add admin
 
-# The CI deploy key — the public half of the GitHub secret DOKKU_SSH_PRIVATE_KEY
+# The CI deploy key — the public half of the `production` environment secret DOKKU_SSH_PRIVATE_KEY
 ssh root@NEW_HOST dokku ssh-keys:add github-actions < deploy_key.pub
 ```
 
@@ -515,6 +519,16 @@ ssh dokku@91.98.73.173 config:set lease-manager RAILS_MASTER_KEY=<new key>
 `config/credentials.yml.enc` in the repository with the new key and deploying that commit — the two
 have to land together or the app cannot decrypt its credentials. Coordinate with the repository
 owner; do not attempt it unattended.
+
+To rotate the deploy key (`DOKKU_SSH_PRIVATE_KEY`), keep the old key working until the new one is
+proven:
+
+1. Generate a new key pair and add its public half to the host under a new name
+   (`dokku ssh-keys:add <new-name> < key.pub`).
+2. Replace the `production` environment secret
+   (`gh secret set DOKKU_SSH_PRIVATE_KEY --env production`).
+3. Confirm a deploy from `main` is green.
+4. Only then remove the old key from the host (`dokku ssh-keys:remove <old-name>`).
 
 ---
 
