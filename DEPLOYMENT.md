@@ -60,6 +60,30 @@ merge-to-`main` deploys, and CI is the only gate. Do not add a staging environme
 step on the assumption that their absence is an oversight — it is a decision, and changing it is a
 decision for the repository owner to take again.
 
+### When a deploy fails
+
+A failed `deploy` job opens a GitHub issue titled **Lease Manager deploy failed**, labelled
+`deploy-failed` and assigned to `TMaYaD`. It links the failed run and the commit that did not ship.
+Any failing step counts: checkout, SSH setup, the host-key pin, the Dokku push or `bin/verify-release`.
+The alert text is fixed; no job output is copied into the issue.
+
+**What it means.** Either the push failed and the previous release is still serving (the site looks
+fine, but the change is not live), or the release went live and failed its post-deploy checks.
+The run shows which. The uptime alert (`production-down`) tracks the site being down and is a
+separate issue.
+
+- A further failure while the issue is open updates its "Latest failed deploy" line and adds no
+  comment, except one "still failing" mention after 12 hours.
+- The next successful deploy comments on the issue and closes it.
+- These stay silent: CI on `main` did not pass (the deploy is skipped), a run superseded in the queue,
+  and a deploy cancelled by hand. A push that hangs until GitHub's six-hour limit ends as cancelled,
+  so it does not alert either.
+
+**Drill.** `gh workflow run deploy.yml --ref main -f drill=true` fails the job on purpose before any
+SSH or push step, so production is untouched, and runs in its own concurrency group, so it cannot
+cancel a deploy waiting in the queue. It opens a `DRILL:` issue labelled `deploy-drill`; the next
+successful deploy closes it.
+
 ### Deploy credentials and host trust
 
 | Where | Name | What it is |
@@ -639,8 +663,8 @@ that the application is broken. The worker check is the one that fails on an oth
 release: it requires a Solid Queue worker started by *this* deploy, which catches a release whose
 `worker` process never came up while the previous one is still heartbeating.
 
-Nothing alerts on this job. A red Deploy run is currently the only automated signal that production
-is broken, and it pages nobody — see [Known gaps](#known-gaps).
+A red deploy job opens a `deploy-failed` issue assigned to the repository owner — see
+[When a deploy fails](#when-a-deploy-fails).
 
 **`Blocked hosts` error in the logs.**
 `APP_HOST` is unset or does not match the domain being requested. `bin/bootstrap` fixes it.
@@ -660,9 +684,9 @@ Recorded here so a reader is not misled by omission:
 - **No uptime monitoring or alerting.** Nothing pages anyone if the site stops answering, if the
   certificate approaches expiry, or if the `worker` process stops. The application does report its
   own exceptions to Sentry when `SENTRY_DSN` is set, which covers errors raised by code that runs —
-  but an outage in front of the application raises nothing, so Sentry stays silent through it. The
-  only automated signal that production is broken is a red Deploy run, which happens solely when
-  someone merges and notifies nobody. **This gap has already cost a 30-day outage:** on
+  but an outage in front of the application raises nothing, so Sentry stays silent through it. A
+  failed deploy does open an alert issue (see [When a deploy fails](#when-a-deploy-fails)), but that
+  happens solely when someone merges. **This gap has already cost a 30-day outage:** on
   2026-10-02 the deploy verification reported the site returning `301` on all six checks, in red,
   and the site stayed down until 2026-11-01, when someone looked. Closing it means an external uptime check against
   `/health/ready` that can alert.
