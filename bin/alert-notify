@@ -1,0 +1,146 @@
+#!/usr/bin/env bash
+# Fixed alert text only: never consume output from the job.
+set -euo pipefail
+exec python3 - <<'PY'
+import datetime
+import json
+import os
+import re
+import subprocess
+
+
+def gh(*args):
+    return subprocess.check_output(["gh", *args], text=True).strip()
+
+
+def api(path, **fields):
+    args = ["api", path, "--method", "PATCH"]
+    for key, value in fields.items():
+        args.extend(["-f", f"{key}={value}"])
+    gh(*args)
+
+
+# Everything that differs between the alerts lives here, so the state machine
+# below is shared and its edge cases are tested once.
+KINDS = {
+    "uptime": {
+        "label": "production-down",
+        "drill_label": "uptime-drill",
+        "title": "Lease Manager public checks failed",
+        "opened": "Lease Manager public checks failed at {time}.\n\nInspect the [workflow run]({url}) for details.",
+        "still": "Lease Manager public checks still fail at {time}. [Workflow run]({url}).",
+        "recovered": "Lease Manager public checks recovered at {time}. [Workflow run]({url}).",
+        "latest": None,
+        # A check that was cancelled or skipped did not prove the site healthy.
+        "failed_results": None,
+    },
+    "deploy": {
+        "label": "deploy-failed",
+        "drill_label": "deploy-drill",
+        "title": "Lease Manager deploy failed",
+        "opened": ("Lease Manager deploy failed at {time}. Commit [{sha7}]({commit_url}) is not live. "
+                   "Either the push to Dokku failed and the previous release is still serving, or the new "
+                   "release went live and failed its post-deploy checks. The [workflow run]({url}) shows "
+                   "which step failed. If the site is down, the uptime alert tracks that separately.\n\n"
+                   "{latest}"),
+        "still": "Lease Manager deploys still fail at {time}. Latest: [workflow run]({url}), commit [{sha7}]({commit_url}).",
+        "recovered": "Lease Manager deployed successfully at {time}: commit [{sha7}]({commit_url}), [workflow run]({url}).",
+        "latest": "Latest failed deploy: [run]({url}), commit [{sha7}]({commit_url}).",
+        # A cancelled or superseded deploy is not a failed deploy.
+        "failed_results": {"failure"},
+    },
+}
+
+kind_name = os.environ.get("ALERT_KIND", "")
+if kind_name not in KINDS:
+    raise SystemExit(f"ALERT_KIND must be one of: {', '.join(KINDS)}.")
+kind = KINDS[kind_name]
+prefix = kind_name
+
+repo = os.environ["GH_REPO"]
+run = int(os.environ["RUN_NUMBER"])
+attempt = int(os.environ.get("RUN_ATTEMPT") or 1)
+url = os.environ["RUN_URL"]
+recipient = os.environ["RECIPIENT"]
+drill = os.environ.get("IS_DRILL") == "true"
+result = os.environ.get("CHECK_RESULT", "")
+healthy = result == "success"
+if kind["failed_results"] is not None and not healthy and result not in kind["failed_results"]:
+    print(f"Nothing to report: result {result!r} is neither success nor failure.")
+    raise SystemExit(0)
+
+sha = os.environ.get("COMMIT_SHA", "")
+if kind_name == "deploy" and not re.fullmatch(r"[0-9a-f]{40}", sha):
+    raise SystemExit("COMMIT_SHA must be a full lowercase commit hash.")
+commit_url = f"{os.environ.get('SERVER_URL', 'https://github.com')}/{repo}/commit/{sha}"
+now = int(datetime.datetime.now(datetime.timezone.utc).timestamp())
+time = datetime.datetime.fromtimestamp(now, datetime.timezone.utc).isoformat()
+text = {"time": time, "url": url, "sha7": sha[:7], "commit_url": commit_url}
+
+
+def marker(body, key, default=0):
+    match = re.search(r"<!-- " + prefix + "-" + key + r": ([0-9]+) -->", body)
+    return int(match[1]) if match else default
+
+
+def state(body, failed, failed_attempt, notified):
+    body = re.sub(r"\n?<!-- " + prefix + r"-(?:last-failed-run|last-failed-attempt|last-notified-at):.*? -->", "", body)
+    return (body + f"\n<!-- {prefix}-last-failed-run: {failed} -->"
+            + f"\n<!-- {prefix}-last-failed-attempt: {failed_attempt} -->"
+            + f"\n<!-- {prefix}-last-notified-at: {notified} -->")
+
+
+def latest_line():
+    return kind["latest"].format(**text) if kind["latest"] else ""
+
+
+def create():
+    label = kind["drill_label"] if drill else kind["label"]
+    title_prefix = "DRILL: " if drill else ""
+    body = f"{title_prefix}@{recipient} " + kind["opened"].format(latest=latest_line(), **text)
+    body = state(body, run, attempt, now)
+    gh("label", "create", label, "--repo", repo, "--force")
+    gh("issue", "create", "--repo", repo, "--title", title_prefix + kind["title"],
+       "--body", body, "--label", label, "--assignee", recipient)
+
+
+if drill:
+    if healthy:
+        raise SystemExit("Drill passed unexpectedly; no alert was tested.")
+    create()
+else:
+    alerts = []
+    for label in ([kind["label"], kind["drill_label"]] if healthy else [kind["label"]]):
+        pages = json.loads(gh("api", f"repos/{repo}/issues?state=open&labels={label}&per_page=100",
+                              "--paginate", "--slurp"))
+        alerts.extend(issue for page in pages for issue in page
+                      if issue.get("user", {}).get("login") == "github-actions[bot]"
+                      and "pull_request" not in issue)
+    if not healthy and not alerts:
+        create()
+    for issue in alerts:
+        number = str(issue["number"])
+        body = issue.get("body") or ""
+        failed = marker(body, "last-failed-run")
+        failed_attempt = marker(body, "last-failed-attempt", 1)
+        notified = marker(body, "last-notified-at")
+        newer = (run, attempt) > (failed, failed_attempt)
+        if healthy:
+            # A re-run keeps its run number, so the attempt breaks the tie.
+            if not newer:
+                print(f"Leaving alert {number} open: run is not newer than its failure.")
+                continue
+            gh("issue", "comment", number, "--repo", repo, "--body",
+               f"@{recipient} " + kind["recovered"].format(**text))
+            api(f"repos/{repo}/issues/{number}", state="closed", state_reason="completed")
+        else:
+            if now - notified >= 12 * 60 * 60:
+                gh("issue", "comment", number, "--repo", repo, "--body",
+                   f"@{recipient} " + kind["still"].format(**text))
+                notified = now
+            if newer:
+                failed, failed_attempt = run, attempt
+                if kind["latest"]:
+                    body = re.sub(r"^Latest failed deploy: .*$", lambda _: latest_line(), body, flags=re.M)
+            api(f"repos/{repo}/issues/{number}", body=state(body, failed, failed_attempt, notified))
+PY

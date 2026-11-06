@@ -115,6 +115,10 @@ A merge to `main` goes live on its own: CI passes, `.github/workflows/deploy.yml
 pushes to Dokku, and eight to twelve minutes later the new version is serving.
 There is no human gate, so the deploy has to check its own work.
 
+If a deploy fails, it opens a GitHub issue assigned to the repository owner, and
+the next successful deploy closes it. See
+[When a deploy fails](DEPLOYMENT.md#when-a-deploy-fails).
+
 ### What is checked after a release
 
 `bin/verify-release` runs at the end of every deploy, and can be run by hand
