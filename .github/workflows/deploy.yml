@@ -5,9 +5,21 @@ on:
     workflows: ["CI"]
     branches: [ main ]
     types: [ completed ]
+  # Manual runs exist only to test the failed-deploy alert (see DEPLOYMENT.md).
+  # They never deploy.
+  workflow_dispatch:
+    inputs:
+      drill:
+        description: Test the failed-deploy alert. Manual runs never deploy.
+        type: boolean
+        default: false
+
+permissions: {}
 
 concurrency:
-  group: deploy-production
+  # A drill must not share the production group: a newer run there cancels a
+  # deploy that is still waiting, and that cancellation is silent by design.
+  group: ${{ github.event_name == 'workflow_dispatch' && 'deploy-alert-drill' || 'deploy-production' }}
   # Never cancel a deploy that is already pushing to Dokku — an interrupted
   # release can leave the host between containers. Queue instead.
   cancel-in-progress: false
@@ -19,9 +31,17 @@ jobs:
     # main branch. It deliberately has no required reviewers and no wait timer:
     # merging to main deploys automatically.
     environment: production
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' }}
+    if: ${{ (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_repository.full_name == github.repository) || (github.event_name == 'workflow_dispatch' && inputs.drill) }}
+    permissions:
+      contents: read
 
     steps:
+      # First, so every later step is skipped and the job ends in failure
+      # through the real notify path. Nothing below touches production.
+      - name: Fail on purpose for an alert drill
+        if: ${{ inputs.drill }}
+        run: exit 1
+
       - name: Checkout code
         uses: actions/checkout@v7
         with:
@@ -29,6 +49,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up SSH
+        if: ${{ !inputs.drill }}
         uses: webfactory/ssh-agent@v0.10.0
         with:
           ssh-private-key: ${{ secrets.DOKKU_SSH_PRIVATE_KEY }}
@@ -74,6 +95,7 @@ jobs:
         run: echo "epoch=$(date -u +%s)" >> "$GITHUB_OUTPUT"
 
       - name: Deploy to Dokku
+        if: ${{ !inputs.drill }}
         env:
           DOKKU_HOST: ${{ vars.DOKKU_HOST }}
           # StrictHostKeyChecking=yes refuses the connection on a mismatch
@@ -102,3 +124,33 @@ jobs:
           # satisfies for about a minute after the switch.
           REQUIRE_FRESH_WORKER: 1
         run: bin/verify-release
+
+  # Tells the board owner through a GitHub issue when the deploy job fails. It
+  # runs only for a finished success or failure: a cancelled run, a run
+  # superseded in the queue and a skipped deploy (CI did not pass) stay silent.
+  notify:
+    needs: deploy
+    if: ${{ !cancelled() && (needs.deploy.result == 'success' || needs.deploy.result == 'failure') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Update deploy alerts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          ALERT_KIND: deploy
+          CHECK_RESULT: ${{ needs.deploy.result }}
+          IS_DRILL: ${{ inputs.drill && 'true' || 'false' }}
+          RUN_NUMBER: ${{ github.run_number }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SERVER_URL: ${{ github.server_url }}
+          COMMIT_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          RECIPIENT: TMaYaD
+        run: bin/alert-notify
