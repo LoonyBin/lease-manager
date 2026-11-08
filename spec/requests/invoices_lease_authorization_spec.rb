@@ -64,7 +64,7 @@ RSpec.describe "Invoice form lease authorization" do
 
     it "refuses a malformed lease id" do
       get new_invoice_path(invoice: { lease_id: "abc", date: date })
-      expect(response).not_to have_http_status(:server_error)
+      expect(response).not_to be_server_error
     end
 
     it "refuses a foreign lease with an invalid date" do
@@ -93,7 +93,7 @@ RSpec.describe "Invoice form lease authorization" do
 
     it "refuses a nonexistent lease id" do
       post invoices_path, params: { invoice: { lease_id: 0, date: date } }
-      expect(response).not_to have_http_status(:server_error)
+      expect(response).not_to be_server_error
     end
   end
 
