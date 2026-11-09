@@ -76,4 +76,4 @@ Admin-only (Finance → Bank statements). An admin uploads a bank statement CSV 
 
 ## Deployment
 - **Platform**: Deployed via Dokku on a VM, adhering to 12-factor application architecture.
-- **Networking**: Proxied by Cloudflare Workers managing custom domain constraints seamlessly.
+- **Networking**: Cloudflare provides DNS for the public hostname and proxies requests to the Dokku host, terminating TLS at its edge (SSL/TLS mode Full (strict)). Dokku's nginx terminates TLS again at the origin with a Let's Encrypt certificate. No Cloudflare Workers are in the request path. See [DEPLOYMENT.md](../DEPLOYMENT.md#tls-and-dns).
