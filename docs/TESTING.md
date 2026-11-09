@@ -58,3 +58,19 @@ Before pushing code, ensure the following pass locally:
 3. `bin/brakeman` (No security warnings)
 
 During continuous integration runs, jobs automatically gate deployment success metrics prior to dispatching upgrades, preventing stale iterations.
+
+## Financial search integration checks
+
+`spec/requests/financial_search_spec.rb` submits the invoice/payment pages'
+rendered amount-filter and sort controls and checks actual result IDs. It also
+checks that matching records belonging to another tenant stay outside session
+and granted-token search results. Draft records and zero-deposit leases avoid
+settlement and notification side effects.
+
+```bash
+bundle exec rspec spec/requests/financial_search_spec.rb spec/requests/ransack_search_spec.rb spec/requests/api_token_permissions_spec.rb
+```
+
+Existing authentication, token-gate and policy specs cover credential rejection,
+action grants and role rules. The new examples cover controller/query integration;
+they do not test generic parser rules or reproduce upstream security findings.
