@@ -12,6 +12,21 @@ CUPRITE_OPTIONS = {
   browser_options: { "no-sandbox" => nil, "disable-gpu" => nil }
 }.freeze
 
+# Measures the text itself (a Range), since the label box can be narrower than its overflow.
+HINT_EXTENTS_JS = <<~JS
+  [...document.querySelectorAll('.label.label-text-alt')].map(el => {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const cell = el.closest('.form-control').getBoundingClientRect();
+    const rects = [...range.getClientRects()];
+    return {
+      text: el.textContent.trim(),
+      lines: new Set(rects.map(r => Math.round(r.top))).size,
+      past: Math.max(...rects.map(r => r.right)) - cell.right
+    };
+  })
+JS
+
 module SystemHelper
   # Signs in through the real "Sign in with Developer" button. That button and
   # provider only exist where Rails.env.local? is true, so this stays test-only.
@@ -53,6 +68,12 @@ module SystemHelper
     page.evaluate_script(
       "(() => { const el = document.querySelector(#{selector.to_json}); return el.scrollWidth - el.clientWidth })()"
     )
+  end
+
+  # One entry per form hint: its text, how many lines the text wraps to, and how
+  # far the text extends past the right edge of its own field cell.
+  def hint_extents
+    page.evaluate_script(HINT_EXTENTS_JS)
   end
 
   # Left edge of every direct child, per matching row (header and body rows of a grid list).

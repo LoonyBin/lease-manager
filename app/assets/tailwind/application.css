@@ -1824,11 +1824,10 @@ body.versions [data-nav="versions"] {
    Mobile layout fixes: keep the page body from scrolling sideways
    ========================================================================== */
 
-/* daisyUI's .label sets nowrap, so long form hints would push the page wider. */
-@media screen and (max-width: 1279.98px) {
-  .label.label-text-alt {
-    white-space: normal;
-  }
+/* daisyUI's .label sets nowrap, so long form hints would run out of their field
+   column on desktop and push the page wider on phones. */
+.label.label-text-alt {
+  white-space: normal;
 }
 
 @media screen and (max-width: 1023.98px) {
