@@ -1,7 +1,7 @@
 # Lease Manager Features & Requirements
 
 ## Overview
-A web-based lease management application designed for property managers to handle multiple properties, owners, and tenants with complex lease terms and automated financial workflows. It features modern reporting and robust Google Cloud Run deployments.
+A web-based lease management application designed for property managers to handle multiple properties, owners, and tenants with complex lease terms and automated financial workflows. It features modern reporting and is deployed to Dokku on a single VM.
 
 ## Core Entities
 
