@@ -365,6 +365,21 @@ RSpec.describe "Mobile layout" do
         expect(computed_style(".version-list", "overflowX")).to eq("hidden")
       end
 
+      it "keeps audit trail columns aligned with long values at #{w}" do
+        long_name = "A" * 60
+        long_user = create(:user, name: long_name)
+        PaperTrail.request(whodunnit: admin.id) { lease.update!(rent_amount: 1234) }
+        Version.create!(item_type: "InvoiceTemplate", item_id: 1234, event: "update", whodunnit: admin.id)
+        Version.create!(item_type: "Lease", item_id: 1, event: "update", whodunnit: long_user.id)
+        resize_to(w, 800)
+        visit versions_path
+
+        expect_columns_aligned(".version-list")
+        expect(cell_overflows(".version-list .version-item")).to be_empty
+        expect(computed_style(".version-list", "overflowX")).to eq("hidden")
+        expect(page).to have_text(long_name)
+      end
+
       it "keeps line-item tables fitting without scrolling at #{w}" do
         resize_to(w, 800)
         visit new_invoice_path(invoice: { lease_id: lease.id })

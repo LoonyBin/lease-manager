@@ -1116,7 +1116,13 @@ body.versions [data-nav="versions"] {
 /* Version-specific column layout for table-only */
 .version-list.table-only .version-list-header,
 .version-list.table-only .version-item {
-  grid-template-columns: 1.5fr 1.5fr 1fr 1fr 6rem;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr) 6rem;
+}
+
+/* Header and rows are separate grids; wrap long values inside their column so
+   no row's tracks differ from the header's. */
+.version-list.table-only .version-item > * {
+  overflow-wrap: anywhere;
 }
 
 /* Lease show statement: Description | Debit | Credit | Balance */
@@ -1491,7 +1497,8 @@ body.versions [data-nav="versions"] {
 .version-item-resource {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
   font-size: 0.875rem;
 }
 
@@ -1506,6 +1513,7 @@ body.versions [data-nav="versions"] {
   background: var(--color-base-300);
   padding: 0.125rem 0.375rem;
   border-radius: 0.25rem;
+  white-space: nowrap;
 }
 
 .version-item-user-system {
@@ -1856,11 +1864,6 @@ body.versions [data-nav="versions"] {
 
   .version-list.table-only > * {
     min-width: 44rem;
-  }
-
-  .version-list.table-only .version-list-header,
-  .version-list.table-only .version-item {
-    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr) 6rem;
   }
 
   .lease-statement-list.table-only > * {
