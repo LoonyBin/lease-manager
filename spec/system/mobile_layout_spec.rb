@@ -349,6 +349,27 @@ RSpec.describe "Mobile layout" do
   end
 
   describe "desktop regression" do
+    [1280, 1440].each do |w|
+      it "wraps long form hints inside their field column at #{w}" do
+        resize_to(w, 800)
+        [new_lease_path, new_lease_reminder_step_path(lease), new_property_path,
+         new_lease_invoice_template_path(lease)].each do |path|
+          visit path
+          hints = hint_extents
+          expect(hints).not_to be_empty
+          hints.each do |hint|
+            expect(hint["past"]).to be <= 0.5, "#{hint['text'].inspect} runs #{hint['past']}px past its column at #{w}"
+          end
+          expect_no_page_overflow("form at #{path}")
+        end
+
+        visit new_lease_invoice_template_path(lease)
+        short = hint_extents.find { |h| h["text"] == "Defaults to the lease start date." }
+        expect(short).not_to be_nil
+        expect(short["lines"]).to eq(1)
+      end
+    end
+
     [1024, 1280].each do |w|
       it "keeps the header on one row and lists unchanged at #{w}" do
         resize_to(w, 800)
