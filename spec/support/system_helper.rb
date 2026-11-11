@@ -84,6 +84,19 @@ module SystemHelper
     JS
   end
 
+  # Cells of the matching rows whose content (text or descendants) reaches past the cell's right edge.
+  def cell_overflows(row_selector)
+    page.evaluate_script(<<~JS)
+      [...document.querySelectorAll(#{row_selector.to_json})].flatMap(row => [...row.children].filter(cell => {
+        const limit = cell.getBoundingClientRect().right + 0.5;
+        const range = document.createRange();
+        range.selectNodeContents(cell);
+        const rects = [range.getBoundingClientRect(), ...[...cell.querySelectorAll('*')].map(e => e.getBoundingClientRect())];
+        return rects.some(r => r.width > 0 && r.right > limit);
+      }).map(cell => cell.className))
+    JS
+  end
+
   # Every pagination control in DOM order, as { left, right, top } boxes.
   def pagination_boxes
     page.evaluate_script(<<~JS)
