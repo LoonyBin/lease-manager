@@ -18,8 +18,10 @@ requests and pushes to `main`:
 
 [`bin/brakeman`](../bin/brakeman) already prepends `--ensure-latest 7` itself, so the
 flag is repeated in CI only to make the check visible. It fails the scan when the
-installed Brakeman is more than 7 days behind the newest release, so a stale
-scanner cannot pass silently; the `7` is a grace period in days, not a version.
+installed Brakeman differs from the latest release and that latest release is at
+least 7 days old, so a stale scanner cannot pass silently for long. An older
+installed version still passes while the latest release is under 7 days old. The
+`7` is a grace period in days, not a version.
 
 ## Run locally
 
