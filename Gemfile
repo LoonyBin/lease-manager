@@ -72,7 +72,7 @@ end
 
 group :test do
   gem "capybara", "~> 3.40"
-  gem "cuprite", "~> 0.17"
+  gem "cuprite", "~> 0.20"
   gem "pundit-matchers", "~> 4.0"
   gem "rspec-its"
   gem "shoulda-matchers"
