@@ -157,6 +157,9 @@ search:
 ## Consider these keys used:
 ignore_unused:
 - number.*
+# i18n-tasks 1.2.0 no longer infers dynamic lookups such as
+# t("api_token_presets.#{preset}") in users/_api_tokens.html.haml
+- api_token_presets.*
 # - 'activerecord.attributes.*'
 # - '{devise,kaminari,will_paginate}.*'
 # - 'simple_form.{yes,no}'
