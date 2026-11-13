@@ -227,3 +227,5 @@ For more detailed information, check the `docs/` directory:
 - [Architecture](docs/ARCHITECTURE.md): System design, data models, and patterns.
 - [Requirements](docs/REQUIREMENTS.md): Detailed feature specifications.
 - [Testing](docs/TESTING.md): Testing strategy and guidelines.
+- [Dependency updates](docs/DEPENDENCIES.md): When a dependency update may merge and when it must be escalated.
+- [Security tooling and review](docs/SECURITY.md): The CI security scans, how to run them locally, and which changes need security review.

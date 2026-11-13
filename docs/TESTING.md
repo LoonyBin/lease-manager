@@ -57,6 +57,8 @@ Before pushing code, ensure the following pass locally:
 2. `bin/rubocop` (No style offenses)
 3. `bin/brakeman` (No security warnings)
 
+The other CI security scans and how to run them locally are in [Security tooling and review](SECURITY.md).
+
 During continuous integration runs, jobs automatically gate deployment success metrics prior to dispatching upgrades, preventing stale iterations.
 
 ## Financial search integration checks
