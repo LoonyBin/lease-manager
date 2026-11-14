@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   scan_ruby:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout code
@@ -27,7 +27,7 @@ jobs:
         run: bin/brakeman --no-pager --ensure-latest 7
 
   scan_js:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout code
@@ -50,7 +50,7 @@ jobs:
   # Brakeman reads our code; this reads our gems. Without it a published CVE in
   # a dependency reaches production unremarked.
   scan_gems:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout code
@@ -75,7 +75,7 @@ jobs:
         run: bundle-audit check --update
 
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -90,7 +90,7 @@ jobs:
         run: bin/rubocop -f github
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     services:
       postgres:
@@ -146,7 +146,7 @@ jobs:
   # the build is broken we want to find out on a runner, on the pull request,
   # not on the host halfway through a release.
   build_image:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout code
