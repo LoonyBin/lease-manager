@@ -433,6 +433,22 @@ RSpec.describe "Mobile layout" do
         expect(computed_style(".lease-statement-list", "overflowX")).to eq("hidden")
         expect(horizontal_slack(".lease-statement-list")).to eq(0)
       end
+
+      it "keeps the lease statement columns aligned with a long unbroken description at #{w}" do
+        seed_statement
+        long_number = "X" * 60
+        long_invoice = create(:invoice, lease: lease)
+        long_invoice.update_column(:number, long_number) # rubocop:disable Rails/SkipsModelValidations
+        lease.entries.create!(instrument: long_invoice, amount: 2_000)
+        resize_to(w, 800)
+        visit lease_path(lease)
+        expect(page).to have_css(".lease-statement-list .resource-item", count: 3)
+        expect(page).to have_text(long_number)
+        expect_columns_aligned(".lease-statement-list")
+        expect(cell_overflows(".lease-statement-list .resource-item")).to be_empty
+        expect(computed_style(".lease-statement-list", "overflowX")).to eq("hidden")
+        expect(horizontal_slack(".lease-statement-list")).to eq(0)
+      end
     end
   end
 end

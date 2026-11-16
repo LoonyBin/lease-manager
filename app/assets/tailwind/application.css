@@ -1128,7 +1128,13 @@ body.versions [data-nav="versions"] {
 /* Lease show statement: Description | Debit | Credit | Balance */
 .lease-statement-list.table-only .resource-list-header,
 .lease-statement-list.table-only .resource-item {
-  grid-template-columns: 2fr 1fr 1fr 1fr;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+}
+
+/* Header and rows are separate grids; wrap long values inside their column so
+   no row's tracks differ from the header's. */
+.lease-statement-list.table-only .resource-item > * {
+  overflow-wrap: anywhere;
 }
 
 .statement-invoice { --resource-accent: var(--color-warning); }
@@ -1867,11 +1873,6 @@ body.versions [data-nav="versions"] {
 
   .lease-statement-list.table-only > * {
     min-width: 30rem;
-  }
-
-  .lease-statement-list.table-only .resource-list-header,
-  .lease-statement-list.table-only .resource-item {
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
   }
 
   .resource-list.table-only .resource-item > * {
