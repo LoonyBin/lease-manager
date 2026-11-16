@@ -295,7 +295,7 @@ Only one invoice is returned per call. When a lease has several templates, use
 the audit's `invoice_template_id` and `date` to ask about each one. Errors: `404`
 when the lease is not visible to you, `403` when you may see the lease but not
 preview its invoices (tenants), `422` with `{"errors":{"date":[...]}}` for a
-missing or unparseable `date`.
+missing, unparseable or out-of-range `date` (invoice dates run from 1900-01-01 to 2200-12-31).
 
 Existing tokens do not gain this endpoint. Issue a new token with the
 `invoice_previews#show` grant (or the read-only preset).

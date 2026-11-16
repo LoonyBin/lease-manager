@@ -58,6 +58,12 @@ RSpec.describe "Invoices" do
         expect(response).to have_http_status(:success)
       end
 
+      it "shows a blank form instead of failing for a date outside the supported range", :aggregate_failures do
+        expect_any_instance_of(Lease).not_to receive(:calculate_enhanced_rent) # rubocop:disable RSpec/AnyInstance
+        get new_invoice_path(invoice: { lease_id: lease.id, date: "5874898-01-01" })
+        expect(response).to have_http_status(:success)
+      end
+
       it "falls back to a blank form for a stale template id" do
         get new_invoice_path(invoice: { lease_id: lease.id, date: date, invoice_template_id: -1 })
         expect(response).to have_http_status(:success)
@@ -95,6 +101,21 @@ RSpec.describe "Invoices" do
         expect { post invoices_path, params: params }.to change(Invoice, :count).by(1)
         expect(Invoice.last).to be_credit_note
       end
+    end
+
+    it "answers 422, not a server error, for a date outside the supported range", :aggregate_failures do
+      lease
+      params = { invoice: valid_params[:invoice].merge(date: "5874898-01-01") }
+      expect { post invoices_path(format: :json), params: params }.not_to change(Invoice, :count)
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.parsed_body["errors"]).to have_key("date")
+    end
+
+    it "re-renders the form, not a server error, for a date outside the supported range in the browser" do
+      lease
+      expect do
+        post invoices_path, params: { invoice: valid_params[:invoice].merge(date: "5874898-01-01") }
+      end.not_to change(Invoice, :count)
     end
 
     it "redirects to the new invoice on success" do

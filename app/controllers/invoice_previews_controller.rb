@@ -7,7 +7,7 @@ class InvoicePreviewsController < ApplicationController
     lease = policy_scope(Lease).find(params.expect(:lease_id))
     requested = Invoice.new(lease: lease, **preview_params)
     authorize requested, :preview?
-    return render_missing_date if requested.date.nil?
+    return render_missing_date unless requested.date_in_range?
 
     respond_to { |format| format.json { render json: preview_payload(prefill_for(requested)) } }
   end

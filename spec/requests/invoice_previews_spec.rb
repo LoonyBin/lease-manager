@@ -32,6 +32,17 @@ RSpec.describe "Invoice previews" do
       expect(payload["invoice_template"]).to include("id" => lease.invoice_templates.order(:id).first.id)
     end
 
+    it "answers 422 for a date outside the supported range", :aggregate_failures do
+      preview(date: "5874898-01-01")
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(payload["errors"]).to have_key("date")
+    end
+
+    it "refuses a far-future date without calculating rent" do
+      expect_any_instance_of(Lease).not_to receive(:calculate_enhanced_rent) # rubocop:disable RSpec/AnyInstance
+      preview(date: "20000-01-01")
+    end
+
     it "persists nothing for a draft" do
       expect { preview }.not_to(change { written_records })
     end

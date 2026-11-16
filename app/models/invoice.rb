@@ -14,14 +14,19 @@ class Invoice < ApplicationRecord
                                                                                                validate: true
   enum :document_type, { invoice: 0, credit_note: 1 }, default: :invoice
 
+  # Invoice dates outside this window are never real, and the far end drives the
+  # cost of the rent calculation, so they are refused before any work is done.
+  DATE_RANGE = Date.new(1900, 1, 1)..Date.new(2200, 12, 31)
+
   validates :date, presence: true
+  validates :date, inclusion: { in: DATE_RANGE }, allow_nil: true
   validates :status, presence: true
   # Only debit invoices reserve a template's month, and only against other
   # debit invoices (the +covering+ conditions): a credit note may share a
   # (template, date) with the month's real invoice. Matches the partial unique
   # index, which carries the same +document_type = 0+ predicate. See #163.
   validates :date, uniqueness: { scope: :invoice_template_id, conditions: -> { covering } },
-                   if: -> { invoice_template_id? && invoice? }
+                   if: -> { invoice_template_id? && invoice? && date_in_range? }
   validate :invoice_template_belongs_to_lease, if: :invoice_template_id?
 
   # Ransack allowlist — keep in sync with app/views/invoices/_search.html.haml, _sort.html.haml,
@@ -56,6 +61,10 @@ class Invoice < ApplicationRecord
   # +cancelled+ is a status, not a document_type, so filtering on document_type
   # provably keeps cancelled invoices and excludes credit notes. See #163.
   scope :covering, -> { where(document_type: :invoice) }
+
+  def date_in_range?
+    DATE_RANGE.cover?(date)
+  end
 
   def credit?
     credit_note?
