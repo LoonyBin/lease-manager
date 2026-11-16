@@ -212,6 +212,18 @@ RSpec.describe Lease do
       expect(long).to have_received(:calculate_enhanced_rent).with(be <= 3000)
     end
 
+    it "rejects a start date before the supported window" do
+      early = build(:lease, start_date: Date.new(1, 1, 1), terminated_on: Date.new(2200, 12, 31))
+      early.validate
+      expect(early.errors).to include(:start_date)
+    end
+
+    it "rejects a termination date after the supported window" do
+      late = build(:lease, start_date: Date.new(2000, 1, 1), terminated_on: Date.new(9999, 1, 1))
+      late.validate
+      expect(late.errors).to include(:terminated_on)
+    end
+
     it "handles fixed amount enhancement" do
       lease.update(enhancement_type: :fixed, enhancement_amount: 100)
       expect(lease.current_rent_at(Date.new(2024, 1, 1))).to eq(1100)

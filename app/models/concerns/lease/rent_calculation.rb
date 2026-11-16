@@ -11,6 +11,9 @@ class Lease
       validates :rent_amount, presence: true, numericality: { greater_than: 0 }
       # Rent is compounded once per period, so the lease length bounds that work.
       validates :duration_months, numericality: { less_than_or_equal_to: 1200 }, allow_nil: true
+      # Periods are counted from start_date, so the start and termination dates are held
+      # to the same window as invoice dates.
+      validates :start_date, :terminated_on, inclusion: { in: Invoice::DATE_RANGE }, allow_nil: true
       validates :enhancement_period_months, presence: true, numericality: { only_integer: true, greater_than: 0 }
       validates :security_deposit_value, presence: true,
                                          numericality: { greater_than_or_equal_to: 0 }
