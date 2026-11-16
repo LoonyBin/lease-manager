@@ -17,7 +17,12 @@ RSpec.describe Lease do
     it { is_expected.to validate_presence_of(:rent_amount) }
     it { is_expected.to validate_numericality_of(:rent_amount).is_greater_than(0) }
     it { is_expected.to validate_presence_of(:duration_months) }
-    it { is_expected.to validate_numericality_of(:duration_months).only_integer.is_greater_than(0) }
+
+    it {
+      is_expected.to validate_numericality_of(:duration_months).only_integer
+                                                               .is_greater_than(0).is_less_than_or_equal_to(1200)
+    }
+
     it { is_expected.to validate_presence_of(:enhancement_period_months) }
     it { is_expected.to validate_numericality_of(:enhancement_period_months).only_integer.is_greater_than(0) }
     it { is_expected.to validate_numericality_of(:enhancement_amount).is_greater_than_or_equal_to(0).allow_nil }
@@ -198,6 +203,13 @@ RSpec.describe Lease do
       # Jan 1 2025 is 24 months later (2 periods)
       # 1050 + 5% = 1102.5
       expect(lease.current_rent_at(Date.new(2025, 1, 1))).to eq(1102.5)
+    end
+
+    it "bounds the compounding steps for the latest supported invoice date" do
+      long = create(:lease, start_date: Date.new(2000, 1, 1), duration_months: 1200, enhancement_period_months: 1)
+      allow(long).to receive(:calculate_enhanced_rent).and_call_original
+      long.current_rent_at(Invoice::DATE_RANGE.end)
+      expect(long).to have_received(:calculate_enhanced_rent).with(be <= 3000)
     end
 
     it "handles fixed amount enhancement" do

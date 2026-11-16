@@ -41,6 +41,28 @@ RSpec.describe Invoice do
     }
   end
 
+  describe "date range" do
+    let(:lease) { create(:lease) }
+    let(:template) { lease.invoice_templates.first }
+
+    it "accepts the earliest and latest supported dates", :aggregate_failures do
+      expect(build(:invoice, lease: lease, date: described_class::DATE_RANGE.begin)).to be_valid
+      expect(build(:invoice, lease: lease, date: described_class::DATE_RANGE.end)).to be_valid
+    end
+
+    it "rejects dates outside the supported range", :aggregate_failures do
+      range = described_class::DATE_RANGE
+      [range.begin - 1, range.end + 1, Date.new(20_000, 1, 1)].each do |date|
+        expect(build(:invoice, lease: lease, invoice_template: template, date: date)).not_to be_valid
+      end
+    end
+
+    it "rejects a date the database cannot store without raising" do
+      invoice = build(:invoice, lease: lease, invoice_template: template, date: Date.new(5_874_898, 1, 1))
+      expect(invoice).not_to be_valid
+    end
+  end
+
   describe "template + date uniqueness" do
     let(:lease) { create(:lease) }
     let(:template) { lease.invoice_templates.first }

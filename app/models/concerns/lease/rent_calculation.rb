@@ -9,6 +9,8 @@ class Lease
       enum :security_deposit_type, { months: 0, fixed: 1 }, prefix: :security_deposit
 
       validates :rent_amount, presence: true, numericality: { greater_than: 0 }
+      # Rent is compounded once per period, so the lease length bounds that work.
+      validates :duration_months, numericality: { less_than_or_equal_to: 1200 }, allow_nil: true
       validates :enhancement_period_months, presence: true, numericality: { only_integer: true, greater_than: 0 }
       validates :security_deposit_value, presence: true,
                                          numericality: { greater_than_or_equal_to: 0 }

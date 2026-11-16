@@ -11,7 +11,7 @@ class InvoicePolicy < ApplicationPolicy
     lease_policy&.update?
   end
 
-  # The JSON draft preview: bound to this lease, unlike +new?+, and closed to
+  # The JSON draft preview: bound to this lease like +new?+, and closed to
   # tenants because it shows charges that are not billed yet.
   def preview?
     create?

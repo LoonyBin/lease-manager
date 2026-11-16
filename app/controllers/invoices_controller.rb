@@ -90,7 +90,7 @@ class InvoicesController < ApplicationController
   end
 
   def prefill?(invoice)
-    invoice.lease_id? && invoice.date? && invoice.invoice? && invoice.line_items.empty?
+    invoice.lease_id? && invoice.date_in_range? && invoice.invoice? && invoice.line_items.empty?
   end
 
   def set_form_collections
