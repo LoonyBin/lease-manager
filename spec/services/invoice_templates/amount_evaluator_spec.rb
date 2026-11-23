@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "rails_helper"
+require "timeout"
 
 RSpec.describe InvoiceTemplates::AmountEvaluator do
   subject(:evaluator) { described_class.new(variables) }
@@ -55,6 +56,53 @@ RSpec.describe InvoiceTemplates::AmountEvaluator do
     it "raises EvaluationError for non-numeric results" do
       expect { described_class.new("month_name" => "March").evaluate("month_name") }
         .to raise_error(InvoiceTemplates::EvaluationError)
+    end
+  end
+
+  describe "rounding precision" do
+    it "rounds up to a precision inside the accepted range" do
+      expect(evaluator.evaluate("ROUNDUP(rent * prorata, 2)")).to eq(BigDecimal("516.13"))
+    end
+
+    it "rounds down to a precision inside the accepted range" do
+      expect(evaluator.evaluate("ROUNDDOWN(rent * f, 0)")).to eq(516)
+    end
+
+    it "rounds down to a negative precision inside the accepted range" do
+      expect(evaluator.evaluate("ROUNDDOWN(rent * prorata, -2)")).to eq(500)
+    end
+
+    it "rounds with the default precision when none is given" do
+      expect(evaluator.evaluate("ROUNDUP(rent * prorata)")).to eq(517)
+    end
+
+    it "rejects a precision below the accepted range" do
+      expect { Timeout.timeout(5) { evaluator.evaluate("ROUNDUP(n, -100000000)") } }
+        .to raise_error(InvoiceTemplates::EvaluationError)
+    end
+
+    it "rejects a precision below the accepted range in ROUNDDOWN" do
+      expect { Timeout.timeout(5) { evaluator.evaluate("ROUNDDOWN(7, -100000000)") } }
+        .to raise_error(InvoiceTemplates::EvaluationError)
+    end
+
+    it "rejects a precision above the accepted range" do
+      expect { Timeout.timeout(5) { evaluator.evaluate("ROUNDUP(n, 100000000)") } }
+        .to raise_error(InvoiceTemplates::EvaluationError)
+    end
+
+    it "rejects a precision in scientific notation above the accepted range" do
+      expect { Timeout.timeout(5) { evaluator.evaluate("ROUNDUP(n, 1e100000000)") } }
+        .to raise_error(InvoiceTemplates::EvaluationError)
+    end
+
+    it "rejects a fractional precision above the accepted range" do
+      expect { Timeout.timeout(5) { evaluator.evaluate("ROUNDUP(n, 12.9)") } }
+        .to raise_error(InvoiceTemplates::EvaluationError)
+    end
+
+    it "truncates a fractional precision inside the accepted range" do
+      expect(evaluator.evaluate("ROUNDUP(rent * prorata, 2.9)")).to eq(BigDecimal("516.13"))
     end
   end
 
