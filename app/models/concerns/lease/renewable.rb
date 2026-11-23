@@ -4,12 +4,20 @@ class Lease
   module Renewable
     extend ActiveSupport::Concern
 
+    # Key of the advisory lock that serialises the renewal checks against each
+    # other. "Leas" in hexadecimal, so it is unlikely to collide with another
+    # advisory lock in the same database.
+    RENEWAL_LINK_LOCK_KEY = 0x4C656173
+
     included do
       belongs_to :renewed_from, class_name: "Lease", optional: true, inverse_of: :renewal
       has_one :renewal, class_name: "Lease", foreign_key: :renewed_from_id, dependent: :nullify,
                         inverse_of: :renewed_from
 
       after_create :terminate_renewed_from_lease, if: :renewed_from_id?
+
+      validate :renewed_from_is_renewable
+      validate :renewals_of_this_lease_stay_within_owner
     end
 
     class_methods do
@@ -28,6 +36,89 @@ class Lease
     end
 
     private
+
+    # A lease may only renew a lease of the same owner, and the chain it
+    # creates must not loop: an inheriting lease follows its predecessor, so a
+    # loop makes rent calculation recurse forever. One wording covers every
+    # case, so the message never reveals whether a lease the user is not
+    # allowed to see exists.
+    def renewed_from_is_renewable
+      return unless renewed_from_id.present? || renewed_from.present?
+      return unless new_record? || will_save_change_to_renewed_from_id? || will_save_change_to_property_id?
+
+      with_renewal_link_lock do
+        errors.add(:renewed_from, "is not a lease that can be renewed") unless renewable_source?
+      end
+    end
+
+    # The other side of the same rule. The lease that is renewed has no
+    # renewal of its own, so the check above never looks at it. Moving such a
+    # lease to a property of another owner would leave the lease that renews
+    # it pointing at a lease of a different owner, so the move is refused
+    # while that lease exists.
+    def renewals_of_this_lease_stay_within_owner
+      return unless persisted? && will_save_change_to_property_id?
+
+      with_renewal_link_lock do
+        next if renewals_of_this_lease_share_owner?
+
+        errors.add(:property, "cannot be moved to a property of another owner while another lease renews it")
+      end
+    end
+
+    def renewals_of_this_lease_share_owner?
+      owner_id = property&.owner_id
+      return true if owner_id.blank?
+
+      Lease.where(renewed_from_id: id).includes(:property).all? do |renewal|
+        renewal.property&.owner_id == owner_id
+      end
+    end
+
+    # The check and the write that follows it have to be one step: two
+    # concurrent updates can each pass the check before the other writes, and
+    # together close a cycle between them. A transaction-scoped advisory lock,
+    # taken before the chain is read and released when the save's transaction
+    # ends, makes the second update wait for the first, read the link the
+    # first committed, and refuse it.
+    def with_renewal_link_lock
+      # A validation outside a transaction (a `valid?` call) has no write to
+      # protect, so it skips the lock.
+      return yield unless Lease.connection.transaction_open?
+
+      Lease.connection.execute("SELECT pg_advisory_xact_lock(#{RENEWAL_LINK_LOCK_KEY})")
+      yield
+    end
+
+    def renewable_source?
+      return false if renewed_from.blank?
+      return false unless same_owner?
+
+      !renewal_chain_loops?
+    end
+
+    def same_owner?
+      return true if property.blank?
+
+      renewed_from.property&.owner_id == property.owner_id
+    end
+
+    # Walks the renewal chain upwards. A chain that reaches this lease, or that
+    # visits the same lease twice, is a loop.
+    def renewal_chain_loops?
+      visited = Set.new
+      current_id = renewed_from_id
+
+      while current_id.present?
+        return true if visited.include?(current_id)
+        return true if persisted? && current_id == id
+
+        visited << current_id
+        current_id = Lease.where(id: current_id).pick(:renewed_from_id)
+      end
+
+      false
+    end
 
     def terminate_renewed_from_lease
       renewed_from.update!(terminated_on: start_date - 1.day)

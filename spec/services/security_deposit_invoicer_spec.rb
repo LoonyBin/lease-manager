@@ -144,7 +144,8 @@ RSpec.describe SecurityDepositInvoicer do
       end
 
       it "does nothing if it was renewed" do
-        create(:lease, renewed_from: lease, start_date: Time.zone.today + 1.day)
+        create(:lease, property: create(:property, owner: lease.property.owner),
+                       renewed_from: lease, start_date: Time.zone.today + 1.day)
 
         expect { lease.update!(terminated_on: Time.zone.today) }
           .not_to change(Invoice, :count)

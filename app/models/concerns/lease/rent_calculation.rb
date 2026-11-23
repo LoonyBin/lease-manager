@@ -24,11 +24,32 @@ class Lease
     end
 
     def current_rent_at(date)
-      return renewed_from.current_rent_at(date) if inherit? && renewed_from.present?
-      return rent_amount if date < start_date
+      source = inheritance_source
+      return source.rent_amount if date < source.start_date
 
-      periods = months_between(start_date, date) / enhancement_period_months
-      calculate_enhanced_rent(periods)
+      periods = source.months_between(source.start_date, date) / source.enhancement_period_months
+      source.calculate_enhanced_rent(periods)
+    end
+
+    # The lease an inheriting lease takes its rent from: the oldest ancestor of
+    # the chain. The walk stops as soon as it reaches a lease it has already
+    # visited, so a chain that loops cannot recurse forever. A chain that loops
+    # has no oldest ancestor, so the lease keeps its own rent, which is what an
+    # inheriting lease would do anyway.
+    def inheritance_source
+      lease = self
+      visited = Set.new
+      visited << lease.id if lease.id.present?
+
+      while lease.inherit? && lease.renewed_from.present?
+        parent = lease.renewed_from
+        return self if visited.include?(parent.id)
+
+        visited << parent.id
+        lease = parent
+      end
+
+      lease
     end
 
     def months_between(from, to)

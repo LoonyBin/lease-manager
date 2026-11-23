@@ -18,7 +18,7 @@ class LeasesController < ApplicationController
 
   def new
     if params[:renewed_from_id]
-      old_lease = Lease.find(params.expect(:renewed_from_id))
+      old_lease = policy_scope(Lease).find(params.expect(:renewed_from_id))
       @lease = Lease.build_renewal(old_lease)
     else
       @lease = Lease.new(new_lease_prepopulate_params)
