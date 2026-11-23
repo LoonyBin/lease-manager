@@ -184,6 +184,74 @@ RSpec.describe Lease do
     end
   end
 
+  # Two updates that each point a lease at the other can pass the renewal
+  # check at the same time, and together close a cycle between them. The
+  # leases have to be committed for a second connection to see them, so this
+  # example runs without the surrounding test transaction.
+  describe "renewed_from validation with concurrent updates" do
+    self.use_transactional_tests = false
+
+    # Everything this example commits carries this name, so the cleanup finds
+    # it by name instead of by the records the example may fail to create.
+    def marker
+      "Concurrent renewal test"
+    end
+
+    let!(:owner) { create(:owner, name: marker) }
+    let!(:property) { create(:property, owner: owner, name: marker) }
+    let!(:other_property) { create(:property, owner: owner, name: marker) }
+    let!(:first) { create(:lease, property: property, tenant: create(:tenant, name: marker)) }
+    let!(:second) { create(:lease, property: other_property, tenant: create(:tenant, name: marker)) }
+
+    after do
+      Property.where(name: marker).destroy_all
+      Tenant.where(name: marker).destroy_all
+      Owner.where(name: marker).destroy_all
+    end
+
+    # Widens the window between the check and the write, so that both updates
+    # read the chain before either of them writes.
+    def widen_the_check_window(leases)
+      leases.each do |lease|
+        allow(lease).to receive(:renewal_chain_loops?).and_wrap_original do |method, *args|
+          result = method.call(*args)
+          sleep 0.5
+          result
+        end
+      end
+    end
+
+    # Runs the updates at the same time, each on its own connection.
+    def update_concurrently(pairs)
+      ready = Queue.new
+      start = Queue.new
+      threads = pairs.map { |lease, other| update_thread(lease, other, ready, start) }
+
+      pairs.size.times { ready.pop }
+      pairs.size.times { start << true }
+      threads.map(&:value)
+    end
+
+    def update_thread(lease, other, ready, start)
+      Thread.new do
+        ActiveRecord::Base.connection_pool.with_connection do
+          ready << true
+          start.pop
+          lease.update(renewed_from: other)
+        end
+      end
+    end
+
+    it "does not let two updates close a cycle between them", :aggregate_failures do
+      widen_the_check_window([first, second])
+
+      results = update_concurrently([[first, second], [second, first]])
+
+      expect(results.count(true)).to eq(1)
+      expect(described_class.where(id: [first.id, second.id]).where.not(renewed_from_id: nil).count).to eq(1)
+    end
+  end
+
   describe "#property_schedule default" do
     let(:property) { create(:property, name: "Sunset Villa", address: "123 Main St") }
 

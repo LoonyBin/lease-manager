@@ -4,6 +4,11 @@ class Lease
   module Renewable
     extend ActiveSupport::Concern
 
+    # Key of the advisory lock that serialises the renewal checks against each
+    # other. "Leas" in hexadecimal, so it is unlikely to collide with another
+    # advisory lock in the same database.
+    RENEWAL_LINK_LOCK_KEY = 0x4C656173
+
     included do
       belongs_to :renewed_from, class_name: "Lease", optional: true, inverse_of: :renewal
       has_one :renewal, class_name: "Lease", foreign_key: :renewed_from_id, dependent: :nullify,
@@ -40,7 +45,24 @@ class Lease
       return unless renewed_from_id.present? || renewed_from.present?
       return unless new_record? || will_save_change_to_renewed_from_id? || will_save_change_to_property_id?
 
-      errors.add(:renewed_from, "is not a lease that can be renewed") unless renewable_source?
+      with_renewal_link_lock do
+        errors.add(:renewed_from, "is not a lease that can be renewed") unless renewable_source?
+      end
+    end
+
+    # The check and the write that follows it have to be one step: two
+    # concurrent updates can each pass the check before the other writes, and
+    # together close a cycle between them. A transaction-scoped advisory lock,
+    # taken before the chain is read and released when the save's transaction
+    # ends, makes the second update wait for the first, read the link the
+    # first committed, and refuse it.
+    def with_renewal_link_lock
+      # A validation outside a transaction (a `valid?` call) has no write to
+      # protect, so it skips the lock.
+      return yield unless Lease.connection.transaction_open?
+
+      Lease.connection.execute("SELECT pg_advisory_xact_lock(#{RENEWAL_LINK_LOCK_KEY})")
+      yield
     end
 
     def renewable_source?
