@@ -45,6 +45,29 @@ RSpec.describe "Mobile layout" do
     create(:payment, lease: lease, date: Date.current, amount: 500) # confirmed, so it books its own entry
   end
 
+  # Four statement lines, one of every kind: an invoice, a payment, a credit
+  # note with a long number, and a refund.
+  def seed_every_statement_kind
+    seed_statement
+    credit_note = create(:invoice, :credit_note, lease: lease)
+    credit_note.update_column(:number, "CN-ABC-2147483647") # rubocop:disable Rails/SkipsModelValidations
+    lease.entries.create!(instrument: credit_note, amount: -1_000)
+    create(:payment, :refund, lease: lease, date: Date.current, amount: 300)
+  end
+
+  # Every statement row keeps its 32px icon, whatever the description beside it.
+  def expect_statement_icons_pinned
+    icons = boxes_of(".lease-statement-list .resource-item-icon")
+    rows = boxes_of(".lease-statement-list .resource-item")
+    expect(icons.size).to eq(rows.size)
+    icons.each { |icon| expect_statement_icon_is_32px(icon) }
+  end
+
+  def expect_statement_icon_is_32px(icon)
+    expect(icon["width"].round).to eq(32), "statement icon is #{icon['width']}px wide"
+    expect(icon["height"].round).to eq(32), "statement icon is #{icon['height']}px tall"
+  end
+
   def seed_properties(count)
     owner = create(:owner)
     now = Time.current
@@ -107,6 +130,21 @@ RSpec.describe "Mobile layout" do
         expect_inside_viewport(".lease-statement-list .resource-list-header > :last-child", vertical: false)
         expect_inside_viewport(".lease-statement-list .resource-item > :last-child", vertical: false)
         expect(first(".lease-statement-list .resource-item > :last-child")).to have_text("₹12,345,678")
+      end
+    end
+
+    it "lease statement keeps every row icon at 32px without narrowing descriptions" do
+      seed_every_statement_kind
+      each_phone do |w|
+        visit lease_path(lease)
+        expect_no_page_overflow("lease statement")
+        expect(page).to have_css(".lease-statement-list .resource-item", count: 4)
+        expect_statement_icons_pinned
+        boxes_of(".lease-statement-list .resource-col-header > :last-child").each do |box|
+          expect(box["width"]).to be >= 128, "description box is #{box['width']}px wide at #{w}"
+        end
+        expect(cell_overflows(".lease-statement-list .resource-item")).to be_empty
+        expect_columns_aligned(".lease-statement-list")
       end
     end
 
@@ -444,6 +482,7 @@ RSpec.describe "Mobile layout" do
         visit lease_path(lease)
         expect(page).to have_css(".lease-statement-list .resource-item", count: 3)
         expect(page).to have_text(long_number)
+        expect_statement_icons_pinned
         expect_columns_aligned(".lease-statement-list")
         expect(cell_overflows(".lease-statement-list .resource-item")).to be_empty
         expect(computed_style(".lease-statement-list", "overflowX")).to eq("hidden")
