@@ -184,6 +184,41 @@ RSpec.describe Lease do
     end
   end
 
+  # A lease that another lease renews keeps that renewal inside one owner.
+  # The check on the renewal itself cannot see this: the renewed lease has no
+  # renewal of its own, so moving it to a property of another owner would
+  # leave the renewal pointing at a lease of a different owner.
+  describe "moving a lease that another lease renews" do
+    let(:owner) { create(:owner) }
+    let(:owned_property) { create(:property, owner: owner) }
+    let(:other_owner_property) { create(:property) }
+
+    it "rejects a move to another owner's property", :aggregate_failures do
+      lease = create(:lease, property: owned_property)
+      described_class.build_renewal(lease).save!
+
+      expect(lease.update(property_id: other_owner_property.id)).to be false
+      expect(lease.errors[:property]).to be_present
+      expect(lease.reload.property_id).to eq(owned_property.id)
+    end
+
+    it "allows a move to another property of the same owner" do
+      lease = create(:lease, property: owned_property)
+      described_class.build_renewal(lease).save!
+
+      expect(lease.update(property_id: create(:property, owner: owner).id)).to be true
+    end
+
+    it "rejects moving the renewal to another owner's property", :aggregate_failures do
+      lease = create(:lease, property: owned_property)
+      renewal = described_class.build_renewal(lease)
+      renewal.save!
+
+      expect(renewal.update(property_id: other_owner_property.id)).to be false
+      expect(renewal.errors[:renewed_from]).to be_present
+    end
+  end
+
   # Two updates that each point a lease at the other can pass the renewal
   # check at the same time, and together close a cycle between them. The
   # leases have to be committed for a second connection to see them, so this

@@ -17,6 +17,7 @@ class Lease
       after_create :terminate_renewed_from_lease, if: :renewed_from_id?
 
       validate :renewed_from_is_renewable
+      validate :renewals_of_this_lease_stay_within_owner
     end
 
     class_methods do
@@ -47,6 +48,30 @@ class Lease
 
       with_renewal_link_lock do
         errors.add(:renewed_from, "is not a lease that can be renewed") unless renewable_source?
+      end
+    end
+
+    # The other side of the same rule. The lease that is renewed has no
+    # renewal of its own, so the check above never looks at it. Moving such a
+    # lease to a property of another owner would leave the lease that renews
+    # it pointing at a lease of a different owner, so the move is refused
+    # while that lease exists.
+    def renewals_of_this_lease_stay_within_owner
+      return unless persisted? && will_save_change_to_property_id?
+
+      with_renewal_link_lock do
+        next if renewals_of_this_lease_share_owner?
+
+        errors.add(:property, "cannot be moved to a property of another owner while another lease renews it")
+      end
+    end
+
+    def renewals_of_this_lease_share_owner?
+      owner_id = property&.owner_id
+      return true if owner_id.blank?
+
+      Lease.where(renewed_from_id: id).includes(:property).all? do |renewal|
+        renewal.property&.owner_id == owner_id
       end
     end
 

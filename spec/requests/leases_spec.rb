@@ -310,6 +310,15 @@ RSpec.describe "Leases" do
         expect(response).to have_http_status(:unprocessable_content)
         expect(own_lease.reload.renewed_from_id).to be_nil
       end
+
+      it "rejects moving a renewed lease to another owner's property", :aggregate_failures do
+        renewal = Lease.build_renewal(own_lease).tap(&:save!)
+        # A factory property belongs to another owner.
+        patch lease_path(own_lease), params: { lease: { property_id: create(:property).id } }
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(own_lease.reload.property_id).to eq(owned_property.id)
+        expect(renewal.reload.renewed_from).to eq(own_lease)
+      end
     end
 
     describe "GET /leases/new with a renewal source" do
