@@ -311,6 +311,26 @@ RSpec.describe "Leases" do
         expect(own_lease.reload.renewed_from_id).to be_nil
       end
     end
+
+    describe "GET /leases/new with a renewal source" do
+      it "does not find a lease the user cannot see", :aggregate_failures do
+        other_lease = create(:lease, start_date: "2024-01-01")
+
+        get new_lease_path(renewed_from_id: other_lease.id)
+
+        expect(response).to have_http_status(:not_found)
+        expect(response.body).not_to include(other_lease.rent_amount.to_s)
+      end
+
+      it "pre-fills the form for a lease the user can see", :aggregate_failures do
+        own_lease = create(:lease, property: owned_property)
+
+        get new_lease_path(renewed_from_id: own_lease.id)
+
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include("Renewing lease ##{own_lease.id}")
+      end
+    end
   end
 
   describe "renewal flow" do
