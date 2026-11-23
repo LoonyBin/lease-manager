@@ -7,7 +7,7 @@ gem "bootsnap", require: false
 gem "chartkick", "~> 5.3"
 gem "csv", "~> 3.3"
 gem "dartsass-rails"
-gem "dentaku", "~> 4.1"
+gem "dentaku", "~> 4.2"
 gem "groupdate", "~> 6.8"
 gem "haml-rails"
 gem "heroicons"
