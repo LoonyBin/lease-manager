@@ -33,8 +33,9 @@ class Lease
 
     # The lease an inheriting lease takes its rent from: the oldest ancestor of
     # the chain. The walk stops as soon as it reaches a lease it has already
-    # visited, so a chain that loops cannot recurse forever. Such a lease
-    # computes its own rent, which is what an inheriting lease would do anyway.
+    # visited, so a chain that loops cannot recurse forever. A chain that loops
+    # has no oldest ancestor, so the lease keeps its own rent, which is what an
+    # inheriting lease would do anyway.
     def inheritance_source
       lease = self
       visited = Set.new
@@ -42,7 +43,7 @@ class Lease
 
       while lease.inherit? && lease.renewed_from.present?
         parent = lease.renewed_from
-        break if visited.include?(parent.id)
+        return self if visited.include?(parent.id)
 
         visited << parent.id
         lease = parent

@@ -358,10 +358,14 @@ RSpec.describe Lease do
 
       def two_lease_cycle
         root = create(:lease, property: property)
+        # Different rents, so a lease that answers with the other lease's rent
+        # is visible in the expectation below.
         first = create(:lease, property: other_property, start_date: "2025-06-01",
-                               enhancement_type: :inherit, enhancement_amount: nil, renewed_from: root)
+                               enhancement_type: :inherit, enhancement_amount: nil, renewed_from: root,
+                               rent_amount: "700.00")
         second = create(:lease, property: property, start_date: "2025-06-01",
-                                enhancement_type: :inherit, enhancement_amount: nil, renewed_from: root)
+                                enhancement_type: :inherit, enhancement_amount: nil, renewed_from: root,
+                                rent_amount: "900.00")
         first.update_column(:renewed_from_id, second.id) # rubocop:disable Rails/SkipsModelValidations
         second.update_column(:renewed_from_id, first.id) # rubocop:disable Rails/SkipsModelValidations
         first.reload
@@ -376,6 +380,12 @@ RSpec.describe Lease do
 
       it "does not raise on a two-lease cycle" do
         expect { two_lease_cycle.current_rent_at(Date.current) }.not_to raise_error
+      end
+
+      it "computes its own rent when the renewal chain loops" do
+        first = two_lease_cycle
+
+        expect(first.current_rent_at(first.start_date)).to eq(first.rent_amount)
       end
     end
   end
