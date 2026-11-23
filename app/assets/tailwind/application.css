@@ -1137,6 +1137,17 @@ body.versions [data-nav="versions"] {
   overflow-wrap: anywhere;
 }
 
+/* Statement icons keep their 32px; the description beside them wraps instead. */
+.lease-statement-list.table-only .resource-item-icon {
+  flex-shrink: 0;
+}
+
+/* The description takes the rest of the column, so its box is the room the
+   description has to wrap in, not the width of the date under it. */
+.lease-statement-list.table-only .resource-col-header > :last-child {
+  flex-grow: 1;
+}
+
 .statement-invoice { --resource-accent: var(--color-warning); }
 .statement-credit-note { --resource-accent: var(--color-error); }
 .statement-payment { --resource-accent: var(--color-success); }
@@ -1871,8 +1882,12 @@ body.versions [data-nav="versions"] {
     min-width: 44rem;
   }
 
+  /* The statement icon no longer gives up its width to a long description, so
+     the rows are 2rem wider: that gives the description back the width the
+     pinned icon takes (128.8px, at least as wide as the widest it gets today).
+     Phones scroll 32px further sideways to reach Balance. */
   .lease-statement-list.table-only > * {
-    min-width: 30rem;
+    min-width: 32rem;
   }
 
   .resource-list.table-only .resource-item > * {
