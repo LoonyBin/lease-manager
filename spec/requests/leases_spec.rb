@@ -269,6 +269,77 @@ RSpec.describe "Leases" do
         expect(response).to have_http_status(:forbidden).or redirect_to(root_path)
       end
     end
+
+    describe "renewal links" do
+      let!(:own_lease) { create(:lease, property: owned_property) }
+      let!(:other_lease) { create(:lease, start_date: "2024-01-01") }
+
+      def lease_params
+        { property_id: owned_property.id, tenant_id: own_lease.tenant_id, start_date: "2026-01-01",
+          duration_months: 12, rent_amount: 1000, security_deposit_value: 2, enhancement_period_months: 12,
+          enhancement_amount: "5.0", enhancement_type: "percentage" }
+      end
+
+      it "rejects creating a lease that renews another owner's lease", :aggregate_failures do
+        post leases_path, params: { lease: lease_params.merge(renewed_from_id: other_lease.id) }
+
+        # Only the two leases set up above exist, so a third one would be the
+        # renewal that was supposed to be refused.
+        expect(Lease.count).to eq(2)
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(other_lease.reload.terminated_on).to be_nil
+      end
+
+      it "leaves the other owner's invoice templates and reminder steps alone", :aggregate_failures do
+        post leases_path, params: { lease: lease_params.merge(renewed_from_id: other_lease.id) }
+
+        expect(other_lease.invoice_templates.count).to eq(1)
+        expect(ReminderStep.where(lease_id: other_lease.id).count).to eq(3)
+      end
+
+      it "rejects updating a lease to renew another owner's lease", :aggregate_failures do
+        patch lease_path(own_lease), params: { lease: { renewed_from_id: other_lease.id } }
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(own_lease.reload.renewed_from_id).to be_nil
+      end
+
+      it "rejects updating a lease to point at itself", :aggregate_failures do
+        patch lease_path(own_lease), params: { lease: { renewed_from_id: own_lease.id, enhancement_type: "inherit" } }
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(own_lease.reload.renewed_from_id).to be_nil
+      end
+
+      it "rejects moving a renewed lease to another owner's property", :aggregate_failures do
+        renewal = Lease.build_renewal(own_lease).tap(&:save!)
+        # A factory property belongs to another owner.
+        patch lease_path(own_lease), params: { lease: { property_id: create(:property).id } }
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(own_lease.reload.property_id).to eq(owned_property.id)
+        expect(renewal.reload.renewed_from).to eq(own_lease)
+      end
+    end
+
+    describe "GET /leases/new with a renewal source" do
+      it "does not find a lease the user cannot see", :aggregate_failures do
+        other_lease = create(:lease, start_date: "2024-01-01")
+
+        get new_lease_path(renewed_from_id: other_lease.id)
+
+        expect(response).to have_http_status(:not_found)
+        expect(response.body).not_to include(other_lease.rent_amount.to_s)
+      end
+
+      it "pre-fills the form for a lease the user can see", :aggregate_failures do
+        own_lease = create(:lease, property: owned_property)
+
+        get new_lease_path(renewed_from_id: own_lease.id)
+
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include("Renewing lease ##{own_lease.id}")
+      end
+    end
   end
 
   describe "renewal flow" do
