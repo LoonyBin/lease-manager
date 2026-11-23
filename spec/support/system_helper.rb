@@ -60,6 +60,16 @@ module SystemHelper
     JS
   end
 
+  # Bounding boxes of every element matching the selector, in viewport coordinates.
+  def boxes_of(selector)
+    page.evaluate_script(<<~JS)
+      [...document.querySelectorAll(#{selector.to_json})].map(el => {
+        const r = el.getBoundingClientRect();
+        return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width, height: r.height };
+      })
+    JS
+  end
+
   def computed_style(selector, property)
     page.evaluate_script("getComputedStyle(document.querySelector(#{selector.to_json})).#{property}")
   end
