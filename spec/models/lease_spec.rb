@@ -80,7 +80,8 @@ RSpec.describe Lease do
     describe "enhancement_amount with :inherit type" do
       it "is valid when inherit? and enhancement_amount is nil" do
         parent = create(:lease)
-        lease = build(:lease, enhancement_type: :inherit, enhancement_amount: nil, renewed_from: parent)
+        lease = build(:lease, property: create(:property, owner: parent.property.owner),
+                              enhancement_type: :inherit, enhancement_amount: nil, renewed_from: parent)
         expect(lease).to be_valid
       end
 
@@ -105,7 +106,8 @@ RSpec.describe Lease do
 
       it "is valid when inherit? and renewed_from is present" do
         parent = create(:lease)
-        lease = build(:lease, enhancement_type: :inherit, enhancement_amount: nil, renewed_from: parent)
+        lease = build(:lease, property: create(:property, owner: parent.property.owner),
+                              enhancement_type: :inherit, enhancement_amount: nil, renewed_from: parent)
         expect(lease).to be_valid
       end
 
@@ -127,6 +129,58 @@ RSpec.describe Lease do
         lease.valid?
         expect(lease.errors[:terminated_on]).to include("must be after the start date")
       end
+    end
+  end
+
+  describe "renewed_from validation" do
+    let(:owner) { create(:owner) }
+    let(:owned_property) { create(:property, owner: owner) }
+
+    it "rejects a lease that points at itself", :aggregate_failures do
+      lease = create(:lease, property: owned_property)
+
+      expect(lease.update(renewed_from_id: lease.id, enhancement_type: "inherit", enhancement_amount: nil)).to be false
+      expect(lease.errors[:renewed_from]).to be_present
+    end
+
+    it "rejects a lease that points at its own renewal", :aggregate_failures do
+      old_lease = create(:lease, property: owned_property)
+      renewal = described_class.build_renewal(old_lease)
+      renewal.save!
+
+      expect(old_lease.update(renewed_from: renewal, enhancement_type: "inherit", enhancement_amount: nil)).to be false
+      expect(old_lease.errors[:renewed_from]).to be_present
+    end
+
+    it "rejects a renewal of a lease on another owner's property", :aggregate_failures do
+      other_lease = create(:lease)
+      lease = build(:lease, property: owned_property, renewed_from: other_lease)
+
+      expect(lease).not_to be_valid
+      expect(lease.errors[:renewed_from]).to be_present
+    end
+
+    it "allows a renewal on another property of the same owner" do
+      old_lease = create(:lease, property: create(:property, owner: owner))
+      lease = build(:lease, property: create(:property, owner: owner), renewed_from: old_lease)
+
+      expect(lease).to be_valid
+    end
+
+    it "rejects a renewed_from id that does not exist", :aggregate_failures do
+      missing_id = described_class.maximum(:id).to_i + 1_000
+      lease = build(:lease, property: owned_property, renewed_from_id: missing_id)
+
+      expect(lease).not_to be_valid
+      expect(lease.errors[:renewed_from]).to be_present
+    end
+
+    it "does not fail an unrelated update on a lease with a valid renewed_from" do
+      old_lease = create(:lease, property: owned_property)
+      renewal = described_class.build_renewal(old_lease)
+      renewal.save!
+
+      expect(renewal.update(rent_amount: 1200)).to be true
     end
   end
 
@@ -230,8 +284,11 @@ RSpec.describe Lease do
     end
 
     context "with :inherit type" do
+      let(:owner) { create(:owner) }
+
       let(:root_lease) do
         create(:lease,
+               property: create(:property, owner: owner),
                start_date: Date.new(2023, 1, 1),
                rent_amount: 1000,
                enhancement_period_months: 12,
@@ -241,6 +298,7 @@ RSpec.describe Lease do
 
       let(:child_lease) do
         build(:lease,
+              property: create(:property, owner: owner),
               start_date: Date.new(2023, 12, 1),
               rent_amount: 1100,
               enhancement_period_months: 12,
@@ -251,6 +309,7 @@ RSpec.describe Lease do
 
       let(:grandchild_lease) do
         build(:lease,
+              property: create(:property, owner: owner),
               start_date: Date.new(2024, 11, 1),
               rent_amount: 1210,
               enhancement_period_months: 12,
@@ -276,6 +335,47 @@ RSpec.describe Lease do
         # bypass the validation to test the guard in current_rent_at
         allow(orphan).to receive(:renewed_from).and_return(nil)
         expect(orphan.current_rent_at(orphan.start_date)).to eq(orphan.rent_amount)
+      end
+    end
+
+    context "with a cyclic renewal chain" do
+      let(:property) { create(:property) }
+      let(:other_property) { create(:property, owner: property.owner) }
+
+      # A cycle is exactly what the renewal validation refuses, so it has to be
+      # forced past it to reproduce a row that is already in the database.
+      def self_linked_lease
+        lease = create(:lease,
+                       property: other_property,
+                       start_date: "2025-06-01",
+                       enhancement_type: :inherit,
+                       enhancement_amount: nil,
+                       renewed_from: create(:lease, property: property))
+        # The cycle is exactly what the validation refuses, so it is forced past it.
+        lease.update_column(:renewed_from_id, lease.id) # rubocop:disable Rails/SkipsModelValidations
+        lease.reload
+      end
+
+      def two_lease_cycle
+        root = create(:lease, property: property)
+        first = create(:lease, property: other_property, start_date: "2025-06-01",
+                               enhancement_type: :inherit, enhancement_amount: nil, renewed_from: root)
+        second = create(:lease, property: property, start_date: "2025-06-01",
+                                enhancement_type: :inherit, enhancement_amount: nil, renewed_from: root)
+        first.update_column(:renewed_from_id, second.id) # rubocop:disable Rails/SkipsModelValidations
+        second.update_column(:renewed_from_id, first.id) # rubocop:disable Rails/SkipsModelValidations
+        first.reload
+      end
+
+      it "does not raise on a lease that points at itself", :aggregate_failures do
+        lease = self_linked_lease
+
+        expect { lease.current_rent_at(lease.start_date) }.not_to raise_error
+        expect(lease.current_rent_at(lease.start_date)).to eq(lease.rent_amount)
+      end
+
+      it "does not raise on a two-lease cycle" do
+        expect { two_lease_cycle.current_rent_at(Date.current) }.not_to raise_error
       end
     end
   end

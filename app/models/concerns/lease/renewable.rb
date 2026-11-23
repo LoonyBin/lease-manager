@@ -10,6 +10,8 @@ class Lease
                         inverse_of: :renewed_from
 
       after_create :terminate_renewed_from_lease, if: :renewed_from_id?
+
+      validate :renewed_from_is_renewable
     end
 
     class_methods do
@@ -28,6 +30,48 @@ class Lease
     end
 
     private
+
+    # A lease may only renew a lease of the same owner, and the chain it
+    # creates must not loop: an inheriting lease follows its predecessor, so a
+    # loop makes rent calculation recurse forever. One wording covers every
+    # case, so the message never reveals whether a lease the user is not
+    # allowed to see exists.
+    def renewed_from_is_renewable
+      return unless renewed_from_id.present? || renewed_from.present?
+      return unless new_record? || will_save_change_to_renewed_from_id? || will_save_change_to_property_id?
+
+      errors.add(:renewed_from, "is not a lease that can be renewed") unless renewable_source?
+    end
+
+    def renewable_source?
+      return false if renewed_from.blank?
+      return false unless same_owner?
+
+      !renewal_chain_loops?
+    end
+
+    def same_owner?
+      return true if property.blank?
+
+      renewed_from.property&.owner_id == property.owner_id
+    end
+
+    # Walks the renewal chain upwards. A chain that reaches this lease, or that
+    # visits the same lease twice, is a loop.
+    def renewal_chain_loops?
+      visited = Set.new
+      current_id = renewed_from_id
+
+      while current_id.present?
+        return true if visited.include?(current_id)
+        return true if persisted? && current_id == id
+
+        visited << current_id
+        current_id = Lease.where(id: current_id).pick(:renewed_from_id)
+      end
+
+      false
+    end
 
     def terminate_renewed_from_lease
       renewed_from.update!(terminated_on: start_date - 1.day)
