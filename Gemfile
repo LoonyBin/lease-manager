@@ -7,7 +7,7 @@ gem "bootsnap", require: false
 gem "chartkick", "~> 5.3"
 gem "csv", "~> 3.3"
 gem "dartsass-rails"
-gem "dentaku", "~> 4.1"
+gem "dentaku", "~> 4.2"
 gem "groupdate", "~> 6.8"
 gem "haml-rails"
 gem "heroicons"
@@ -51,7 +51,7 @@ group :development, :test do
   gem "faker"
   gem "i18n-tasks"
 
-  gem "guard", "~> 2.20"
+  gem "guard", "~> 2.21"
   gem "guard-brakeman", "~> 1.0"
   gem "guard-rspec", "~> 4.7"
   gem "guard-rubocop", "~> 1.5"
